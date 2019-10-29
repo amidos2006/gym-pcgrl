@@ -1,4 +1,4 @@
-from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_reachable_tile, calc_num_regions
+from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
 from PIL import Image
 import os
 import numpy as np
@@ -52,7 +52,6 @@ class DungeonEnv(PcgrlEnv):
             "treasures": calc_certain_tile(self._rep._map, [5]),
             "enemies": calc_certain_tile(self._rep._map, [6,7]),
             "regions": calc_num_regions(self._rep._map, [0,2,3,4,5,6,7]),
-            "reach-exit": 0,
             "col-potions": 0,
             "col-treasures": 0,
             "col-enemies": 0,
@@ -60,8 +59,7 @@ class DungeonEnv(PcgrlEnv):
             "sol-length": 0
         }
         if self._rep_stats["player"] == 1:
-            self._rep_stats["reach-exit"] = calc_num_reachable_tile(self._rep._map, 2, [0, 2, 3, 4, 5, 6, 7], [3])
-            if self._rep_stats["reach-exit"] == 1 and self._rep_stats["regions"] == 1:
+            if self._rep_stats["regions"] == 1:
                 self._rep_stats["dist-win"], self._rep_stats["sol-length"], stats = self._calc_heuristic_solution()
                 self._rep_stats["col-potions"] = stats["col_potions"]
                 self._rep_stats["col-treasures"] = stats["col_treasures"]
@@ -125,19 +123,18 @@ class DungeonEnv(PcgrlEnv):
             rewards["exit"] *= -1
         #calculate enemies reward (between 1 and max_enemies)
         rewards["enemies"] = old_stats["enemies"] - self._rep_stats["enemies"]
-        if rewards["enemies"] > 0 and self._rep_stats["enemies"] == 0:
+        if rewards["enemies"] < 0 and old_stats["enemies"] == 0:
             rewards["enemies"] *= -1
-        elif rewards["enemies"] > 0 and self._rep_stats["enemies"] < self._max_enemies:
+        elif self._rep_stats["enemies"] >= 1 and self._rep_stats["enemies"] <= self._max_enemies and\
+                old_stats["enemies"] >= 1 and old_stats["enemies"] <= self._max_enemies:
             rewards["enemies"] = 0
-        elif rewards["enemies"] < 0 and old_stats["enemies"] == 0:
-            rewards["enemies"] *= -1
         #calculate potions reward (less than max potions)
         rewards["potions"] = old_stats["potions"] - self._rep_stats["potions"]
-        if rewards["potions"] > 0 and self._rep_stats["potions"] < self._max_potions:
+        if self._rep_stats["potions"] <= self._max_potions and old_stats["potions"] <= self._max_potions:
             rewards["potions"] = 0
         #calculate treasure reward (less than max treasures)
         rewards["treasures"] = old_stats["treasures"] - self._rep_stats["treasures"]
-        if rewards["treasures"] > 0 and self._rep_stats["treasures"] < self._max_treasures:
+        if self._rep_stats["treasures"] < self._max_treasures and old_stats["treasure"] <= self._max_treasures:
             rewards["treasures"] = 0
         #calculate regions reward (only one region)
         rewards["regions"] = old_stats["regions"] - self._rep_stats["regions"]
@@ -147,17 +144,13 @@ class DungeonEnv(PcgrlEnv):
         new_col = self._rep_stats["col-enemies"] / max(self._rep_stats["enemies"], 1)
         old_col = old_stats["col-enemies"] / max(old_stats["enemies"], 1)
         rewards["col-enemies"] = new_col - old_col
-        if rewards["col-enemies"] > 0 and old_col >= self._min_col_enemies:
-            rewards["col-enemies"] = 0
-        if rewards["col-enemies"] < 0 and new_col >= self._min_col_enemies:
+        if new_col >= self._min_col_enemies and old_col >= self._min_col_enemies:
             rewards["col-enemies"] = 0
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - self._rep_stats["dist-win"]
         #calculate solution length
         rewards["sol-length"] = self._rep_stats["sol-length"] - old_stats["sol-length"]
-        if rewards["sol-length"] > 0 and old_stats["sol-length"] >= self._min_solution:
-            rewards["sol-length"] = 0
-        elif rewards["sol-length"] < 0 and self._rep_stats["sol-length"] >= self._min_solution:
+        if self._rep_stats["sol-length"] >= self._min_solution and old_stats["sol-length"] >= self._min_solution:
             rewards["sol-length"] = 0
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
@@ -183,7 +176,6 @@ class DungeonEnv(PcgrlEnv):
             "treasures": self._rep_stats["treasures"],
             "enemies": self._rep_stats["enemies"],
             "regions": self._rep_stats["regions"],
-            "reach-exit": self._rep_stats["reach-exit"],
             "col-potions": self._rep_stats["col-potions"],
             "col-treasures": self._rep_stats["col-treasures"],
             "col-enemies": self._rep_stats["col-enemies"],

@@ -1,4 +1,4 @@
-from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_reachable_tile, calc_num_regions
+from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
 from PIL import Image
 import os
 import numpy as np
@@ -52,17 +52,11 @@ class SokobanEnv(PcgrlEnv):
             "crate": calc_certain_tile(self._rep._map, [3]),
             "target": calc_certain_tile(self._rep._map, [4]),
             "regions": calc_num_regions(self._rep._map, [0,2,3,4]),
-            "reach-crate": 0,
-            "reach-target": 0,
             "dist-win": min(calc_certain_tile(self._rep._map, [3]),calc_certain_tile(self._rep._map, [4]))*(self._rep._width + self._rep._height),
             "sol-length": 0
         }
         if self._rep_stats["player"] == 1:
-            self._rep_stats["reach-crate"] = calc_num_reachable_tile(self._rep._map, 2, [0, 2, 3, 4], [3])
-            self._rep_stats["reach-target"] = calc_num_reachable_tile(self._rep._map, 2, [0, 2, 3, 4], [4])
-            if self._rep_stats["crate"] == self._rep_stats["target"] and\
-                self._rep_stats["crate"] == self._rep_stats["reach-crate"] and\
-                self._rep_stats["target"] == self._rep_stats["reach-target"]:
+            if self._rep_stats["crate"] == self._rep_stats["target"] and self._rep_stats["regions"] == 1:
                 self._rep_stats["dist-win"], self._rep_stats["sol-length"] = self._calc_heuristic_solution()
 
     def adjust_param(self, **kwargs):
@@ -104,22 +98,20 @@ class SokobanEnv(PcgrlEnv):
             rewards["player"] *= -1
         elif rewards["player"] < 0 and self._rep_stats["player"] == 1:
             rewards["player"] *= -1
-        #calculate crate reward
+        #calculate crate reward (between 1 and max_crates)
         rewards["crate"] = old_stats["crate"] - self._rep_stats["crate"]
-        if rewards["crate"] > 0 and self._rep_stats["crate"] == 0:
+        if rewards["crate"] < 0 and old_stats["crate"] == 0:
             rewards["crate"] *= -1
-        elif rewards["crate"] > 0 and self._rep_stats["crate"] < self._max_crates:
+        elif self._rep_stats["crate"] >= 1 and self._rep_stats["crate"] <= self._max_crates and\
+                old_stats["crate"] >= 1 and old_stats["crate"] <= self._max_crates:
             rewards["crate"] = 0
-        elif rewards["crate"] < 0 and old_stats["crate"] == 0:
-            rewards["crate"] *= -1
-        #calculate target reward
+        #calculate target reward (between 1 and max_crates)
         rewards["target"] = old_stats["target"] - self._rep_stats["target"]
-        if rewards["target"] > 0 and self._rep_stats["target"] == 0:
+        if rewards["target"] < 0 and old_stats["target"] == 0:
             rewards["target"] *= -1
-        elif rewards["target"] > 0 and self._rep_stats["target"] < self._max_crates:
+        elif self._rep_stats["target"] >= 1 and self._rep_stats["target"] <= self._max_crates and\
+                old_stats["target"] >= 1 and old_stats["target"] <= self._max_crates:
             rewards["target"] = 0
-        elif rewards["target"] < 0 and old_stats["target"] == 0:
-            rewards["target"] *= -1
         #calculate regions reward
         rewards["regions"] = old_stats["regions"] - self._rep_stats["regions"]
         if self._rep_stats["regions"] == 0 and old_stats["regions"] > 0:
@@ -130,11 +122,9 @@ class SokobanEnv(PcgrlEnv):
         rewards["ratio"] = old_ratio - new_ratio
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - self._rep_stats["dist-win"]
-        #calculate solution length
+        #calculate solution length (more than min solution)
         rewards["sol-length"] = self._rep_stats["sol-length"] - old_stats["sol-length"]
-        if rewards["sol-length"] > 0 and old_stats["sol-length"] >= self._min_solution:
-            rewards["sol-length"] = 0
-        elif rewards["sol-length"] < 0 and self._rep_stats["sol-length"] >= self._min_solution:
+        if self._rep_stats["sol-length"] >= self._min_solution and old_stats["sol-length"] >= self._min_solution:
             rewards["sol-length"] = 0
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
@@ -154,8 +144,6 @@ class SokobanEnv(PcgrlEnv):
             "crate": self._rep_stats["crate"],
             "target": self._rep_stats["target"],
             "regions": self._rep_stats["regions"],
-            "reach-crate": self._rep_stats["reach-crate"],
-            "reach-target": self._rep_stats["reach-target"],
             "dist-win": self._rep_stats["dist-win"],
             "sol-length": self._rep_stats["sol-length"]
         }

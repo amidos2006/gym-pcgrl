@@ -1,4 +1,4 @@
-from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_reachable_tile, calc_num_regions
+from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
 from PIL import Image
 import os
 import numpy as np
@@ -125,11 +125,11 @@ class PlatformerEnv(PcgrlEnv):
             rewards["key"] *= -1
         #calculate spike reward (more than min spikes)
         rewards["spikes"] = self._rep_stats["spikes"] - old_stats["spikes"]
-        if self._rep_stats["spikes"] > self._min_spikes:
+        if self._rep_stats["spikes"] >= self._min_spikes and old_stats["spikes"] >= self._min_spikes:
             rewards["spikes"] = 0
         #calculate diamond reward (less than max diamonds)
         rewards["diamonds"] = old_stats["diamonds"] - self._rep_stats["diamonds"]
-        if rewards["diamonds"] > 0 and self._rep_stats["diamonds"] < self._max_diamonds:
+        if self._rep_stats["diamonds"] <= self._max_diamonds and old_stats["diamonds"] <= self._max_diamonds:
             rewards["diamonds"] = 0
         #calculate regions reward (only one region)
         rewards["regions"] = old_stats["regions"] - self._rep_stats["regions"]
@@ -137,13 +137,13 @@ class PlatformerEnv(PcgrlEnv):
             rewards["regions"] = -1
         #calculate num jumps reward (more than min jumps)
         rewards["num-jumps"] = self._rep_stats["num-jumps"] - old_stats["num-jumps"]
-        if self._rep_stats["num-jumps"] > self._min_jumps:
+        if self._rep_stats["num-jumps"] >= self._min_jumps and old_stats["num-jumps"] >= self._min_jumps:
             rewards["num-jumps"] = 0
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - self._rep_stats["dist-win"]
         #calculate solution length
         rewards["sol-length"] = self._rep_stats["sol-length"] - old_stats["sol-length"]
-        if self._rep_stats["sol-length"] > self._min_solution:
+        if self._rep_stats["sol-length"] >= self._min_solution and old_stats["sol-length"] >= self._min_solution:
             rewards["sol-length"] = 0
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
