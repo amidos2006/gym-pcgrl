@@ -71,8 +71,8 @@ def calc_longest_path(map, values):
 
 def calc_certain_tile(map, values):
     total_value = 0
-    for y in range(map.shape[1]):
-        for x in range(map.shape[0]):
+    for y in range(map.shape[0]):
+        for x in range(map.shape[1]):
             if map[y][x] in values:
                 total_value += 1
     return total_value

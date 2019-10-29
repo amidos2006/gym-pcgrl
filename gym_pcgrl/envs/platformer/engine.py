@@ -1,6 +1,6 @@
 from queue import PriorityQueue
 
-directions = [{"x":-1, "y":0}, {"x":1, "y":0}, {"x":0, "y":-1}, {"x":0, "y":1}]
+directions = [{"x":0, "y":0}, {"x":-1, "y":0}, {"x":1, "y":0}, {"x":0, "y":-1}]
 class Node:
     balance = 0.5
     def __init__(self, state, parent, action):
@@ -131,9 +131,8 @@ class AStarAgent(Agent):
 class State:
     def __init__(self):
         self.solid = []
-        self.enemies = []
-        self.treasures = []
-        self.potions = []
+        self.spikes = []
+        self.diamonds = []
         self.player = None
         self.door = None
 
@@ -175,118 +174,109 @@ class State:
                     self.solid[y].append(True)
                 else:
                     self.solid[y].append(False)
-                    if c == "@":
-                        self.player={"x":x, "y":y, "health":5, "potions":0, "treasures":0, "enemies":0}
-                    if c=="H":
-                        self.door={"x":x, "y":y}
-                    if c=="*":
-                        self.potions.append({"x":x, "y":y})
-                    if c=="$":
-                        self.treasures.append({"x":x, "y":y})
-                    if c=="g":
-                        self.enemies.append({"x":x, "y":y, "damage":1})
-                    if c=="o":
-                        self.enemies.append({"x":x, "y":y, "damage":2})
+                    if c == "$":
+                        self.diamonds.append({"x": x, "y": y})
+                    elif c == "*":
+                        self.spikes.append({"x": x, "y": y})
+                    elif c == "@":
+                        self.player = {"x": x, "y": y, "health": 1, "airTime": 0, "diamonds": 0, "jumps": 0}
+                    elif c == "H":
+                        self.door = {"x": x, "y": y}
 
     def clone(self):
         clone = State()
         clone.width = self.width
         clone.height = self.height
         clone.solid = self.solid
-        clone.player = {"x":self.player["x"], "y":self.player["y"],
-            "health":self.player["health"], "potions": self.player["potions"],
-            "treasures":self.player["treasures"],"enemies":self.player["enemies"]}
         clone.door = self.door
-        for p in self.potions:
-            clone.potions.append(p)
-        for t in self.treasures:
-            clone.treasures.append(t)
-        for e in self.enemies:
-            clone.enemies.append(e)
+        clone.spikes = self.spikes
+        clone.player = {"x":self.player["x"], "y":self.player["y"],
+            "health":self.player["health"], "airTime": self.player["airTime"],
+            "diamonds":self.player["diamonds"],"jumps":self.player["jumps"]}
+        for d in self.diamonds:
+            clone.diamonds.append(d)
         return clone
 
     def checkMovableLocation(self, x, y):
         return not (x < 0 or y < 0 or x >= self.width or y >= self.height or self.solid[y][x])
 
-    def checkPotionLocation(self, x, y):
-        for p in self.potions:
-            if p["x"] == x and p["y"] == y:
-                return p
+    def checkSpikeLocation(self, x, y):
+        for s in self.spikes:
+            if s["x"] == x and s["y"] == y:
+                return s
         return None
 
-    def checkTreasureLocation(self, x, y):
-        for t in self.treasures:
-            if t["x"] == x and t["y"] == y:
-                return t
-        return None
-
-    def checkEnemyLocation(self, x, y):
-        for e in self.enemies:
-            if e["x"] == x and e["y"] == y:
-                return e
+    def checkDiamondLocation(self, x, y):
+        for d in self.diamonds:
+            if d["x"] == x and d["y"] == y:
+                return d
         return None
 
     def updatePlayer(self, x, y):
         self.player["x"] = x
         self.player["y"] = y
-        toBeRemoved = self.checkPotionLocation(x, y)
+        toBeRemoved = self.checkDiamondLocation(x, y)
         if toBeRemoved is not None:
-            self.player["health"] += 2
-            self.player["potions"] += 1
-            if self.player["health"] > 5:
-                self.player["health"] = 5
-            self.potions.remove(toBeRemoved)
+            self.player["diamonds"] += 1
+            self.diamonds.remove(toBeRemoved)
             return
-        toBeRemoved = self.checkTreasureLocation(x, y)
+        toBeRemoved = self.checkSpikeLocation(x, y)
         if toBeRemoved is not None:
-            self.player["treasures"] += 1
-            self.treasures.remove(toBeRemoved)
-            return
-        toBeRemoved = self.checkEnemyLocation(x, y)
-        if toBeRemoved is not None:
-            self.player["enemies"] += 1
-            self.player["health"] -= toBeRemoved["damage"]
-            if self.player["health"] < 0:
-                self.player["health"] = 0
-            self.enemies.remove(toBeRemoved)
+            self.player["health"] = 0
             return
 
     def update(self, dirX, dirY):
         if self.checkOver():
             return
-        if abs(dirX) > 0 and abs(dirY) > 0:
-            return
         if dirX > 0:
             dirX=1
         if dirX < 0:
             dirX=-1
-        if dirY > 0:
-            dirY=1
         if dirY < 0:
             dirY=-1
-        newX=self.player["x"]+dirX
-        newY=self.player["y"]+dirY
-        if self.checkMovableLocation(newX, newY):
-            self.updatePlayer(newX, newY)
+        else:
+            dirY=0
+
+        ground = self.solid[self.player["y"] + 1][self.player["x"]]
+        cieling = self.solid[self.player["y"] - 1][self.player["x"]]
+        newX = self.player["x"]
+        newY = self.player["y"]
+        if abs(dirX) > 0:
+            if self.checkMovableLocation(newX + dirX, newY):
+                newX = newX + dirX
+        elif dirY == -1:
+            if ground and not cieling:
+                self.player["airTime"] = 3
+                self.player["jumps"] += 1
+
+        if self.player["airTime"] > 1:
+            self.player["airTime"] -= 1
+            if self.checkMovableLocation(newX, newY - 1):
+                newY = newY - 1
+            else:
+                self.player["airTime"] = 1
+        elif self.player["airTime"] == 1:
+            self.player["airTime"] = 0
+        else:
+            if self.checkMovableLocation(newX, newY + 1):
+                newY = newY + 1
+
+        self.updatePlayer(newX, newY)
 
     def getKey(self):
         key = str(self.player["x"]) + "," + str(self.player["y"]) + "," + str(self.player["health"]) + "|"
         key += str(self.door["x"]) + "," + str(self.door["y"]) + "|"
-        for p in self.potions:
-            key += str(p["x"]) + "," + str(p["y"]) + ","
+        for d in self.diamonds:
+            key += str(d["x"]) + "," + str(d["y"]) + ","
         key = key[:-1] + "|"
-        for t in self.treasures:
-            key += str(t["x"]) + "," + str(t["y"]) + ","
-        key = key[:-1] + "|"
-        for e in self.enemies:
-            key += str(e["x"]) + "," + str(e["y"]) + ","
+        for s in self.spikes:
+            key += str(s["x"]) + "," + str(s["y"]) + ","
         return key[:-1]
 
     def getHeuristic(self):
         playerDist = abs(self.player["x"] - self.door["x"]) + abs(self.player["y"] - self.door["y"])
-        healthCost = 5 - self.player["health"]
-        treasureCost = -self.player["treasures"]
-        return playerDist + 4*healthCost + 4*treasureCost
+        diamondCosts = -self.player["diamonds"]
+        return playerDist + 5*diamondCosts
 
     def getGameStatus(self):
         gameStatus = "running"
@@ -297,9 +287,9 @@ class State:
         return {
             "status": gameStatus,
             "health": self.player["health"],
-            "col_treasures": self.player["treasures"],
-            "col_potions": self.player["potions"],
-            "col_enemies": self.player["enemies"]
+            "airTime": self.player["airTime"],
+            "num_jumps": self.player["jumps"],
+            "col_diamonds": self.player["diamonds"]
         }
 
     def checkOver(self):
@@ -318,23 +308,16 @@ class State:
                 if self.solid[y][x]:
                     result += "#"
                 else:
-                    potion=self.checkPotionLocation(x,y) is not None
-                    treasure=self.checkTreasureLocation(x,y) is not None
-                    enemy=self.checkEnemyLocation(x,y)
-                    if enemy is not None:
-                        enemy=enemy["damage"]
+                    spike=self.checkSpikeLocation(x,y) is not None
+                    diamond=self.checkDiamondLocation(x,y) is not None
                     player=self.player["x"]==x and self.player["y"]==y
                     door=self.door["x"]==x and self.door["y"]==y
                     if player:
                         result += "@"
-                    elif potion:
+                    elif spike:
                         result +="*"
-                    elif treasure:
+                    elif diamond:
                         result +="$"
-                    elif enemy == 1:
-                        result += "g"
-                    elif enemy == 2:
-                        result += "o"
                     else:
                         if door:
                             result += "H"

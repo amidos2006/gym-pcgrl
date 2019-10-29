@@ -10,7 +10,7 @@ class SokobanEnv(PcgrlEnv):
         gameCharacters=" #@$."
         int_to_char = dict((i, c) for i, c in enumerate(gameCharacters))
         lvlString = ""
-        for y in range(self._rep._map.shape[0]+2):
+        for x in range(self._rep._map.shape[1]+2):
             lvlString += "#"
         lvlString += "\n"
         for (i,j), index in np.ndenumerate(self._rep._map):
@@ -19,7 +19,7 @@ class SokobanEnv(PcgrlEnv):
             lvlString += int_to_char[index]
             if j == self._rep._map.shape[1]-1:
                 lvlString += "#\n"
-        for y in range(self._rep._map.shape[0]+2):
+        for x in range(self._rep._map.shape[1]+2):
             lvlString += "#"
         lvlString += "\n"
 
