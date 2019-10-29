@@ -7,13 +7,13 @@ for rep in ["narrow", "wide", "turtle"]:
         kwargs={"rep": rep}
     )
     register(
-        id='dungeon-{}-v0'.format(rep),
-        entry_point='gym_pcgrl.envs:DungeonEnv',
+        id='mdungeon-{}-v0'.format(rep),
+        entry_point='gym_pcgrl.envs:MDungeonEnv',
         kwargs={"rep": rep}
     )
     register(
-        id='platformer-{}-v0'.format(rep),
-        entry_point='gym_pcgrl.envs:PlatformerEnv',
+        id='ddave-{}-v0'.format(rep),
+        entry_point='gym_pcgrl.envs:DDaveEnv',
         kwargs={"rep": rep}
     )
     register(

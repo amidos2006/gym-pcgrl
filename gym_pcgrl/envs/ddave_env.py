@@ -3,9 +3,9 @@ from PIL import Image
 import os
 import numpy as np
 from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
-from gym_pcgrl.envs.platformer.engine import State,BFSAgent,AStarAgent
+from gym_pcgrl.envs.ddave.engine import State,BFSAgent,AStarAgent
 
-class PlatformerEnv(PcgrlEnv):
+class DDaveEnv(PcgrlEnv):
     def _calc_heuristic_solution(self):
         gameCharacters=" #@H$V*"
         int_to_char = dict((i, c) for i, c in enumerate(gameCharacters))
@@ -173,12 +173,12 @@ class PlatformerEnv(PcgrlEnv):
     def render(self, mode='human'):
         tile_size = 16
         graphics = {
-            "0": Image.open(os.path.dirname(__file__) + "/platformer/empty.png").convert('RGBA'),
-            "1": Image.open(os.path.dirname(__file__) + "/platformer/solid.png").convert('RGBA'),
-            "2": Image.open(os.path.dirname(__file__) + "/platformer/player.png").convert('RGBA'),
-            "3": Image.open(os.path.dirname(__file__) + "/platformer/exit.png").convert('RGBA'),
-            "4": Image.open(os.path.dirname(__file__) + "/platformer/diamond.png").convert('RGBA'),
-            "5": Image.open(os.path.dirname(__file__) + "/platformer/key.png").convert('RGBA'),
-            "6": Image.open(os.path.dirname(__file__) + "/platformer/spike.png").convert('RGBA')
+            "0": Image.open(os.path.dirname(__file__) + "/ddave/empty.png").convert('RGBA'),
+            "1": Image.open(os.path.dirname(__file__) + "/ddave/solid.png").convert('RGBA'),
+            "2": Image.open(os.path.dirname(__file__) + "/ddave/player.png").convert('RGBA'),
+            "3": Image.open(os.path.dirname(__file__) + "/ddave/exit.png").convert('RGBA'),
+            "4": Image.open(os.path.dirname(__file__) + "/ddave/diamond.png").convert('RGBA'),
+            "5": Image.open(os.path.dirname(__file__) + "/ddave/key.png").convert('RGBA'),
+            "6": Image.open(os.path.dirname(__file__) + "/ddave/spike.png").convert('RGBA')
         }
         return super().render(graphics, 1, tile_size, mode)
