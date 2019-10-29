@@ -1,44 +1,6 @@
 from queue import PriorityQueue
 
 directions = [{"x":-1, "y":0}, {"x":1, "y":0}, {"x":0, "y":-1}, {"x":0, "y":1}]
-def getAllValidStates(state, maxStates=-1):
-    states=[]
-    queue = [Node(state.clone(), None, None)]
-    visisted = set()
-    while (maxStates <= 0 or len(states) < maxStates) and len(queue) > 0:
-        current = queue.pop(0)
-        if current.getKey() not in visisted:
-            states.append(current.state)
-            visisted.add(current.getKey())
-            queue.extend(current.getChildren())
-    return states
-
-def getPlayableValidStates(state, maxStates=-1):
-    states=[]
-    agent = AStarAgent()
-    queue = [Node(state.clone(), None, None)]
-    visisted = set()
-    while (maxStates <= 0 or len(states) < maxStates) and len(queue) > 0:
-        current = queue.pop(0)
-        if current.getKey() not in visisted:
-            visisted.add(current.getKey())
-            _,finalState,_ = agent.getSolution(current.state,0)
-            if finalState.checkWin():
-                states.append(current.state)
-                queue.extend(current.getChildren())
-    return states
-
-def nodeInsertion(sortedArray, newNode, balance):
-    newNodeValue = balance*newNode.getCost() + newNode.getHeuristic()
-    index=0
-    for i in range(0, len(sortedArray)):
-        node=sortedArray[i]
-        currentNodeValue=balance*node.getCost() + node.getHeuristic()
-        if currentNodeValue >= newNodeValue:
-            sortedArray.insert(i,newNode)
-            return
-    sortedArray.append(newNode)
-
 class Node:
     balance = 0.5
     def __init__(self, state, parent, action):
@@ -132,30 +94,6 @@ class DFSAgent(Agent):
         return bestNode.getActions(), bestNode, iterations
 
 class AStarAgent(Agent):
-    def getSolution(self, state, balance=1, maxIterations=-1):
-        iterations = 0
-        bestNode = None
-        queue = [Node(state.clone(), None, None)]
-        visisted = set()
-        while (iterations < maxIterations or maxIterations <= 0) and len(queue) > 0:
-            iterations += 1
-            # queue = sorted(queue, key=lambda node: balance*node.getCost() + node.getHeuristic())
-            current = queue.pop(0)
-            if current.checkWin():
-                return current.getActions(), current, iterations
-            if current.getKey() not in visisted:
-                if bestNode == None or current.getHeuristic() < bestNode.getHeuristic():
-                    bestNode = current
-                elif current.getHeuristic() == bestNode.getHeuristic() and current.getCost() < bestNode.getCost():
-                    bestNode = current
-                visisted.add(current.getKey())
-                children = current.getChildren()
-                for c in children:
-                    nodeInsertion(queue,c,balance)
-                # queue.extend(current.getChildren())
-        return bestNode.getActions(), bestNode, iterations
-
-class EnhancedAStarAgent(Agent):
     def getSolution(self, state, balance=1, maxIterations=-1):
         iterations = 0
         bestNode = None

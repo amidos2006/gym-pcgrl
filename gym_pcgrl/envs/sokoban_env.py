@@ -3,7 +3,7 @@ from PIL import Image
 import os
 import numpy as np
 from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
-from gym_pcgrl.envs.sokoban.engine import State,BFSAgent,EnhancedAStarAgent
+from gym_pcgrl.envs.sokoban.engine import State,BFSAgent,AStarAgent
 
 class SokobanEnv(PcgrlEnv):
     def _calc_heuristic_solution(self):
@@ -22,11 +22,11 @@ class SokobanEnv(PcgrlEnv):
         for y in range(self._rep._map.shape[0]+2):
             lvlString += "#"
         lvlString += "\n"
-        
+
         state = State()
         state.stringInitialize(lvlString.split("\n"))
 
-        aStarAgent = EnhancedAStarAgent()
+        aStarAgent = AStarAgent()
         bfsAgent = BFSAgent()
 
         sol,solState,iters = bfsAgent.getSolution(state, 5000)
@@ -83,7 +83,6 @@ class SokobanEnv(PcgrlEnv):
             "target": kwargs.get('reward_target', 5),
             "regions": kwargs.get('reward_regions', 5),
             "ratio": kwargs.get('reward_ratio', 1),
-            "reachable": kwargs.get('reward_reachable', 1),
             "dist-win": kwargs.get('reward_dist_win', 1),
             "sol-length": kwargs.get('reward_sol_length', 1)
         }
@@ -96,7 +95,6 @@ class SokobanEnv(PcgrlEnv):
             "target": 0,
             "regions": 0,
             "ratio": 0,
-            "reachable": 0,
             "dist-win": 0,
             "sol-length": 0
         }
@@ -130,13 +128,6 @@ class SokobanEnv(PcgrlEnv):
         new_ratio = abs(self._rep_stats["crate"] - self._rep_stats["target"])
         old_ratio = abs(old_stats["crate"] - old_stats["target"])
         rewards["ratio"] = old_ratio - new_ratio
-        #calculate reachable
-        new_perc_reach = min(self._rep_stats["reach-crate"], self._max_crates)/max(1,min(self._rep_stats["crate"], self._max_crates))
-        old_perc_reach = min(old_stats["reach-crate"], self._max_crates)/max(1,min(old_stats["crate"], self._max_crates))
-        rewards["reachable"] += (new_perc_reach - old_perc_reach) * self._max_crates
-        new_perc_reach = min(self._rep_stats["reach-target"], self._max_crates)/max(1,min(self._rep_stats["target"], self._max_crates))
-        old_perc_reach = min(old_stats["reach-target"], self._max_crates)/max(1,min(old_stats["target"], self._max_crates))
-        rewards["reachable"] += (new_perc_reach - old_perc_reach) * self._max_crates
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - self._rep_stats["dist-win"]
         #calculate solution length
@@ -151,7 +142,6 @@ class SokobanEnv(PcgrlEnv):
             rewards["target"] * self._rewards["target"] +\
             rewards["regions"] * self._rewards["regions"] +\
             rewards["ratio"] * self._rewards["ratio"] +\
-            rewards["reachable"] * self._rewards["reachable"] +\
             rewards["dist-win"] * self._rewards["dist-win"] +\
             rewards["sol-length"] * self._rewards["sol-length"]
 

@@ -6,11 +6,11 @@ for rep in ["narrow", "wide", "turtle"]:
         entry_point='gym_pcgrl.envs:BinaryEnv',
         kwargs={"rep": rep}
     )
-    # register(
-    #     id='dungeon-{}-v0'.format(rep),
-    #     entry_point='gym_pcgrl.envs:DungeonEnv',
-    #     kwargs={"rep": rep}
-    # )
+    register(
+        id='dungeon-{}-v0'.format(rep),
+        entry_point='gym_pcgrl.envs:DungeonEnv',
+        kwargs={"rep": rep}
+    )
     register(
         id='sokoban-{}-v0'.format(rep),
         entry_point='gym_pcgrl.envs:SokobanEnv',
