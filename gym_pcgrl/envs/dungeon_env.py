@@ -29,18 +29,19 @@ class DungeonEnv(PcgrlEnv):
         aStarAgent = AStarAgent()
         bfsAgent = BFSAgent()
 
-        sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)
-        if solState.checkWin():
-            return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
+        sol,solState,iters = bfsAgent.getSolution(state, 5000)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
         sol,solState,iters = aStarAgent.getSolution(state, 1, 5000)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = bfsAgent.getSolution(state, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
+        sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)
+        if solState.checkWin():
+            return 0, len(sol), solState.getGameStatus()
+
         return solState.getHeuristic(), 0, solState.getGameStatus()
 
     def _calc_rep_stats(self):
@@ -83,7 +84,7 @@ class DungeonEnv(PcgrlEnv):
         self._max_enemies = kwargs.get('max_enemies', 6)
         self._max_potions = kwargs.get('max_potions', 2)
         self._max_treasures = kwargs.get('max_treasures', 3)
-        self._min_col_enemies = kwargs.get('min_col_enemies', 0.3)
+        self._min_col_enemies = kwargs.get('min_col_enemies', 0.5)
         self._min_solution = kwargs.get('min_solution', 30)
         self._rewards = {
             "player": kwargs.get("reward_player", 5),
