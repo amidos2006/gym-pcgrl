@@ -1,4 +1,5 @@
 from gym_pcgrl.envs.helper import calc_num_regions, calc_longest_path
+import os
 from PIL import Image
 from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
 
@@ -47,7 +48,7 @@ class BinaryEnv(PcgrlEnv):
     def render(self, mode='human'):
         tile_size = 16
         graphics = {
-            "0": Image.new("RGBA", (tile_size,tile_size), (255,255,255,255)),
-            "1": Image.new("RGBA", (tile_size,tile_size), (0,0,0,255))
+            "0": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
+            "1": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
         }
         return super().render(graphics, 1, tile_size, mode)
