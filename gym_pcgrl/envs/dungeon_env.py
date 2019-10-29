@@ -82,8 +82,9 @@ class DungeonEnv(PcgrlEnv):
         self._max_enemies = kwargs.get('max_enemies', 6)
         self._max_potions = kwargs.get('max_potions', 2)
         self._max_treasures = kwargs.get('max_treasures', 3)
-        self._min_col_enemies = kwargs.get('min_col_enemies', 0.5)
-        self._min_solution = kwargs.get('min_solution', 20)
+
+        self._target_col_enemies = kwargs.get('min_col_enemies', 0.5)
+        self._target_solution = kwargs.get('target_solution', 20)
         self._rewards = {
             "player": kwargs.get("reward_player", 5),
             "exit": kwargs.get("reward_player", 5),
@@ -144,14 +145,10 @@ class DungeonEnv(PcgrlEnv):
         new_col = self._rep_stats["col-enemies"] / max(self._rep_stats["enemies"], 1)
         old_col = old_stats["col-enemies"] / max(old_stats["enemies"], 1)
         rewards["col-enemies"] = new_col - old_col
-        if new_col >= self._min_col_enemies and old_col >= self._min_col_enemies:
-            rewards["col-enemies"] = 0
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - self._rep_stats["dist-win"]
         #calculate solution length
         rewards["sol-length"] = self._rep_stats["sol-length"] - old_stats["sol-length"]
-        if self._rep_stats["sol-length"] >= self._min_solution and old_stats["sol-length"] >= self._min_solution:
-            rewards["sol-length"] = 0
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["exit"] * self._rewards["exit"] +\
@@ -164,9 +161,9 @@ class DungeonEnv(PcgrlEnv):
             rewards["sol-length"] * self._rewards["sol-length"]
 
     def _calc_episode_over(self, old_stats):
-        return self._rep_stats["sol-length"] >= self._min_solution and\
+        return self._rep_stats["sol-length"] >= self._target_solution and\
                 self._rep_stats["enemies"] > 0 and\
-                self._rep_stats["col-enemies"] / max(1,self._rep_stats["enemies"]) > self._min_col_enemies
+                self._rep_stats["col-enemies"] / max(1,self._rep_stats["enemies"]) > self._target_col_enemies
 
     def _calc_debug_info(self, old_stats):
         return {

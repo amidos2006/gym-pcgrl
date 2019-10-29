@@ -15,8 +15,7 @@ class BinaryEnv(PcgrlEnv):
         kwargs["prob"] = {"0":1-solid_prob, "1":solid_prob}
         kwargs["width"], kwargs["height"] = kwargs.get('width', 14), kwargs.get('height', 14)
         super().adjust_param(**kwargs)
-
-        self._target_regions = kwargs.get('target_regions', 1)
+        
         self._target_path = kwargs.get('target_path', 50)
         self._rewards = {
             "regions": kwargs.get('reward_regions', 10),
@@ -37,7 +36,7 @@ class BinaryEnv(PcgrlEnv):
             rewards["path_length"] * self._rewards["path_length"]
 
     def _calc_episode_over(self, old_stats):
-        return self._rep_stats["regions"] <= self._target_regions and self._rep_stats["path_length"] >= self._target_path
+        return self._rep_stats["regions"] == 1 and self._rep_stats["path_length"] >= self._target_path
 
     def _calc_debug_info(self, old_stats):
         return {

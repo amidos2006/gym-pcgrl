@@ -78,8 +78,8 @@ class PlatformerEnv(PcgrlEnv):
 
         self._max_diamonds = kwargs.get('max_treasures', 3)
         self._min_spikes = kwargs.get('max_spikes', 20)
-        self._min_jumps = kwargs.get('min_col_enemies', 2)
-        self._min_solution = kwargs.get('min_solution', 20)
+        self._target_jumps = kwargs.get('min_col_enemies', 2)
+        self._target_solution = kwargs.get('min_solution', 20)
         self._rewards = {
             "player": kwargs.get("reward_player", 5),
             "exit": kwargs.get("reward_exit", 5),
@@ -137,14 +137,10 @@ class PlatformerEnv(PcgrlEnv):
             rewards["regions"] = -1
         #calculate num jumps reward (more than min jumps)
         rewards["num-jumps"] = self._rep_stats["num-jumps"] - old_stats["num-jumps"]
-        if self._rep_stats["num-jumps"] >= self._min_jumps and old_stats["num-jumps"] >= self._min_jumps:
-            rewards["num-jumps"] = 0
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - self._rep_stats["dist-win"]
         #calculate solution length
         rewards["sol-length"] = self._rep_stats["sol-length"] - old_stats["sol-length"]
-        if self._rep_stats["sol-length"] >= self._min_solution and old_stats["sol-length"] >= self._min_solution:
-            rewards["sol-length"] = 0
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["exit"] * self._rewards["exit"] +\
@@ -157,8 +153,8 @@ class PlatformerEnv(PcgrlEnv):
             rewards["sol-length"] * self._rewards["sol-length"]
 
     def _calc_episode_over(self, old_stats):
-        return self._rep_stats["sol-length"] >= self._min_solution and\
-                self._rep_stats["num-jumps"] > self._min_jumps
+        return self._rep_stats["sol-length"] >= self._target_solution and\
+                self._rep_stats["num-jumps"] > self._target_jumps
 
     def _calc_debug_info(self, old_stats):
         return {

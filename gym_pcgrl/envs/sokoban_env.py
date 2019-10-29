@@ -70,7 +70,7 @@ class SokobanEnv(PcgrlEnv):
         super().adjust_param(**kwargs)
 
         self._max_crates = kwargs.get('max_crates', 3)
-        self._min_solution = kwargs.get('min_solution', 10)
+        self._target_solution = kwargs.get('min_solution', 10)
         self._rewards = {
             "player": kwargs.get('reward_player', 5),
             "crate": kwargs.get('reward_crate', 5),
@@ -124,8 +124,6 @@ class SokobanEnv(PcgrlEnv):
         rewards["dist-win"] = old_stats["dist-win"] - self._rep_stats["dist-win"]
         #calculate solution length (more than min solution)
         rewards["sol-length"] = self._rep_stats["sol-length"] - old_stats["sol-length"]
-        if self._rep_stats["sol-length"] >= self._min_solution and old_stats["sol-length"] >= self._min_solution:
-            rewards["sol-length"] = 0
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["crate"] * self._rewards["crate"] +\
@@ -136,7 +134,7 @@ class SokobanEnv(PcgrlEnv):
             rewards["sol-length"] * self._rewards["sol-length"]
 
     def _calc_episode_over(self, old_stats):
-        return self._rep_stats["sol-length"] >= self._min_solution
+        return self._rep_stats["sol-length"] >= self._target_solution
 
     def _calc_debug_info(self, old_stats):
         return {
