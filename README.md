@@ -47,6 +47,7 @@ for t in range(1000):
 
 ## Supported Problems
 Problems are the current games that we want to apply PCG-RL towards them. The following table lists all the supported problems in the interface:
+
 | Name    | Goal                                                                                                                                                                        | Tile Values                                                                                                                                                |
 |---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | binary  | Generate a fully connected top down layout where the longest path is greater than a certain threshold                                                                       | 0: empty, 1: solid                                                                                                                                         |
@@ -55,11 +56,13 @@ Problems are the current games that we want to apply PCG-RL towards them. The fo
 
 ## Supported Representations
 Representations are the way the Procedural Content Generation problem is formatted as a [Markov Decision Process](https://en.wikipedia.org/wiki/Markov_decision_process) to be able to use it for reinforcement learning. All the problems can be represented using any of the supported representations. The following table shows all the supported representations in the interface:
+
 | Name   | Observation Space                                                                                  | Action Space                                                                                                                             |
 |--------|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
 | narrow | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space that represents the new tile value                                                                                    |
 | wide   | 2D Box of integers that represent the map                                                          | Three Discrete spaces that represent the x position, y position, new tile value                                                          |
 | turtle | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space where the first 4 actions move the turtle (left, right, up, or down) while the rest of actions are for the tile value |
+
 The `narrow`, `wide`, and `turtle` representation are adapted from [Tree Search vs Optimization Approaches for Map Generation](https://arxiv.org/pdf/1903.11678.pdf) work by Bhaumik et al.
 
 ## Create your own environment
