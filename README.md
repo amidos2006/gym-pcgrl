@@ -47,18 +47,18 @@ for t in range(1000):
 
 ## Supported Problems
 Problems are the current games that we want to apply PCG-RL towards them. The following table lists all the supported problems in the interface:
-| Name    | Goal        | Tile Values |
-| ------- | ----------- | ----------- |
-| binary  | Generate a fully connected top down layout where the longest path is greater than a certain threshold | 0: empty, 1: solid |
+| Name    | Goal                                                                                                                                                                        | Tile Values                                                                                                                                                |
+|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| binary  | Generate a fully connected top down layout where the longest path is greater than a certain threshold                                                                       | 0: empty, 1: solid                                                                                                                                         |
 | dungeon | Generate a fully connected level for a simple dungeon crawler similar to [MiniDungeons 1](http://minidungeons.com/) where the player has to kill 50% of enemies before done | 0: empty, 1: solid, 2: player (max of 5 health), 3: exit, 4: potion (restores 2 health), 5: treasure, 6: goblin (deals 1 damage), 7: ogre (deals 2 damage) |
-| sokoban | Generate a fully connected [Sokoban](https://en.wikipedia.org/wiki/Sokoban) level that can be solved | 0: empty, 1: solid, 2: player, 3: crate (to be pushed toward the target), 4: target (the location where the crate should ends) |
+| sokoban | Generate a fully connected [Sokoban](https://en.wikipedia.org/wiki/Sokoban) level that can be solved                                                                        | 0: empty, 1: solid, 2: player, 3: crate (to be pushed toward the target), 4: target (the location where the crate should ends)                             |
 
 ## Supported Representations
 Representations are the way the Procedural Content Generation problem is formatted as a [Markov Decision Process](https://en.wikipedia.org/wiki/Markov_decision_process) to be able to use it for reinforcement learning. All the problems can be represented using any of the supported representations. The following table shows all the supported representations in the interface:
-| Name   | Observation Space | Action Space |
-| ------ | ----------------- | ------------ |
-| narrow | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space that represents the new tile value |
-| wide   | 2D Box of integers that represent the map | Three Discrete spaces that represent the x position, y position, new tile value |
+| Name   | Observation Space                                                                                  | Action Space                                                                                                                             |
+|--------|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
+| narrow | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space that represents the new tile value                                                                                    |
+| wide   | 2D Box of integers that represent the map                                                          | Three Discrete spaces that represent the x position, y position, new tile value                                                          |
 | turtle | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space where the first 4 actions move the turtle (left, right, up, or down) while the rest of actions are for the tile value |
 The `narrow`, `wide`, and `turtle` representation are adapted from [Tree Search vs Optimization Approaches for Map Generation](https://arxiv.org/pdf/1903.11678.pdf) work by Bhaumik et al.
 
