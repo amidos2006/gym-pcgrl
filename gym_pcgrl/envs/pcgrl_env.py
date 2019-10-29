@@ -14,7 +14,7 @@ class PcgrlEnv(gym.Env):
         self._rep_stats = None
 
         self.seed()
-        self.adjust_param()
+        self._init_param()
         self.viewer = None
         self.action_space = self._rep.get_action_space()
         self.observation_space = self._rep.get_observation_space()
@@ -23,24 +23,27 @@ class PcgrlEnv(gym.Env):
         return [self._rep.seed(seed)]
 
     def _calc_rep_stats(self):
-        self._rep_stat = {}
+        raise NotImplementedError('_calc_rep_stats is not implemeneted.')
 
     def reset(self):
         self._rep.reset()
         self._calc_rep_stats()
         return self._rep.get_observation()
 
+    def _init_param(self):
+        raise NotImplementedError('_calc_total_reward is not implemeneted.')
+
     def adjust_param(self, **kwargs):
         self._rep.adjust_param(**kwargs)
 
     def _calc_total_reward(self, old_stats):
-        return 0
+        raise NotImplementedError('_calc_total_reward is not implemeneted.')
 
     def _calc_episode_over(self, old_stats):
-        return False
+        raise NotImplementedError('_calc_episode_over is not implemeneted.')
 
     def _calc_debug_info(self, old_stats):
-        return {}
+        raise NotImplementedError('_calc_debug_info is not implemeneted.')
 
     def step(self, action):
         #save copy of the old stats to calculate the reward

@@ -65,36 +65,58 @@ class MDungeonEnv(PcgrlEnv):
                 self._rep_stats["col-treasures"] = stats["col_treasures"]
                 self._rep_stats["col-enemies"] = stats["col_enemies"]
 
+    def _init_param(self):
+        self._rep._init_param(7, 11, {"0":0.4, "1": 0.4, "2":0.02, "3":0.02, "4":0.03, "5":0.03, "6":0.05, "7": 0.05})
+
+        self._max_enemies = 6
+        self._max_potions = 2
+        self._max_treasures = 3
+
+        self._target_col_enemies = 0.5
+        self._target_solution = 20
+
+        self._rewards = {
+            "player": 5,
+            "exit": 5,
+            "potions": 1,
+            "treasures": 1,
+            "enemies": 5,
+            "regions": 5,
+            "col-enemies": 2,
+            "dist-win": 1,
+            "sol-length": 1
+        }
+
     def adjust_param(self, **kwargs):
-        solid_prob = kwargs.get('solid_prob', 0.4)
-        empty_prob = kwargs.get('empty_prob', 0.4)
-        player_prob = kwargs.get('player_prob', 0.02)
-        exit_prob = kwargs.get('exit_prob', 0.02)
-        potion_prob = kwargs.get('potion_prob', 0.03)
-        treasure_prob = kwargs.get('treasure_prob', 0.03)
-        goblin_prob = kwargs.get('goblin_prob', 0.05)
-        ogre_prob = kwargs.get('ogre_prob', 0.05)
+        empty_prob = kwargs.get('empty_prob', self._rep._prob["0"])
+        solid_prob = kwargs.get('solid_prob', self._rep._prob["1"])
+        player_prob = kwargs.get('player_prob', self._rep._prob["2"])
+        exit_prob = kwargs.get('exit_prob',self._rep._prob["3"])
+        potion_prob = kwargs.get('potion_prob', self._rep._prob["4"])
+        treasure_prob = kwargs.get('treasure_prob', self._rep._prob["5"])
+        goblin_prob = kwargs.get('goblin_prob', self._rep._prob["6"])
+        ogre_prob = kwargs.get('ogre_prob', self._rep._prob["7"])
         kwargs["prob"] = {"0":empty_prob, "1":solid_prob, "2":player_prob, "3":exit_prob,
                             "4":potion_prob, "5":treasure_prob, "6":goblin_prob, "7": ogre_prob}
-        kwargs["width"], kwargs["height"] = kwargs.get('width', 7), kwargs.get('height', 11)
+        kwargs["width"], kwargs["height"] = kwargs.get('width', self._rep._width), kwargs.get('height', self._rep._height)
         super().adjust_param(**kwargs)
 
-        self._max_enemies = kwargs.get('max_enemies', 6)
-        self._max_potions = kwargs.get('max_potions', 2)
-        self._max_treasures = kwargs.get('max_treasures', 3)
+        self._max_enemies = kwargs.get('max_enemies', self._max_enemies)
+        self._max_potions = kwargs.get('max_potions', self._max_potions)
+        self._max_treasures = kwargs.get('max_treasures', self._max_treasures)
 
-        self._target_col_enemies = kwargs.get('min_col_enemies', 0.5)
-        self._target_solution = kwargs.get('target_solution', 20)
+        self._target_col_enemies = kwargs.get('min_col_enemies', self._target_col_enemies)
+        self._target_solution = kwargs.get('target_solution', self._target_solution)
         self._rewards = {
-            "player": kwargs.get("reward_player", 5),
-            "exit": kwargs.get("reward_player", 5),
-            "potions": kwargs.get("reward_player", 1),
-            "treasures": kwargs.get("reward_player", 1),
-            "enemies": kwargs.get("reward_enemies", 5),
-            "regions": kwargs.get("reward_regions", 5),
-            "col-enemies": kwargs.get("reward_col_enemies", 2),
-            "dist-win": kwargs.get("reward_dist_win", 1),
-            "sol-length": kwargs.get("reward_sol_length", 1)
+            "player": kwargs.get("reward_player", self._rewards["player"]),
+            "exit": kwargs.get("reward_exit", self._rewards["exit"]),
+            "potions": kwargs.get("reward_potions", self._rewards["potions"]),
+            "treasures": kwargs.get("reward_treasures", self._rewards["treasures"]),
+            "enemies": kwargs.get("reward_enemies", self._rewards["enemies"]),
+            "regions": kwargs.get("reward_regions", self._rewards["regions"]),
+            "col-enemies": kwargs.get("reward_col_enemies", self._rewards["col-enemies"]),
+            "dist-win": kwargs.get("reward_dist_win", self._rewards["dist-win"]),
+            "sol-length": kwargs.get("reward_sol_length", self._rewards["sol-length"])
         }
 
     def _calc_total_reward(self, old_stats):
@@ -135,7 +157,7 @@ class MDungeonEnv(PcgrlEnv):
             rewards["potions"] = 0
         #calculate treasure reward (less than max treasures)
         rewards["treasures"] = old_stats["treasures"] - self._rep_stats["treasures"]
-        if self._rep_stats["treasures"] < self._max_treasures and old_stats["treasure"] <= self._max_treasures:
+        if self._rep_stats["treasures"] < self._max_treasures and old_stats["treasures"] <= self._max_treasures:
             rewards["treasures"] = 0
         #calculate regions reward (only one region)
         rewards["regions"] = old_stats["regions"] - self._rep_stats["regions"]

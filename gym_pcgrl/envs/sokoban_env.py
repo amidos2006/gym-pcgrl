@@ -59,26 +59,45 @@ class SokobanEnv(PcgrlEnv):
             if self._rep_stats["crate"] == self._rep_stats["target"] and self._rep_stats["regions"] == 1:
                 self._rep_stats["dist-win"], self._rep_stats["sol-length"] = self._calc_heuristic_solution()
 
+    def _init_param(self):
+        self._rep._init_param(5, 5, {"0":0.45, "1":0.4, "2": 0.05, "3": 0.05, "4": 0.05})
+
+        self._max_crates = 3
+
+        self._target_solution = 10
+
+        self._rewards = {
+            "player": 5,
+            "crate": 5,
+            "target": 5,
+            "regions": 5,
+            "ratio": 1,
+            "dist-win": 1,
+            "sol-length": 1
+        }
+
     def adjust_param(self, **kwargs):
-        solid_prob = kwargs.get('solid_prob', 0.4)
-        empty_prob = kwargs.get('empty_prob', 0.45)
-        player_prob = kwargs.get('player_prob', 0.05)
-        crate_prob = kwargs.get('crate_prob', 0.05)
-        target_prob = kwargs.get('target_prob', 0.05)
+        empty_prob = kwargs.get('empty_prob', self._rep._prob["0"])
+        solid_prob = kwargs.get('solid_prob', self._rep._prob["1"])
+        player_prob = kwargs.get('player_prob', self._rep._prob["2"])
+        crate_prob = kwargs.get('crate_prob', self._rep._prob["3"])
+        target_prob = kwargs.get('target_prob', self._rep._prob["4"])
         kwargs["prob"] = {"0":empty_prob, "1":solid_prob, "2":player_prob, "3":crate_prob, "4":target_prob}
-        kwargs["width"], kwargs["height"] = kwargs.get('width', 5), kwargs.get('height', 5)
+        kwargs["width"], kwargs["height"] = kwargs.get('width', self._rep._width), kwargs.get('height', self._rep._height)
         super().adjust_param(**kwargs)
 
-        self._max_crates = kwargs.get('max_crates', 3)
-        self._target_solution = kwargs.get('min_solution', 10)
+        self._max_crates = kwargs.get('max_crates', self._max_crates)
+
+        self._target_solution = kwargs.get('min_solution', self._target_solution)
+
         self._rewards = {
-            "player": kwargs.get('reward_player', 5),
-            "crate": kwargs.get('reward_crate', 5),
-            "target": kwargs.get('reward_target', 5),
-            "regions": kwargs.get('reward_regions', 5),
-            "ratio": kwargs.get('reward_ratio', 1),
-            "dist-win": kwargs.get('reward_dist_win', 1),
-            "sol-length": kwargs.get('reward_sol_length', 1)
+            "player": kwargs.get('reward_player', self._rewards["player"]),
+            "crate": kwargs.get('reward_crate', self._rewards["crate"]),
+            "target": kwargs.get('reward_target', self._rewards["target"]),
+            "regions": kwargs.get('reward_regions', self._rewards["regions"]),
+            "ratio": kwargs.get('reward_ratio', self._rewards["ratio"]),
+            "dist-win": kwargs.get('reward_dist_win', self._rewards["dist-win"]),
+            "sol-length": kwargs.get('reward_sol_length', self._rewards["sol-length"])
         }
 
     def _calc_total_reward(self, old_stats):

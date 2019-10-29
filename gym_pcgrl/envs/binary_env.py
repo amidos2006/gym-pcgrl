@@ -7,41 +7,53 @@ class BinaryEnv(PcgrlEnv):
     def _calc_rep_stats(self):
         self._rep_stats = {
             "regions": calc_num_regions(self._rep._map, [0]),
-            "path_length": calc_longest_path(self._rep._map, [0])
+            "path-length": calc_longest_path(self._rep._map, [0])
+        }
+
+    def _init_param(self, **kwargs):
+        self._rep._init_param(14, 14, {"0": 0.7, "1":0.3})
+
+        self._target_path = 50
+
+        self._rewards = {
+            "regions": 5,
+            "path-length": 1
         }
 
     def adjust_param(self, **kwargs):
-        solid_prob = kwargs.get('solid_prob', 0.3)
-        kwargs["prob"] = {"0":1-solid_prob, "1":solid_prob}
-        kwargs["width"], kwargs["height"] = kwargs.get('width', 14), kwargs.get('height', 14)
+        empty_prob = kwargs.get('empty_prob', self._rep._prob["0"])
+        solid_prob = kwargs.get('solid_prob', self._rep._prob["1"])
+        kwargs["prob"] = {"0":empty_prob, "1":solid_prob}
+        kwargs["width"], kwargs["height"] = kwargs.get('width', self._rep._width), kwargs.get('height', self._rep._height)
         super().adjust_param(**kwargs)
-        
-        self._target_path = kwargs.get('target_path', 50)
+
+        self._target_path = kwargs.get('target_path', self._target_path)
+
         self._rewards = {
-            "regions": kwargs.get('reward_regions', 10),
-            "path_length": kwargs.get('reward_path_length', 1)
+            "regions": kwargs.get('reward_regions', self._rewards["regions"]),
+            "path-length": kwargs.get('reward_path_length', self._rewards["path-length"])
         }
 
     def _calc_total_reward(self, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
             "regions": old_stats["regions"] - self._rep_stats["regions"],
-            "path_length": self._rep_stats["path_length"] - old_stats["path_length"]
+            "path-length": self._rep_stats["path-length"] - old_stats["path-length"]
         }
         #unless the number of regions become zero, it has to be punished
         if self._rep_stats["regions"] == 0 and old_stats["regions"] > 0:
             rewards["regions"] = -1
         #calculate the total reward
         return rewards["regions"] * self._rewards["regions"] +\
-            rewards["path_length"] * self._rewards["path_length"]
+            rewards["path-length"] * self._rewards["path-length"]
 
     def _calc_episode_over(self, old_stats):
-        return self._rep_stats["regions"] == 1 and self._rep_stats["path_length"] >= self._target_path
+        return self._rep_stats["regions"] == 1 and self._rep_stats["path-length"] >= self._target_path
 
     def _calc_debug_info(self, old_stats):
         return {
             "regions": self._rep_stats["regions"],
-            "path_length": self._rep_stats["path_length"]
+            "path-length": self._rep_stats["path-length"]
         }
 
     def render(self, mode='human'):

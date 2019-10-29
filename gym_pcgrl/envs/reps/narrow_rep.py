@@ -32,9 +32,13 @@ class NarrowRepresentation(Representation):
             "map": self._map.copy()
         })
 
+    def _init_param(self, width, height, prob):
+        super()._init_param(width, height, prob)
+        self._random_tile = True
+
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
-        self._random_tile = kwargs.get('random_tile', True)
+        self._random_tile = kwargs.get('random_tile', self._random_tile)
 
     def update(self, action):
         self._map[self._y][self._x] = action

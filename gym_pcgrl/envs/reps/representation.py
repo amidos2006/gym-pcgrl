@@ -37,10 +37,10 @@ class Representation:
         else:
             self._map = self._old_map.copy()
 
-    def adjust_param(self, **kwargs):
-        self._random_start = kwargs.get('random_start', True)
-        self._width, self._height = kwargs.get('width', 9), kwargs.get('height', 9)
-        self._prob = kwargs.get('prob')
+    def _init_param(self, width, height, prob):
+        self._random_start = True
+        self._width, self._height = width, height
+        self._prob = prob
         total = 0
         for v in self._prob:
             self._prob[v] = max(self._prob[v], 1e-6)
@@ -48,6 +48,19 @@ class Representation:
             total += self._prob[v]
         for v in self._prob:
             self._prob[v] /= total
+
+    def adjust_param(self, **kwargs):
+        self._random_start = kwargs.get('random_start', self._random_start)
+        self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
+        if kwargs.get('prob') is not None:
+            self._prob = kwargs.get('prob')
+            total = 0
+            for v in self._prob:
+                self._prob[v] = max(self._prob[v], 1e-6)
+            for v in self._prob:
+                total += self._prob[v]
+            for v in self._prob:
+                self._prob[v] /= total
 
     def update(self, action):
         pass

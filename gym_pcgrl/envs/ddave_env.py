@@ -63,33 +63,56 @@ class DDaveEnv(PcgrlEnv):
                 self._rep_stats["num-jumps"] = stats["num_jumps"]
                 self._rep_stats["col-diamonds"] = stats["col_diamonds"]
 
+    def _init_param(self):
+        self._rep._init_param(11, 7, {"0":0.5, "1":0.3, "2":0.02, "3":0.02, "4":0.04, "5": 0.02, "6":0.1})
+
+        self._max_diamonds = 3
+        self._min_spikes = 20
+
+        self._target_jumps = 2
+        self._target_solution = 20
+
+        self._rewards = {
+            "player": 5,
+            "exit": 5,
+            "diamonds": 1,
+            "key": 5,
+            "spikes": 1,
+            "regions": 5,
+            "num-jumps": 2,
+            "dist-win": 1,
+            "sol-length": 1
+        }
+
     def adjust_param(self, **kwargs):
-        solid_prob = kwargs.get('solid_prob', 0.3)
-        empty_prob = kwargs.get('empty_prob', 0.5)
-        player_prob = kwargs.get('player_prob', 0.02)
-        exit_prob = kwargs.get('exit_prob', 0.02)
-        key_prob = kwargs.get('key_prob', 0.02)
-        diamond_prob = kwargs.get('diamond_prob', 0.04)
-        spikes_prob = kwargs.get('spikes_prob', 0.1)
+        empty_prob = kwargs.get('empty_prob', self._rep._prob["0"])
+        solid_prob = kwargs.get('solid_prob', self._rep._prob["1"])
+        player_prob = kwargs.get('player_prob', self._rep._prob["2"])
+        exit_prob = kwargs.get('exit_prob', self._rep._prob["3"])
+        diamond_prob = kwargs.get('diamond_prob', self._rep._prob["4"])
+        key_prob = kwargs.get('key_prob', self._rep._prob["5"])
+        spikes_prob = kwargs.get('spikes_prob', self._rep._prob["6"])
         kwargs["prob"] = {"0":empty_prob, "1":solid_prob, "2":player_prob, "3":exit_prob,
                             "4":diamond_prob, "5": key_prob, "6":spikes_prob}
-        kwargs["width"], kwargs["height"] = kwargs.get('width', 11), kwargs.get('height', 7)
+        kwargs["width"], kwargs["height"] = kwargs.get('width', self._rep._width), kwargs.get('height', self._rep._height)
         super().adjust_param(**kwargs)
 
-        self._max_diamonds = kwargs.get('max_treasures', 3)
-        self._min_spikes = kwargs.get('max_spikes', 20)
-        self._target_jumps = kwargs.get('min_col_enemies', 2)
-        self._target_solution = kwargs.get('min_solution', 20)
+        self._max_diamonds = kwargs.get('max_diamonds', self._max_diamonds)
+        self._min_spikes = kwargs.get('min_spikes', self._min_spikes)
+
+        self._target_jumps = kwargs.get('target_jumps', self._target_jumps)
+        self._target_solution = kwargs.get('target_solution', self._target_solution)
+
         self._rewards = {
-            "player": kwargs.get("reward_player", 5),
-            "exit": kwargs.get("reward_exit", 5),
-            "diamonds": kwargs.get("reward_diamonds", 1),
-            "key": kwargs.get("reward_key", 5),
-            "spikes": kwargs.get("reward_spikes", 1),
-            "regions": kwargs.get("reward_regions", 5),
-            "num-jumps": kwargs.get("reward_num_jumps", 2),
-            "dist-win": kwargs.get("reward_dist_win", 1),
-            "sol-length": kwargs.get("reward_sol_length", 1)
+            "player": kwargs.get("reward_player", self._rewards["player"]),
+            "exit": kwargs.get("reward_exit", self._rewards["exit"]),
+            "diamonds": kwargs.get("reward_diamonds", self._rewards["diamonds"]),
+            "key": kwargs.get("reward_key", self._rewards["key"]),
+            "spikes": kwargs.get("reward_spikes", self._rewards["spikes"]),
+            "regions": kwargs.get("reward_regions", self._rewards["regions"]),
+            "num-jumps": kwargs.get("reward_num_jumps", self._rewards["num-jumps"]),
+            "dist-win": kwargs.get("reward_dist_win", self._rewards["dist-win"]),
+            "sol-length": kwargs.get("reward_sol_length", self._rewards["sol-length"])
         }
 
     def _calc_total_reward(self, old_stats):
