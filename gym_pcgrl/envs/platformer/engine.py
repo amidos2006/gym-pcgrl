@@ -134,6 +134,7 @@ class State:
         self.spikes = []
         self.diamonds = []
         self.player = None
+        self.key = None
         self.door = None
 
     def stringInitialize(self, lines):
@@ -179,9 +180,11 @@ class State:
                     elif c == "*":
                         self.spikes.append({"x": x, "y": y})
                     elif c == "@":
-                        self.player = {"x": x, "y": y, "health": 1, "airTime": 0, "diamonds": 0, "jumps": 0}
+                        self.player = {"x": x, "y": y, "health": 1, "airTime": 0, "diamonds": 0, "key": 0, "jumps": 0}
                     elif c == "H":
                         self.door = {"x": x, "y": y}
+                    elif k == "V":
+                        self.key = {"x": x, "y": y}
 
     def clone(self):
         clone = State()
@@ -190,9 +193,10 @@ class State:
         clone.solid = self.solid
         clone.door = self.door
         clone.spikes = self.spikes
+        clone.key = self.key
         clone.player = {"x":self.player["x"], "y":self.player["y"],
             "health":self.player["health"], "airTime": self.player["airTime"],
-            "diamonds":self.player["diamonds"],"jumps":self.player["jumps"]}
+            "diamonds":self.player["diamonds"], "key": self.player["key"], "jumps":self.player["jumps"]}
         for d in self.diamonds:
             clone.diamonds.append(d)
         return clone
@@ -212,6 +216,11 @@ class State:
                 return d
         return None
 
+    def checkKeyLocation(self, x, y):
+        if self.key is not None and self.key["x"] == x and self.key["y"] == y:
+            return self.key
+        return None
+
     def updatePlayer(self, x, y):
         self.player["x"] = x
         self.player["y"] = y
@@ -223,6 +232,11 @@ class State:
         toBeRemoved = self.checkSpikeLocation(x, y)
         if toBeRemoved is not None:
             self.player["health"] = 0
+            return
+        toBeRemoved = self.checkKeyLocation(x, y)
+        if toBeRemoved is not None:
+            self.player["key"] += 1
+            self.key = None
             return
 
     def update(self, dirX, dirY):
@@ -266,6 +280,8 @@ class State:
     def getKey(self):
         key = str(self.player["x"]) + "," + str(self.player["y"]) + "," + str(self.player["health"]) + "|"
         key += str(self.door["x"]) + "," + str(self.door["y"]) + "|"
+        if self.key is None:
+            key += str(self.key["x"]) + "," + str(self.key["y"]) + "|"
         for d in self.diamonds:
             key += str(d["x"]) + "," + str(d["y"]) + ","
         key = key[:-1] + "|"
@@ -275,6 +291,8 @@ class State:
 
     def getHeuristic(self):
         playerDist = abs(self.player["x"] - self.door["x"]) + abs(self.player["y"] - self.door["y"])
+        if self.key is not None:
+            playerDist = abs(self.player["x"] - self.key["x"]) + abs(self.player["y"] - self.key["y"]) + (self.width + self.height)
         diamondCosts = -self.player["diamonds"]
         return playerDist + 5*diamondCosts
 
@@ -289,14 +307,15 @@ class State:
             "health": self.player["health"],
             "airTime": self.player["airTime"],
             "num_jumps": self.player["jumps"],
-            "col_diamonds": self.player["diamonds"]
+            "col_diamonds": self.player["diamonds"],
+            "col_key": self.player["key"]
         }
 
     def checkOver(self):
         return self.checkWin() or self.checkLose()
 
     def checkWin(self):
-        return self.player["x"] == self.door["x"] and self.player["y"] == self.door["y"]
+        return self.player["key"] > 0 and self.player["x"] == self.door["x"] and self.player["y"] == self.door["y"]
 
     def checkLose(self):
         return self.player["health"] <= 0
@@ -310,18 +329,25 @@ class State:
                 else:
                     spike=self.checkSpikeLocation(x,y) is not None
                     diamond=self.checkDiamondLocation(x,y) is not None
+                    key=self.checkKeyLocation(x,y) is not None
                     player=self.player["x"]==x and self.player["y"]==y
                     door=self.door["x"]==x and self.door["y"]==y
                     if player:
-                        result += "@"
+                        if spike:
+                            result += "-"
+                        elif door:
+                            result += "+"
+                        else:
+                            result += "@"
                     elif spike:
                         result +="*"
                     elif diamond:
                         result +="$"
+                    elif key:
+                        result += "V"
+                    elif door:
+                        result += "H"
                     else:
-                        if door:
-                            result += "H"
-                        else:
-                            result += " "
+                        result += " "
             result += "\n"
         return result[:-1]

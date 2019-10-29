@@ -7,7 +7,7 @@ from gym_pcgrl.envs.platformer.engine import State,BFSAgent,AStarAgent
 
 class PlatformerEnv(PcgrlEnv):
     def _calc_heuristic_solution(self):
-        gameCharacters=" #@H$*"
+        gameCharacters=" #@H$V*"
         int_to_char = dict((i, c) for i, c in enumerate(gameCharacters))
         lvlString = ""
         for x in range(self._rep._map.shape[1]+2):
@@ -49,17 +49,16 @@ class PlatformerEnv(PcgrlEnv):
             "player": calc_certain_tile(self._rep._map, [2]),
             "exit": calc_certain_tile(self._rep._map, [3]),
             "diamonds": calc_certain_tile(self._rep._map, [4]),
-            "spikes": calc_certain_tile(self._rep._map, [5]),
+            "key": calc_certain_tile(self._rep._map, [5]),
+            "spikes": calc_certain_tile(self._rep._map, [6]),
             "regions": calc_num_regions(self._rep._map, [0,2,3,4,5]),
-            "reach-exit": 0,
             "num-jumps": 0,
             "col-diamonds": 0,
             "dist-win": self._rep._width * self._rep._height,
             "sol-length": 0
         }
         if self._rep_stats["player"] == 1:
-            self._rep_stats["reach-exit"] = calc_num_reachable_tile(self._rep._map, 2, [0, 2, 3, 4, 5], [3])
-            if self._rep_stats["reach-exit"] == 1 and self._rep_stats["regions"] == 1:
+            if self._rep_stats["exit"] == 1 and self._rep_stats["key"] == 1 and self._rep_stats["regions"] == 1:
                 self._rep_stats["dist-win"], self._rep_stats["sol-length"], stats = self._calc_heuristic_solution()
                 self._rep_stats["num-jumps"] = stats["num_jumps"]
                 self._rep_stats["col-diamonds"] = stats["col_diamonds"]
@@ -69,10 +68,11 @@ class PlatformerEnv(PcgrlEnv):
         empty_prob = kwargs.get('empty_prob', 0.5)
         player_prob = kwargs.get('player_prob', 0.02)
         exit_prob = kwargs.get('exit_prob', 0.02)
-        diamond_prob = kwargs.get('diamond_prob', 0.06)
+        key_prob = kwargs.get('key_prob', 0.02)
+        diamond_prob = kwargs.get('diamond_prob', 0.04)
         spikes_prob = kwargs.get('spikes_prob', 0.1)
         kwargs["prob"] = {"0":empty_prob, "1":solid_prob, "2":player_prob, "3":exit_prob,
-                            "4":diamond_prob, "5":spikes_prob}
+                            "4":diamond_prob, "5": key_prob, "6":spikes_prob}
         kwargs["width"], kwargs["height"] = kwargs.get('width', 11), kwargs.get('height', 7)
         super().adjust_param(**kwargs)
 
@@ -82,11 +82,12 @@ class PlatformerEnv(PcgrlEnv):
         self._min_solution = kwargs.get('min_solution', 20)
         self._rewards = {
             "player": kwargs.get("reward_player", 5),
-            "exit": kwargs.get("reward_player", 5),
-            "diamonds": kwargs.get("reward_player", 1),
-            "spikes": kwargs.get("reward_enemies", 1),
+            "exit": kwargs.get("reward_exit", 5),
+            "diamonds": kwargs.get("reward_diamonds", 1),
+            "key": kwargs.get("reward_key", 5),
+            "spikes": kwargs.get("reward_spikes", 1),
             "regions": kwargs.get("reward_regions", 5),
-            "num-jumps": kwargs.get("reward_col_enemies", 2),
+            "num-jumps": kwargs.get("reward_num_jumps", 2),
             "dist-win": kwargs.get("reward_dist_win", 1),
             "sol-length": kwargs.get("reward_sol_length", 1)
         }
@@ -97,6 +98,7 @@ class PlatformerEnv(PcgrlEnv):
             "player": 0,
             "exit": 0,
             "diamonds": 0,
+            "key": 0,
             "spikes": 0,
             "regions": 0,
             "num-jumps": 0,
@@ -115,6 +117,12 @@ class PlatformerEnv(PcgrlEnv):
             rewards["exit"] *= -1
         elif rewards["exit"] < 0 and self._rep_stats["exit"] == 1:
             rewards["exit"] *= -1
+        #calculate the key reward (only one key)
+        rewards["key"] = old_stats["key"] - self._rep_stats["key"]
+        if rewards["key"] > 0 and self._rep_stats["key"] == 0:
+            rewards["key"] *= -1
+        elif rewards["key"] < 0 and self._rep_stats["key"] == 1:
+            rewards["key"] *= -1
         #calculate spike reward (more than min spikes)
         rewards["spikes"] = self._rep_stats["spikes"] - old_stats["spikes"]
         if self._rep_stats["spikes"] > self._min_spikes:
@@ -142,6 +150,7 @@ class PlatformerEnv(PcgrlEnv):
             rewards["exit"] * self._rewards["exit"] +\
             rewards["spikes"] * self._rewards["spikes"] +\
             rewards["diamonds"] * self._rewards["diamonds"] +\
+            rewards["key"] * self._rewards["key"] +\
             rewards["regions"] * self._rewards["regions"] +\
             rewards["num-jumps"] * self._rewards["num-jumps"] +\
             rewards["dist-win"] * self._rewards["dist-win"] +\
@@ -156,9 +165,9 @@ class PlatformerEnv(PcgrlEnv):
             "player": self._rep_stats["player"],
             "exit": self._rep_stats["exit"],
             "diamonds": self._rep_stats["diamonds"],
+            "key": self._rep_stats["key"],
             "spikes": self._rep_stats["spikes"],
             "regions": self._rep_stats["regions"],
-            "reach-exit": self._rep_stats["reach-exit"],
             "col-diamonds": self._rep_stats["col-diamonds"],
             "num-jumps": self._rep_stats["num-jumps"],
             "dist-win": self._rep_stats["dist-win"],
@@ -173,6 +182,7 @@ class PlatformerEnv(PcgrlEnv):
             "2": Image.open(os.path.dirname(__file__) + "/platformer/player.png").convert('RGBA'),
             "3": Image.open(os.path.dirname(__file__) + "/platformer/exit.png").convert('RGBA'),
             "4": Image.open(os.path.dirname(__file__) + "/platformer/diamond.png").convert('RGBA'),
-            "5": Image.open(os.path.dirname(__file__) + "/platformer/spike.png").convert('RGBA')
+            "5": Image.open(os.path.dirname(__file__) + "/platformer/key.png").convert('RGBA'),
+            "6": Image.open(os.path.dirname(__file__) + "/platformer/spike.png").convert('RGBA')
         }
         return super().render(graphics, 1, tile_size, mode)

@@ -326,7 +326,10 @@ class State:
                     player=self.player["x"]==x and self.player["y"]==y
                     door=self.door["x"]==x and self.door["y"]==y
                     if player:
-                        result += "@"
+                        if door:
+                            result += "+"
+                        else:
+                            result += "@"
                     elif potion:
                         result +="*"
                     elif treasure:
@@ -335,10 +338,9 @@ class State:
                         result += "g"
                     elif enemy == 2:
                         result += "o"
+                    elif door:
+                        result += "H"
                     else:
-                        if door:
-                            result += "H"
-                        else:
-                            result += " "
+                        result += " "
             result += "\n"
         return result[:-1]
