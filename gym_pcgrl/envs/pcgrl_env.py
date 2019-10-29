@@ -29,9 +29,9 @@ class PcgrlEnv(gym.Env):
         self._rep.reset()
         self._calc_rep_stats()
         return self._rep.get_observation()
-    
+
     def _init_param(self):
-        raise NotImplementedError('_calc_total_reward is not implemeneted.')
+        raise NotImplementedError('_init_param is not implemeneted.')
 
     def adjust_param(self, **kwargs):
         self._rep.adjust_param(**kwargs)
