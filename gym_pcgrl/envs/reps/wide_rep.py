@@ -4,8 +4,8 @@ from gym import spaces
 import numpy as np
 
 class WideRepresentation(Representation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, width, height, prob):
+        super().__init__(width, height, prob)
 
     def get_action_space(self):
         return spaces.MultiDiscrete([self._width, self._height, len(self._prob)])

@@ -5,8 +5,8 @@ import numpy as np
 from collections import OrderedDict
 
 class NarrowRepresentation(Representation):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, width, height, prob):
+        super().__init__(width, height, prob)
         self._random_tile = True
 
     def reset(self):
@@ -32,10 +32,6 @@ class NarrowRepresentation(Representation):
             "map": self._map.copy()
         })
 
-    def _init_param(self, width, height, prob):
-        super()._init_param(width, height, prob)
-        self._random_tile = True
-
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
         self._random_tile = kwargs.get('random_tile', self._random_tile)
@@ -53,19 +49,18 @@ class NarrowRepresentation(Representation):
                 if self._y >= self._height:
                     self._y = 0
 
-    def render(self, graphics, padding_tile, tile_size):
-        lvlImage = super().render(graphics, padding_tile, tile_size)
-        graphics["X"] = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
+    def render(self, lvl_image, tile_size, border_size):
+        x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
         for x in range(tile_size):
-            graphics["X"].putpixel((0,x),(255,0,0,255))
-            graphics["X"].putpixel((1,x),(255,0,0,255))
-            graphics["X"].putpixel((tile_size-2,x),(255,0,0,255))
-            graphics["X"].putpixel((tile_size-1,x),(255,0,0,255))
+            x_graphics.putpixel((0,x),(255,0,0,255))
+            x_graphics.putpixel((1,x),(255,0,0,255))
+            x_graphics.putpixel((tile_size-2,x),(255,0,0,255))
+            x_graphics.putpixel((tile_size-1,x),(255,0,0,255))
         for y in range(tile_size):
-            graphics["X"].putpixel((y,0),(255,0,0,255))
-            graphics["X"].putpixel((y,1),(255,0,0,255))
-            graphics["X"].putpixel((y,tile_size-2),(255,0,0,255))
-            graphics["X"].putpixel((y,tile_size-1),(255,0,0,255))
-        lvlImage.paste(graphics["X"], ((self._x+1)*tile_size, (self._y+1)*tile_size,
-                                        (self._x+2)*tile_size,(self._y+2)*tile_size), graphics["X"])
-        return lvlImage
+            x_graphics.putpixel((y,0),(255,0,0,255))
+            x_graphics.putpixel((y,1),(255,0,0,255))
+            x_graphics.putpixel((y,tile_size-2),(255,0,0,255))
+            x_graphics.putpixel((y,tile_size-1),(255,0,0,255))
+        lvl_image.paste(x_graphics, ((self._x+border_size)*tile_size, (self._y+border_size)*tile_size,
+                                        (self._x+border_size+1)*tile_size,(self._y+border_size+1)*tile_size), x_graphics)
+        return lvl_image

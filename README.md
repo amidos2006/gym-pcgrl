@@ -26,12 +26,16 @@ For the full list of supported problems names check the [Supported Problems](htt
 
 To list all the registered environments, you can run the following code:
 ```python
+from gym import envs
+import gym_pcgrl
+
 [env.id for env in envs.registry.all() if "gym_pcgrl" in env.entry_point]
 ```
 
 After installing the interface, you can use it like any other GYM interface. Here is a simple example on how to use the framework on the Sokoban environment with Narrow representation:
 
 ```python
+import gym
 import gym_pcgrl
 
 env = gym.make('sokoban-narrow-v0')
@@ -66,8 +70,35 @@ Representations are the way the Procedural Content Generation problem is formatt
 
 The `narrow`, `wide`, and `turtle` representation are adapted from [Tree Search vs Optimization Approaches for Map Generation](https://arxiv.org/pdf/1903.11678.pdf) work by Bhaumik et al.
 
-## Create your own environment
-to be written
+## Create your own problem
+Create the new problem class in the `gym_pcgrl.envs.probs` and extends Problem class from `gym_pcgrl.envs.probs.problem`. This class has to implement the following functions.
+```python
+def __init__(self):
+  super().__init__()
+  ...
+
+def adjust_param(self, **kwargs):
+  ...
+
+def get_stats(self, map):
+  ...
+
+def get_reward(self, new_stats, old_stats):
+  ...
+
+def get_episode_over(self, new_stats, old_stats):
+  ...
+
+def get_debug_info(self, new_stats, old_stats):
+  ...
+```
+Also, you need to make sure that you setup the following parameters in the constructor:
+- `self._width`: the affected map width by the generation
+- `self._height`: the affected map height by the generation
+- `self._border_size`: the size of the border added around the level
+- `self._border_tile`: the integer number of the tile used in tiling
+- `self._tile_size`: the size of the tile in pixels to be used in rendering
+- `self._graphics`: a dictionary for all the game graphics
 
 ## Create your own representation
 to be written
