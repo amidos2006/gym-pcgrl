@@ -3,7 +3,7 @@ from PIL import Image
 import os
 import numpy as np
 from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
-from gym_pcgrl.envs.sokoban.engine import State,BFSAgent,AStarAgent
+from gym_pcgrl.envs.probs.sokoban.engine import State,BFSAgent,AStarAgent
 
 class SokobanEnv(PcgrlEnv):
     def _calc_heuristic_solution(self):
@@ -168,10 +168,10 @@ class SokobanEnv(PcgrlEnv):
     def render(self, mode='human'):
         tile_size = 16
         graphics = {
-            "0": Image.open(os.path.dirname(__file__) + "/sokoban/empty.png").convert('RGBA'),
-            "1": Image.open(os.path.dirname(__file__) + "/sokoban/solid.png").convert('RGBA'),
-            "2": Image.open(os.path.dirname(__file__) + "/sokoban/player.png").convert('RGBA'),
-            "3": Image.open(os.path.dirname(__file__) + "/sokoban/crate.png").convert('RGBA'),
-            "4": Image.open(os.path.dirname(__file__) + "/sokoban/target.png").convert('RGBA')
+            "0": Image.open(os.path.dirname(__file__) + "/probs/sokoban/empty.png").convert('RGBA'),
+            "1": Image.open(os.path.dirname(__file__) + "/probs/sokoban/solid.png").convert('RGBA'),
+            "2": Image.open(os.path.dirname(__file__) + "/probs/sokoban/player.png").convert('RGBA'),
+            "3": Image.open(os.path.dirname(__file__) + "/probs/sokoban/crate.png").convert('RGBA'),
+            "4": Image.open(os.path.dirname(__file__) + "/probs/sokoban/target.png").convert('RGBA')
         }
         return super().render(graphics, 1, tile_size, mode)

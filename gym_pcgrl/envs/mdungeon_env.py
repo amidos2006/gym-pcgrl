@@ -3,7 +3,7 @@ from PIL import Image
 import os
 import numpy as np
 from gym_pcgrl.envs.pcgrl_env import PcgrlEnv
-from gym_pcgrl.envs.mdungeon.engine import State,BFSAgent,AStarAgent
+from gym_pcgrl.envs.probs.mdungeon.engine import State,BFSAgent,AStarAgent
 
 class MDungeonEnv(PcgrlEnv):
     def _calc_heuristic_solution(self):
@@ -205,13 +205,13 @@ class MDungeonEnv(PcgrlEnv):
     def render(self, mode='human'):
         tile_size = 16
         graphics = {
-            "0": Image.open(os.path.dirname(__file__) + "/mdungeon/empty.png").convert('RGBA'),
-            "1": Image.open(os.path.dirname(__file__) + "/mdungeon/solid.png").convert('RGBA'),
-            "2": Image.open(os.path.dirname(__file__) + "/mdungeon/player.png").convert('RGBA'),
-            "3": Image.open(os.path.dirname(__file__) + "/mdungeon/exit.png").convert('RGBA'),
-            "4": Image.open(os.path.dirname(__file__) + "/mdungeon/potion.png").convert('RGBA'),
-            "5": Image.open(os.path.dirname(__file__) + "/mdungeon/treasure.png").convert('RGBA'),
-            "6": Image.open(os.path.dirname(__file__) + "/mdungeon/goblin.png").convert('RGBA'),
-            "7": Image.open(os.path.dirname(__file__) + "/mdungeon/ogre.png").convert('RGBA'),
+            "0": Image.open(os.path.dirname(__file__) + "/probs/mdungeon/empty.png").convert('RGBA'),
+            "1": Image.open(os.path.dirname(__file__) + "/probs/mdungeon/solid.png").convert('RGBA'),
+            "2": Image.open(os.path.dirname(__file__) + "/probs/mdungeon/player.png").convert('RGBA'),
+            "3": Image.open(os.path.dirname(__file__) + "/probs/mdungeon/exit.png").convert('RGBA'),
+            "4": Image.open(os.path.dirname(__file__) + "/probs/mdungeon/potion.png").convert('RGBA'),
+            "5": Image.open(os.path.dirname(__file__) + "/probs/mdungeon/treasure.png").convert('RGBA'),
+            "6": Image.open(os.path.dirname(__file__) + "/probs/mdungeon/goblin.png").convert('RGBA'),
+            "7": Image.open(os.path.dirname(__file__) + "/probs/mdungeon/ogre.png").convert('RGBA'),
         }
         return super().render(graphics, 1, tile_size, mode)

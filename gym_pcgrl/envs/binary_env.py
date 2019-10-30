@@ -10,7 +10,7 @@ class BinaryEnv(PcgrlEnv):
             "path-length": calc_longest_path(self._rep._map, [0])
         }
 
-    def _init_param(self, **kwargs):
+    def _init_param(self):
         self._rep._init_param(14, 14, {"0": 0.7, "1":0.3})
 
         self._target_path = 50
@@ -59,7 +59,7 @@ class BinaryEnv(PcgrlEnv):
     def render(self, mode='human'):
         tile_size = 16
         graphics = {
-            "0": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
-            "1": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
+            "0": Image.open(os.path.dirname(__file__) + "/probs/binary/empty.png").convert('RGBA'),
+            "1": Image.open(os.path.dirname(__file__) + "/probs/binary/solid.png").convert('RGBA')
         }
         return super().render(graphics, 1, tile_size, mode)
