@@ -56,8 +56,17 @@ class Representation:
             for v in self._prob:
                 self._prob[v] /= total
 
+    def get_action_space(self):
+        raise NotImplementedError('get_action_space is not implemented')
+
+    def get_observation_space(self):
+        raise NotImplementedError('get_observation_space is not implemented')
+
+    def get_observation(self):
+        raise NotImplementedError('get_observation is not implemented')
+
     def update(self, action):
-        pass
+        raise NotImplementedError('update is not implemented')
 
     def render(self, lvl_image, tile_size, border_size):
         return lvl_image

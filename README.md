@@ -71,7 +71,7 @@ Representations are the way the Procedural Content Generation problem is formatt
 The `narrow`, `wide`, and `turtle` representation are adapted from [Tree Search vs Optimization Approaches for Map Generation](https://arxiv.org/pdf/1903.11678.pdf) work by Bhaumik et al.
 
 ## Create your own problem
-Create the new problem class in the `gym_pcgrl.envs.probs` and extends Problem class from `gym_pcgrl.envs.probs.problem`. This class has to implement the following functions.
+Create the new problem class in the `gym_pcgrl.envs.probs` and extends `Problem` class from `gym_pcgrl.envs.probs.problem`. This class has to implement the following functions.
 ```python
 def __init__(self):
   super().__init__()
@@ -93,15 +93,39 @@ def get_debug_info(self, new_stats, old_stats):
   ...
 ```
 Also, you need to make sure that you setup the following parameters in the constructor:
-- `self._width`: the affected map width by the generation
-- `self._height`: the affected map height by the generation
-- `self._border_size`: the size of the border added around the level
-- `self._border_tile`: the integer number of the tile used in tiling
+- `self._width`: the generated map width
+- `self._height`: the generated map height
+- `self._border_size`: the size of the border added around the generated level (in a lot of games there might be a border surrounding the level, it is a good idea to get that out)
+- `self._border_tile`: the tile name used for the border
 - `self._tile_size`: the size of the tile in pixels to be used in rendering
-- `self._graphics`: a dictionary for all the game graphics
+- `self._graphics`: a dictionary for all the game graphics where keys are the tile names and values are the loaded images using Pillow
+
+Feel free to override any other function if you need a behavior different from the normal behavior. For example: In all our problems, we want our system to not load the graphics unless it is going to render it. We override `render()` function so we can initialize `self._graphics` at the beginning of the `render()` instead of the constructor.
+
+After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.probs.PROBLEMS` dictionary that can be found in [__init__.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/probs/__init__.py) the key name is used as the problem name for the environment and the value is to refer to the main class that it need to construct for that problem.
 
 ## Create your own representation
-to be written
+Create the new representation class in the `gym_pcgrl.envs.reps` and extends `Representation` class from `gym_pcgrl.envs.reps.representation`. This class has to implement the following functions.
+```python
+def __init__(self, width, height, prob):
+  super().__init__(width, height, prob)
+  ...
+
+def get_action_space(self):
+  ...
+
+def get_observation_space(self):
+  ...
+
+def get_observation(self):
+  ...
+
+def update(self, action):
+  ...
+```
+Feel free to override any other function if you need a behavior different from the normal behavior. For example: in the `narrow` representation, we wanted to show the location where the agent should change on the rendered image. We override the `render()` function to draw a red square around the correct tile.
+
+After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.reps.REPRESENTATIONS` dictionary that can be found in [__init__.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/reps/__init__.py) the key name is used as the representation name for the environment and the value is to refer to the main class that it need to construct for that representation.
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at [https://github.com/amidos2006/gym-pcgrl](https://github.com/amidos2006/gym-pcgrl).
