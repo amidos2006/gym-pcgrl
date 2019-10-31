@@ -1,6 +1,5 @@
 from PIL import Image
 import os
-import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.probs.helper import calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.ddave.engine import State,BFSAgent,AStarAgent
@@ -8,15 +7,9 @@ from gym_pcgrl.envs.probs.ddave.engine import State,BFSAgent,AStarAgent
 class DDaveProblem(Problem):
     def __init__(self):
         super().__init__()
-
         self._width = 11
         self._height = 7
-        self._prob = {"0":0.5, "1":0.3, "2":0.02, "3":0.02, "4":0.04, "5": 0.02, "6":0.1}
-
-        self._border_size = 1
-        self._border_tile = 1
-        self._tile_size = 16
-        self._graphics = None
+        self._prob = {"empty":0.5, "solid":0.3, "player":0.02, "exit":0.02, "diamond":0.04, "key": 0.02, "spike":0.1}
 
         self._max_diamonds = 3
         self._min_spikes = 20
@@ -36,16 +29,18 @@ class DDaveProblem(Problem):
             "sol-length": 1
         }
 
+    def get_tile_types(self):
+        return ["empty", "solid", "player", "exit", "diamond", "key", "spike"]
+
     def adjust_param(self, **kwargs):
         self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
-        self._prob["0"] = kwargs.get('empty_prob', self._prob["0"])
-        self._prob["1"] = kwargs.get('solid_prob', self._prob["1"])
-        self._prob["2"] = kwargs.get('player_prob', self._prob["2"])
-        self._prob["3"] = kwargs.get('exit_prob', self._prob["3"])
-        self._prob["4"] = kwargs.get('diamond_prob', self._prob["4"])
-        self._prob["5"] = kwargs.get('key_prob', self._prob["5"])
-        self._prob["6"] = kwargs.get('spikes_prob', self._prob["6"])
-        kwargs["prob"] = self._prob
+        self._prob["empty"] = kwargs.get('empty_prob', self._prob["empty"])
+        self._prob["solid"] = kwargs.get('solid_prob', self._prob["solid"])
+        self._prob["player"] = kwargs.get('player_prob', self._prob["player"])
+        self._prob["exit"] = kwargs.get('exit_prob', self._prob["exit"])
+        self._prob["diamond"] = kwargs.get('diamond_prob', self._prob["diamond"])
+        self._prob["key"] = kwargs.get('key_prob', self._prob["key"])
+        self._prob["spike"] = kwargs.get('spikes_prob', self._prob["spike"])
 
         self._max_diamonds = kwargs.get('max_diamonds', self._max_diamonds)
         self._min_spikes = kwargs.get('min_spikes', self._min_spikes)
@@ -67,17 +62,19 @@ class DDaveProblem(Problem):
 
     def _run_game(self, map):
         gameCharacters=" #@H$V*"
-        int_to_char = dict((i, c) for i, c in enumerate(gameCharacters))
+        string_to_char = dict((s, gameCharacters[i]) for i, s in enumerate(self.get_tile_types()))
         lvlString = ""
         for x in range(self._width+2):
             lvlString += "#"
         lvlString += "\n"
-        for (i,j), index in np.ndenumerate(map):
-            if j == 0:
-                lvlString += "#"
-            lvlString += int_to_char[index]
-            if j == self._width-1:
-                lvlString += "#\n"
+        for i in range(len(map)):
+            for j in range(len(map[i])):
+                string = map[i][j]
+                if j == 0:
+                    lvlString += "#"
+                lvlString += string_to_char[string]
+                if j == self._width-1:
+                    lvlString += "#\n"
         for x in range(self._width+2):
             lvlString += "#"
         lvlString += "\n"
@@ -105,12 +102,12 @@ class DDaveProblem(Problem):
 
     def get_stats(self, map):
         map_stats = {
-            "player": calc_certain_tile(map, [2]),
-            "exit": calc_certain_tile(map, [3]),
-            "diamonds": calc_certain_tile(map, [4]),
-            "key": calc_certain_tile(map, [5]),
-            "spikes": calc_certain_tile(map, [6]),
-            "regions": calc_num_regions(map, [0,2,3,4,5]),
+            "player": calc_certain_tile(map, ["player"]),
+            "exit": calc_certain_tile(map, ["exit"]),
+            "diamonds": calc_certain_tile(map, ["diamond"]),
+            "key": calc_certain_tile(map, ["key"]),
+            "spikes": calc_certain_tile(map, ["spike"]),
+            "regions": calc_num_regions(map, ["empty","player","diamond","key","exit"]),
             "num-jumps": 0,
             "col-diamonds": 0,
             "dist-win": self._width * self._height,
@@ -204,12 +201,12 @@ class DDaveProblem(Problem):
     def render(self, map):
         if self._graphics == None:
             self._graphics = {
-                "0": Image.open(os.path.dirname(__file__) + "/ddave/empty.png").convert('RGBA'),
-                "1": Image.open(os.path.dirname(__file__) + "/ddave/solid.png").convert('RGBA'),
-                "2": Image.open(os.path.dirname(__file__) + "/ddave/player.png").convert('RGBA'),
-                "3": Image.open(os.path.dirname(__file__) + "/ddave/exit.png").convert('RGBA'),
-                "4": Image.open(os.path.dirname(__file__) + "/ddave/diamond.png").convert('RGBA'),
-                "5": Image.open(os.path.dirname(__file__) + "/ddave/key.png").convert('RGBA'),
-                "6": Image.open(os.path.dirname(__file__) + "/ddave/spike.png").convert('RGBA')
+                "empty": Image.open(os.path.dirname(__file__) + "/ddave/empty.png").convert('RGBA'),
+                "solid": Image.open(os.path.dirname(__file__) + "/ddave/solid.png").convert('RGBA'),
+                "player": Image.open(os.path.dirname(__file__) + "/ddave/player.png").convert('RGBA'),
+                "exit": Image.open(os.path.dirname(__file__) + "/ddave/exit.png").convert('RGBA'),
+                "diamond": Image.open(os.path.dirname(__file__) + "/ddave/diamond.png").convert('RGBA'),
+                "key": Image.open(os.path.dirname(__file__) + "/ddave/key.png").convert('RGBA'),
+                "spike": Image.open(os.path.dirname(__file__) + "/ddave/spike.png").convert('RGBA')
             }
         return super().render(map)

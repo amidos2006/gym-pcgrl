@@ -5,25 +5,25 @@ import numpy as np
 from collections import OrderedDict
 
 class NarrowRepresentation(Representation):
-    def __init__(self, width, height, prob):
-        super().__init__(width, height, prob)
+    def __init__(self):
+        super().__init__()
         self._random_tile = True
 
-    def reset(self):
-        super().reset()
+    def reset(self, width, height, prob):
+        super().reset(width, height, prob)
         self._x = 0
         self._y = 0
         if self._random_tile:
-            self._x = self._random.randint(self._width)
-            self._y = self._random.randint(self._height)
+            self._x = self._random.randint(width)
+            self._y = self._random.randint(height)
 
-    def get_action_space(self):
-        return spaces.Discrete(len(self._prob))
+    def get_action_space(self, width, height, num_tiles):
+        return spaces.Discrete(num_tiles)
 
-    def get_observation_space(self):
+    def get_observation_space(self, width, height, num_tiles):
         return spaces.Dict({
-            "pos": spaces.Box(low=np.array([0, 0]), high=np.array([self._width-1, self._height-1]), dtype=np.uint8),
-            "map": spaces.Box(low=0, high=len(self._prob)-1, dtype=np.uint8, shape=(self._height, self._width))
+            "pos": spaces.Box(low=np.array([0, 0]), high=np.array([width-1, height-1]), dtype=np.uint8),
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
         })
 
     def get_observation(self):
@@ -32,6 +32,19 @@ class NarrowRepresentation(Representation):
             "map": self._map.copy()
         })
 
+    def get_action_meaning(self, tiles):
+        result = ""
+        for i in range(len(tiles)):
+            result += str(i) + ": " + tiles[i] + "\n"
+        return result
+
+    def get_observation_meaning(self, tiles):
+        result  = "\'pos\' is a point that identify which tile is going to be modified\n"
+        result += "\'map\' is the current generated map where the values are:\n"
+        for i in range(len(tiles)):
+            result += str(i) + ": " + tiles[i] + "\n"
+        return result
+
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
         self._random_tile = kwargs.get('random_tile', self._random_tile)
@@ -39,14 +52,14 @@ class NarrowRepresentation(Representation):
     def update(self, action):
         self._map[self._y][self._x] = action
         if self._random_tile:
-            self._x = self._random.randint(self._width)
-            self._y = self._random.randint(self._height)
+            self._x = self._random.randint(self._map.shape[1])
+            self._y = self._random.randint(self._map.shape[0])
         else:
             self._x += 1
-            if self._x >= self._width:
+            if self._x >= self._map.shape[1]:
                 self._x = 0
                 self._y += 1
-                if self._y >= self._height:
+                if self._y >= self._map.shape[0]:
                     self._y = 0
 
     def render(self, lvl_image, tile_size, border_size):

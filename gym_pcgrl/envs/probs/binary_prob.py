@@ -6,15 +6,9 @@ from gym_pcgrl.envs.probs.helper import calc_num_regions, calc_longest_path
 class BinaryProblem(Problem):
     def __init__(self):
         super().__init__()
-        
         self._width = 14
         self._height = 14
-        self._prob = {"0": 0.7, "1":0.3}
-
-        self._border_size = 1
-        self._border_tile = 1
-        self._tile_size = 16
-        self._graphics = None
+        self._prob = {"empty": 0.7, "solid":0.3}
 
         self._target_path = 50
 
@@ -23,11 +17,13 @@ class BinaryProblem(Problem):
             "path-length": 1
         }
 
+    def get_tile_types(self):
+        return ["empty", "solid"]
+
     def adjust_param(self, **kwargs):
         self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
-        self._prob["0"] = kwargs.get('empty_prob', self._prob["0"])
-        self._prob["1"] = kwargs.get('solid_prob', self._prob["1"])
-        kwargs["prob"] = self._prob
+        self._prob["empty"] = kwargs.get('empty_prob', self._prob["empty"])
+        self._prob["solid"] = kwargs.get('solid_prob', self._prob["solid"])
 
         self._target_path = kwargs.get('target_path', self._target_path)
 
@@ -38,8 +34,8 @@ class BinaryProblem(Problem):
 
     def get_stats(self, map):
         return {
-            "regions": calc_num_regions(map, [0]),
-            "path-length": calc_longest_path(map, [0])
+            "regions": calc_num_regions(map, ["empty"]),
+            "path-length": calc_longest_path(map, ["empty"])
         }
 
     def get_reward(self, new_stats, old_stats):
@@ -67,7 +63,7 @@ class BinaryProblem(Problem):
     def render(self, map):
         if self._graphics == None:
             self._graphics = {
-                "0": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
-                "1": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
+                "empty": Image.open(os.path.dirname(__file__) + "/binary/empty.png").convert('RGBA'),
+                "solid": Image.open(os.path.dirname(__file__) + "/binary/solid.png").convert('RGBA')
             }
         return super().render(map)

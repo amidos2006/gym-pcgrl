@@ -2,8 +2,8 @@ import numpy as np
 
 def _get_certain_tiles(map, values):
     tiles = []
-    for y in range(map.shape[0]):
-        for x in range(map.shape[1]):
+    for y in range(len(map)):
+        for x in range(len(map[y])):
             if map[y][x] in values:
                 tiles.append((x, y))
     return tiles
@@ -19,7 +19,7 @@ def _flood_fill(x, y, color_map, map, region_index, values):
         color_map[cy][cx] = region_index
         for (dx,dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             nx,ny=cx+dx,cy+dy
-            if nx < 0 or ny < 0 or nx >= map.shape[1] or ny >= map.shape[0]:
+            if nx < 0 or ny < 0 or nx >= len(map[0]) or ny >= len(map):
                 continue
             queue.append((nx, ny))
     return num_tiles
@@ -27,7 +27,7 @@ def _flood_fill(x, y, color_map, map, region_index, values):
 def calc_num_regions(map, values=[0]):
     empty_tiles = _get_certain_tiles(map, values)
     region_index=0
-    color_map = np.full(map.shape, -1)
+    color_map = np.full((len(map), len(map[0])), -1)
     for (x,y) in empty_tiles:
         num_tiles = _flood_fill(x, y, color_map, map, region_index + 1, values)
         if num_tiles > 0:
@@ -37,8 +37,8 @@ def calc_num_regions(map, values=[0]):
     return region_index
 
 def _run_dikjstra(x, y, map, values):
-    dikjstra_map = np.full(map.shape,-1)
-    visited_map = np.zeros(map.shape)
+    dikjstra_map = np.full((len(map), len(map[0])),-1)
+    visited_map = np.zeros((len(map), len(map[0])))
     queue = [(x, y, 0)]
     while len(queue) > 0:
         (cx,cy,cd) = queue.pop(0)
@@ -48,14 +48,14 @@ def _run_dikjstra(x, y, map, values):
         dikjstra_map[cy][cx] = cd
         for (dx,dy) in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
             nx,ny=cx+dx,cy+dy
-            if nx < 0 or ny < 0 or nx >= map.shape[1] or ny >= map.shape[0]:
+            if nx < 0 or ny < 0 or nx >= len(map[0]) or ny >= len(map):
                 continue
             queue.append((nx, ny, cd + 1))
     return dikjstra_map, visited_map
 
 def calc_longest_path(map, values):
     empty_tiles = _get_certain_tiles(map, values)
-    final_visited_map = np.zeros(map.shape)
+    final_visited_map = np.zeros((len(map), len(map[0])))
     final_value = 0
     for (x,y) in empty_tiles:
         if final_visited_map[y][x] > 0:
@@ -71,8 +71,8 @@ def calc_longest_path(map, values):
 
 def calc_certain_tile(map, values):
     total_value = 0
-    for y in range(map.shape[0]):
-        for x in range(map.shape[1]):
+    for y in range(len(map)):
+        for x in range(len(map[y])):
             if map[y][x] in values:
                 total_value += 1
     return total_value

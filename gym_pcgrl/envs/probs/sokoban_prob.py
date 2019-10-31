@@ -8,15 +8,9 @@ from gym_pcgrl.envs.probs.sokoban.engine import State,BFSAgent,AStarAgent
 class SokobanProblem(Problem):
     def __init__(self):
         super().__init__()
-
         self._width = 5
         self._height = 5
-        self._prob = {"0":0.45, "1":0.4, "2": 0.05, "3": 0.05, "4": 0.05}
-
-        self._border_size = 1
-        self._border_tile = 1
-        self._tile_size = 16
-        self._graphics = None
+        self._prob = {"empty":0.45, "solid":0.4, "player": 0.05, "crate": 0.05, "target": 0.05}
 
         self._max_crates = 3
 
@@ -32,14 +26,16 @@ class SokobanProblem(Problem):
             "sol-length": 1
         }
 
+    def get_tile_types(self):
+        return ["empty", "solid", "player", "crate", "target"]
+
     def adjust_param(self, **kwargs):
         self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
-        self._prob["0"] = kwargs.get('empty_prob', self._prob["0"])
-        self._prob["1"] = kwargs.get('solid_prob', self._prob["1"])
-        self._prob["2"] = kwargs.get('player_prob', self._prob["2"])
-        self._prob["3"] = kwargs.get('crate_prob', self._prob["3"])
-        self._prob["4"] = kwargs.get('target_prob', self._prob["4"])
-        kwargs["prob"] = self._prob
+        self._prob["empty"] = kwargs.get('empty_prob', self._prob["empty"])
+        self._prob["solid"] = kwargs.get('solid_prob', self._prob["solid"])
+        self._prob["player"] = kwargs.get('player_prob', self._prob["player"])
+        self._prob["crate"] = kwargs.get('crate_prob', self._prob["crate"])
+        self._prob["target"] = kwargs.get('target_prob', self._prob["target"])
 
         self._max_crates = kwargs.get('max_crates', self._max_crates)
 
@@ -57,17 +53,19 @@ class SokobanProblem(Problem):
 
     def _run_game(self, map):
         gameCharacters=" #@$."
-        int_to_char = dict((i, c) for i, c in enumerate(gameCharacters))
+        string_to_char = dict((s, gameCharacters[i]) for i, s in enumerate(self.get_tile_types()))
         lvlString = ""
         for x in range(self._width+2):
             lvlString += "#"
         lvlString += "\n"
-        for (i,j), index in np.ndenumerate(map):
-            if j == 0:
-                lvlString += "#"
-            lvlString += int_to_char[index]
-            if j == self._width-1:
-                lvlString += "#\n"
+        for i in range(len(map)):
+            for j in range(len(map[i])):
+                string = map[i][j]
+                if j == 0:
+                    lvlString += "#"
+                lvlString += string_to_char[string]
+                if j == self._width-1:
+                    lvlString += "#\n"
         for x in range(self._width+2):
             lvlString += "#"
         lvlString += "\n"
@@ -97,11 +95,11 @@ class SokobanProblem(Problem):
 
     def get_stats(self, map):
         map_stats = {
-            "player": calc_certain_tile(map, [2]),
-            "crate": calc_certain_tile(map, [3]),
-            "target": calc_certain_tile(map, [4]),
-            "regions": calc_num_regions(map, [0,2,3,4]),
-            "dist-win": min(calc_certain_tile(map, [3]),calc_certain_tile(map, [4]))*(self._width + self._height),
+            "player": calc_certain_tile(map, ["player"]),
+            "crate": calc_certain_tile(map, ["crate"]),
+            "target": calc_certain_tile(map, ["target"]),
+            "regions": calc_num_regions(map, ["empty","player","crate","target"]),
+            "dist-win": self._width * self._height * (self._width + self._height),
             "sol-length": 0
         }
         if map_stats["player"] == 1:
@@ -177,10 +175,10 @@ class SokobanProblem(Problem):
     def render(self, map):
         if self._graphics == None:
             self._graphics = {
-                "0": Image.open(os.path.dirname(__file__) + "/sokoban/empty.png").convert('RGBA'),
-                "1": Image.open(os.path.dirname(__file__) + "/sokoban/solid.png").convert('RGBA'),
-                "2": Image.open(os.path.dirname(__file__) + "/sokoban/player.png").convert('RGBA'),
-                "3": Image.open(os.path.dirname(__file__) + "/sokoban/crate.png").convert('RGBA'),
-                "4": Image.open(os.path.dirname(__file__) + "/sokoban/target.png").convert('RGBA')
+                "empty": Image.open(os.path.dirname(__file__) + "/sokoban/empty.png").convert('RGBA'),
+                "solid": Image.open(os.path.dirname(__file__) + "/sokoban/solid.png").convert('RGBA'),
+                "player": Image.open(os.path.dirname(__file__) + "/sokoban/player.png").convert('RGBA'),
+                "crate": Image.open(os.path.dirname(__file__) + "/sokoban/crate.png").convert('RGBA'),
+                "target": Image.open(os.path.dirname(__file__) + "/sokoban/target.png").convert('RGBA')
             }
         return super().render(map)

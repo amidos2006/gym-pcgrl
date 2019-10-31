@@ -1,6 +1,5 @@
 import os
 from PIL import Image
-import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
 from gym_pcgrl.envs.probs.helper import calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.mdungeon.engine import State,BFSAgent,AStarAgent
@@ -8,15 +7,9 @@ from gym_pcgrl.envs.probs.mdungeon.engine import State,BFSAgent,AStarAgent
 class MDungeonProblem(Problem):
     def __init__(self):
         super().__init__()
-        
         self._width = 7
         self._height = 11
-        self._prob = {"0":0.4, "1": 0.4, "2":0.02, "3":0.02, "4":0.03, "5":0.03, "6":0.05, "7": 0.05}
-
-        self._border_size = 1
-        self._border_tile = 1
-        self._tile_size = 16
-        self._graphics = None
+        self._prob = {"empty":0.4, "solid": 0.4, "player":0.02, "exit":0.02, "potion":0.03, "treasure":0.03, "goblin":0.05, "ogre": 0.05}
 
         self._max_enemies = 6
         self._max_potions = 2
@@ -37,17 +30,19 @@ class MDungeonProblem(Problem):
             "sol-length": 1
         }
 
+    def get_tile_types(self):
+        return ["empty", "solid", "player", "exit", "potion", "treasure", "goblin", "ogre"]
+
     def adjust_param(self, **kwargs):
         self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
-        self._prob["0"] = kwargs.get('empty_prob', self._prob["0"])
-        self._prob["1"] = kwargs.get('solid_prob', self._prob["1"])
-        self._prob["2"] = kwargs.get('player_prob', self._prob["2"])
-        self._prob["3"] = kwargs.get('exit_prob',self._prob["3"])
-        self._prob["4"] = kwargs.get('potion_prob', self._prob["4"])
-        self._prob["5"] = kwargs.get('treasure_prob', self._prob["5"])
-        self._prob["6"] = kwargs.get('goblin_prob', self._prob["6"])
-        self._prob["7"] = kwargs.get('ogre_prob', self._prob["7"])
-        kwargs["prob"] = self._prob
+        self._prob["empty"] = kwargs.get('empty_prob', self._prob["empty"])
+        self._prob["solid"] = kwargs.get('solid_prob', self._prob["solid"])
+        self._prob["player"] = kwargs.get('player_prob', self._prob["player"])
+        self._prob["exit"] = kwargs.get('exit_prob',self._prob["exit"])
+        self._prob["potion"] = kwargs.get('potion_prob', self._prob["potion"])
+        self._prob["treasure"] = kwargs.get('treasure_prob', self._prob["treasure"])
+        self._prob["goblin"] = kwargs.get('goblin_prob', self._prob["goblin"])
+        self._prob["ogre"] = kwargs.get('ogre_prob', self._prob["ogre"])
 
         self._max_enemies = kwargs.get('max_enemies', self._max_enemies)
         self._max_potions = kwargs.get('max_potions', self._max_potions)
@@ -69,17 +64,19 @@ class MDungeonProblem(Problem):
 
     def _run_game(self, map):
         gameCharacters=" #@H*$go"
-        int_to_char = dict((i, c) for i, c in enumerate(gameCharacters))
+        string_to_char = dict((s, gameCharacters[i]) for i, s in enumerate(self.get_tile_types()))
         lvlString = ""
         for x in range(self._width+2):
             lvlString += "#"
         lvlString += "\n"
-        for (i,j), index in np.ndenumerate(map):
-            if j == 0:
-                lvlString += "#"
-            lvlString += int_to_char[index]
-            if j == self._width-1:
-                lvlString += "#\n"
+        for i in range(len(map)):
+            for j in range(len(map[i])):
+                string = map[i][j]
+                if j == 0:
+                    lvlString += "#"
+                lvlString += string_to_char[string]
+                if j == self._width-1:
+                    lvlString += "#\n"
         for x in range(self._width+2):
             lvlString += "#"
         lvlString += "\n"
@@ -107,12 +104,12 @@ class MDungeonProblem(Problem):
 
     def get_stats(self, map):
         map_stats = {
-            "player": calc_certain_tile(map, [2]),
-            "exit": calc_certain_tile(map, [3]),
-            "potions": calc_certain_tile(map, [4]),
-            "treasures": calc_certain_tile(map, [5]),
-            "enemies": calc_certain_tile(map, [6,7]),
-            "regions": calc_num_regions(map, [0,2,3,4,5,6,7]),
+            "player": calc_certain_tile(map, ["player"]),
+            "exit": calc_certain_tile(map, ["exit"]),
+            "potions": calc_certain_tile(map, ["potion"]),
+            "treasures": calc_certain_tile(map, ["treasure"]),
+            "enemies": calc_certain_tile(map, ["goblin","ogre"]),
+            "regions": calc_num_regions(map, ["empty","player","exit","potion","treasure","goblin","ogre"]),
             "col-potions": 0,
             "col-treasures": 0,
             "col-enemies": 0,
@@ -213,13 +210,13 @@ class MDungeonProblem(Problem):
     def render(self, map):
         if self._graphics == None:
             self._graphics = {
-                "0": Image.open(os.path.dirname(__file__) + "/mdungeon/empty.png").convert('RGBA'),
-                "1": Image.open(os.path.dirname(__file__) + "/mdungeon/solid.png").convert('RGBA'),
-                "2": Image.open(os.path.dirname(__file__) + "/mdungeon/player.png").convert('RGBA'),
-                "3": Image.open(os.path.dirname(__file__) + "/mdungeon/exit.png").convert('RGBA'),
-                "4": Image.open(os.path.dirname(__file__) + "/mdungeon/potion.png").convert('RGBA'),
-                "5": Image.open(os.path.dirname(__file__) + "/mdungeon/treasure.png").convert('RGBA'),
-                "6": Image.open(os.path.dirname(__file__) + "/mdungeon/goblin.png").convert('RGBA'),
-                "7": Image.open(os.path.dirname(__file__) + "/mdungeon/ogre.png").convert('RGBA'),
+                "empty": Image.open(os.path.dirname(__file__) + "/mdungeon/empty.png").convert('RGBA'),
+                "solid": Image.open(os.path.dirname(__file__) + "/mdungeon/solid.png").convert('RGBA'),
+                "player": Image.open(os.path.dirname(__file__) + "/mdungeon/player.png").convert('RGBA'),
+                "exit": Image.open(os.path.dirname(__file__) + "/mdungeon/exit.png").convert('RGBA'),
+                "potion": Image.open(os.path.dirname(__file__) + "/mdungeon/potion.png").convert('RGBA'),
+                "treasure": Image.open(os.path.dirname(__file__) + "/mdungeon/treasure.png").convert('RGBA'),
+                "goblin": Image.open(os.path.dirname(__file__) + "/mdungeon/goblin.png").convert('RGBA'),
+                "ogre": Image.open(os.path.dirname(__file__) + "/mdungeon/ogre.png").convert('RGBA'),
             }
         return super().render(map)

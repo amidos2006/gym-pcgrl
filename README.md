@@ -1,10 +1,10 @@
 # PCGRL OpenAI GYM Interface
-An [OpenAI GYM](https://gym.openai.com/) environment for Procedural Content Generation via Reinforcement Learning (PCG-RL).
+An [OpenAI GYM](https://gym.openai.com/) environment for Procedural Content Generation via Reinforcement Learning (PCGRL).
 
 The framework, along with some initial reinforcement learning results, is covered in the paper [Procedural Content Generation via Reinforcement Learning](). This paper should be cited if code from this project is used in any way:
 ```
 @inproceedings{khalifa2020pcgrl,
-  title={PCGL-RL: Procedural Content Generation via Reinforcement Learning},
+  title={PCGLRL: Procedural Content Generation via Reinforcement Learning},
   author={Khalifa, Ahmed and [Ruben]? and Bontrager, Philip and Togelius, Julian},
   booktitle={},
   year={2020},
@@ -15,10 +15,10 @@ The framework, along with some initial reinforcement learning results, is covere
 ## Installation
 1. Clone this repo to your local machine.
 2. To install the package, run `pip install -e .` from inside the repo folder. (Don't worry it will install OpenAI GYM environment automatically, otherwise you can install it first by following that [link](https://github.com/openai/gym#installation))
-3. If everything went fine, the PCG-RL gym interface is ready to be used. Check the [following section](https://github.com/amidos2006/gym-pcgrl#usage) on how to use it.
+3. If everything went fine, the PCGRL gym interface is ready to be used. Check the [following section](https://github.com/amidos2006/gym-pcgrl#usage) on how to use it.
 
 ## Usage
-The PCG-RL GYM interface have multiple different environments where each environment consists of two parts a problem and a representation. All the environment follow the following name convention:
+The PCGRL GYM interface have multiple different environments where each environment consists of two parts a problem and a representation. All the environment follow the following name convention:
 ```
 [problem_name]-[representation_name]-[version]
 ```
@@ -49,8 +49,13 @@ for t in range(1000):
     break
 ```
 
+Beside the OpenAI GYM traditional functions. Our interface supports additional functionalities such as:
+- `adjust_param(**kwargs)`: This function that helps adjust the problem and/or representation parameters such as modifying `width` and `height` of the generated map.
+- `get_action_meaning()`: This function returns a string that explains the values of the different actions
+- `get_observation_meaning()`: This function returns a string that explains the values of the observation
+
 ## Supported Problems
-Problems are the current games that we want to apply PCG-RL towards them. The following table lists all the supported problems in the interface:
+Problems are the current games that we want to apply PCGRL towards them. The following table lists all the supported problems in the interface:
 
 | Name     | Goal                                                                                                                                                                        | Tile Values                                                                                                                                                |
 |----------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------------------------|
@@ -77,6 +82,9 @@ def __init__(self):
   super().__init__()
   ...
 
+def get_tile_types(self):
+  ...
+
 def adjust_param(self, **kwargs):
   ...
 
@@ -93,12 +101,13 @@ def get_debug_info(self, new_stats, old_stats):
   ...
 ```
 Also, you need to make sure that you setup the following parameters in the constructor:
-- `self._width`: the generated map width
-- `self._height`: the generated map height
-- `self._border_size`: the size of the border added around the generated level (in a lot of games there might be a border surrounding the level, it is a good idea to get that out)
-- `self._border_tile`: the tile name used for the border
-- `self._tile_size`: the size of the tile in pixels to be used in rendering
-- `self._graphics`: a dictionary for all the game graphics where keys are the tile names and values are the loaded images using Pillow
+- `self._width`: the generated map width.
+- `self._height`: the generated map height.
+- `self._prob`: a dictionary for all the game tiles where keys are the tile names and the values are the probability of the tile appearing when initializing a random map.
+- `self._border_size`: the size of the border added around the generated level (in a lot of games there might be a border surrounding the level, it is a good idea to get that out).
+- `self._border_tile`: the tile name used for the border.
+- `self._tile_size`: the size of the tile in pixels to be used in rendering.
+- `self._graphics`: a dictionary for all the game graphics where keys are the tile names and values are the Pillow images for rendering the problem.
 
 Feel free to override any other function if you need a behavior different from the normal behavior. For example: In all our problems, we want our system to not load the graphics unless it is going to render it. We override `render()` function so we can initialize `self._graphics` at the beginning of the `render()` instead of the constructor.
 
@@ -109,6 +118,12 @@ Create the new representation class in the `gym_pcgrl.envs.reps` and extends `Re
 ```python
 def __init__(self, width, height, prob):
   super().__init__(width, height, prob)
+  ...
+
+def get_action_meaning(self, tiles):
+  ...
+
+def get_observation_meaning(self, tiles):
   ...
 
 def get_action_space(self):
