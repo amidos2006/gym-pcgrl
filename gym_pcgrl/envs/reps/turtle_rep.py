@@ -4,36 +4,100 @@ from gym import spaces
 import numpy as np
 from collections import OrderedDict
 
+"""
+The turtle representation where the agent is trying to modify the position of the
+turtle or the tile value of its current location similar to turtle graphics.
+The difference with narrow representation is the agent now controls the next tile to be modified.
+"""
 class TurtleRepresentation(Representation):
+    """
+    Initialize all the parameters used by that representation
+    """
     def __init__(self):
         super().__init__()
         self._dirs = [(-1,0), (1,0), (0,-1), (0,1)]
         self._warp = False
 
+    """
+    Resets the current representation where it resets the parent and the current
+    turtle location
+
+    Parameters:
+        width (int): the generated map width
+        height (int): the generated map height
+        prob (dict(int,float)): the probability distribution of each tile value
+    """
     def reset(self, width, height, prob):
         super().reset(width, height, prob)
         self._x = self._random.randint(width)
         self._y = self._random.randint(height)
 
+    """
+    Adjust the current used parameters
+
+    Parameters:
+        random_start (boolean): if the system will restart with a new map (true) or the previous map (false)
+        warp (boolean): if the turtle will stop at the edges (false) or warp around the edges (true)
+    """
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
         self._warp = kwargs.get('warp', self._warp)
 
+    """
+    Gets the action space used by the turtle representation
+
+    Parameters:
+        width: the current map width
+        height: the current map height
+        num_tiles: the total number of the tile values
+
+    Returns:
+        Discrete: the action space used by that turtle representation which
+        correspond the movement direction and the tile values
+    """
     def get_action_space(self, width, height, num_tiles):
         return spaces.Discrete(len(self._dirs) + num_tiles)
 
+    """
+    Get the observation space used by the turtle representation
+
+    Parameters:
+        width: the current map width
+        height: the current map height
+        num_tiles: the total number of the tile values
+
+    Returns:
+        Dict: the observation space used by that representation. "pos" Integer
+        x,y position for the current location. "map" 2D array of tile numbers
+    """
     def get_observation_space(self, width, height, num_tiles):
         return spaces.Dict({
             "pos": spaces.Box(low=np.array([0, 0]), high=np.array([width-1, height-1]), dtype=np.uint8),
             "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
         })
 
+    """
+    Get the current representation observation object at the current moment
+
+    Returns:
+        observation: the current observation at the current moment. "pos" Integer
+        x,y position for the current location. "map" 2D array of tile numbers
+    """
     def get_observation(self):
         return OrderedDict({
             "pos": np.array([self._x, self._y], dtype=np.uint8),
             "map": self._map.copy()
         })
 
+    """
+    Get the meaning of all the different actions
+
+    Parameters:
+        tiles (string[]): an array of the tile names
+
+    Returns:
+        string: that explains the different action names
+    """
     def get_action_meaning(self, tiles):
         result = ""
         for i in range(len(self._dirs)):
@@ -51,6 +115,15 @@ class TurtleRepresentation(Representation):
             result += str(i+len(self._dirs)) + ": " + tiles[i] + "\n"
         return result
 
+    """
+    Get the meaning of the observation
+
+    Parameters:
+        tiles (string[]): an array of the tile names
+
+    Returns:
+        string: that explains the observation
+    """
     def get_observation_meaning(self, tiles):
         result  = "\'pos\' is a point that identify where is the turtle at this moment\n"
         result += "\'map\' is the current generated map where the values are:\n"
@@ -58,6 +131,12 @@ class TurtleRepresentation(Representation):
             result += str(i) + ": " + tiles[i] + "\n"
         return result
 
+    """
+    Update the turtle representation with the input action
+
+    Parameters:
+        action: an action that is used to advance the environment (same as action space)
+    """
     def update(self, action):
         if action < len(self._dirs):
             self._x += self._dirs[action][0]
@@ -85,6 +164,17 @@ class TurtleRepresentation(Representation):
         else:
             self._map[self._y][self._x] = action - len(self._dirs)
 
+    """
+    Modify the level image with a red rectangle around the tile that the turtle is on
+
+    Parameters:
+        lvl_image (img): the current level_image without modifications
+        tile_size (int): the size of tiles in pixels used in the lvl_image
+        border_size (int): an offeset in tiles if the borders are not part of the level
+
+    Returns:
+        img: the modified level image
+    """
     def render(self, lvl_image, tile_size, border_size):
         x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
         for x in range(tile_size):

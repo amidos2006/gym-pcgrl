@@ -1,6 +1,12 @@
 from PIL import Image
 
+"""
+The base class for all the problems that can be handled by the interface
+"""
 class Problem:
+    """
+    Constructor for the problem that initialize all the basic parameters
+    """
     def __init__(self):
         self._width = 9
         self._height = 9
@@ -14,24 +20,92 @@ class Problem:
         self._tile_size=16
         self._graphics = None
 
+    """
+    Get a list of all the different tile names
+
+    Returns:
+        string[]: that contains all the tile names
+    """
     def get_tile_types(self):
         raise NotImplementedError('get_tile_types is not implemented')
 
-    def adjust_param(self, **kwargs):
-        raise NotImplementedError('get_graphics is not implemented')
+    """
+    Adjust the parameters for the current problem
 
+    Parameters:
+        width (int): change the width of the problem level
+        height (int): change the height of the problem level
+        probs (dict(string, float)): change the probability of each tile
+        intiialization, the names are the same as the tile types from get_tile_types
+    """
+    def adjust_param(self, **kwargs):
+        self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
+        prob = kwargs.get('probs')
+        if prob is not None:
+            for t in prob:
+                if t in self._prob:
+                    self._prob[t] = prob[t]
+
+    """
+    Get the current stats of the map
+
+    Returns:
+        dict(string,any): stats of the current map to be used in the reward, episode_over, debug_info calculations
+    """
     def get_stats(self, map):
         raise NotImplementedError('get_graphics is not implemented')
 
+    """
+    Get the current game reward between two stats
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        float: the current reward due to the change between the old map stats and the new map stats
+    """
     def get_reward(self, new_stats, old_stats):
         raise NotImplementedError('get_graphics is not implemented')
 
+    """
+    Uses the stats to check if the problem ended (episode_over) which means reached
+    a satisfying quality based on the stats
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        boolean: True if the level reached satisfying quality based on the stats and False otherwise
+    """
     def get_episode_over(self, new_stats, old_stats):
         raise NotImplementedError('get_graphics is not implemented')
 
+    """
+    Get any debug information need to be printed
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        dict(any,any): is a debug information that can be used to debug what is
+        happening in the problem
+    """
     def get_debug_info(self, new_stats, old_stats):
         raise NotImplementedError('get_debug_info is not implemented')
 
+    """
+    Get an image on how the map will look like for a specific map
+
+    Parameters:
+        map (string[][]): the current game map
+
+    Returns:
+        Image: a pillow image on how the map will look like using the problem
+        graphics or default grey scale colors
+    """
     def render(self, map):
         tiles = self.get_tile_types()
         if self._graphics == None:

@@ -2,10 +2,16 @@ import os
 from PIL import Image
 import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.probs.helper import calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.sokoban.engine import State,BFSAgent,AStarAgent
 
+"""
+Generate a fully connected Sokoban(https://en.wikipedia.org/wiki/Sokoban) level that can be solved
+"""
 class SokobanProblem(Problem):
+    """
+    The constructor is responsible of initializing all the game parameters
+    """
     def __init__(self):
         super().__init__()
         self._width = 5
@@ -22,35 +28,56 @@ class SokobanProblem(Problem):
             "target": 5,
             "regions": 5,
             "ratio": 1,
-            "dist-win": 1,
+            "dist-win": 0.1,
             "sol-length": 1
         }
 
+    """
+    Get a list of all the different tile names
+
+    Returns:
+        string[]: that contains all the tile names
+    """
     def get_tile_types(self):
         return ["empty", "solid", "player", "crate", "target"]
 
+    """
+    Adjust the parameters for the current problem
+
+    Parameters:
+        width (int): change the width of the problem level
+        height (int): change the height of the problem level
+        probs (dict(string, float)): change the probability of each tile
+        intiialization, the names are "empty", "solid", "player", "crate", "target"
+        max_crates or max_targets (int): the max number of crates or target both
+        suppose to be the same value so setting one is enough
+        target_solution (int): the target solution length that the level is considered a success if reached
+        rewards (dict(string,float)): the weights of each reward change between the new_stats and old_stats
+    """
     def adjust_param(self, **kwargs):
-        self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
-        self._prob["empty"] = kwargs.get('empty_prob', self._prob["empty"])
-        self._prob["solid"] = kwargs.get('solid_prob', self._prob["solid"])
-        self._prob["player"] = kwargs.get('player_prob', self._prob["player"])
-        self._prob["crate"] = kwargs.get('crate_prob', self._prob["crate"])
-        self._prob["target"] = kwargs.get('target_prob', self._prob["target"])
+        super().adjust_param(**kwargs)
 
         self._max_crates = kwargs.get('max_crates', self._max_crates)
+        self._max_crates = kwargs.get('max_targets', self._max_crates)
 
         self._target_solution = kwargs.get('min_solution', self._target_solution)
 
-        self._rewards = {
-            "player": kwargs.get('reward_player', self._rewards["player"]),
-            "crate": kwargs.get('reward_crate', self._rewards["crate"]),
-            "target": kwargs.get('reward_target', self._rewards["target"]),
-            "regions": kwargs.get('reward_regions', self._rewards["regions"]),
-            "ratio": kwargs.get('reward_ratio', self._rewards["ratio"]),
-            "dist-win": kwargs.get('reward_dist_win', self._rewards["dist-win"]),
-            "sol-length": kwargs.get('reward_sol_length', self._rewards["sol-length"])
-        }
+        rewards = kwargs.get('rewards')
+        if rewards is not None:
+            for t in rewards:
+                if t in self._rewards:
+                    self._rewards[t] = rewards[t]
 
+    """
+    Private function that runs the game on the input level
+
+    Parameters:
+        map (string[][]): the input level to run the game on
+
+    Returns:
+        float: how close you are to winning (0 if you win)
+        int: the solution length if you win (0 otherwise)
+    """
     def _run_game(self, map):
         gameCharacters=" #@$."
         string_to_char = dict((s, gameCharacters[i]) for i, s in enumerate(self.get_tile_types()))
@@ -93,6 +120,15 @@ class SokobanProblem(Problem):
             return 0, len(sol)
         return solState.getHeuristic(), 0
 
+    """
+    Get the current stats of the map
+
+    Returns:
+        dict(string,any): stats of the current map to be used in the reward, episode_over, debug_info calculations.
+        The used status are "player": number of player tiles, "crate": number of crate tiles,
+        "target": number of target tiles, "reigons": number of connected empty tiles,
+        "dist-win": how close to the win state, "sol-length": length of the solution to win the level
+    """
     def get_stats(self, map):
         map_stats = {
             "player": calc_certain_tile(map, ["player"]),
@@ -107,6 +143,16 @@ class SokobanProblem(Problem):
                 map_stats["dist-win"], map_stats["sol-length"] = self._run_game(map)
         return map_stats
 
+    """
+    Get the current game reward between two stats
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        float: the current reward due to the change between the old map stats and the new map stats
+    """
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
@@ -159,9 +205,31 @@ class SokobanProblem(Problem):
             rewards["dist-win"] * self._rewards["dist-win"] +\
             rewards["sol-length"] * self._rewards["sol-length"]
 
+    """
+    Uses the stats to check if the problem ended (episode_over) which means reached
+    a satisfying quality based on the stats
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        boolean: True if the level reached satisfying quality based on the stats and False otherwise
+    """
     def get_episode_over(self, new_stats, old_stats):
         return new_stats["sol-length"] >= self._target_solution
 
+    """
+    Get any debug information need to be printed
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        dict(any,any): is a debug information that can be used to debug what is
+        happening in the problem
+    """
     def get_debug_info(self, new_stats, old_stats):
         return {
             "player": new_stats["player"],
@@ -172,6 +240,15 @@ class SokobanProblem(Problem):
             "sol-length": new_stats["sol-length"]
         }
 
+    """
+    Get an image on how the map will look like for a specific map
+
+    Parameters:
+        map (string[][]): the current game map
+
+    Returns:
+        Image: a pillow image on how the map will look like using sokoban graphics
+    """
     def render(self, map):
         if self._graphics == None:
             self._graphics = {

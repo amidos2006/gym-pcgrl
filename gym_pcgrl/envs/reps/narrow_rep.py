@@ -4,11 +4,27 @@ from gym import spaces
 import numpy as np
 from collections import OrderedDict
 
+"""
+The narrow representation where the agent is trying to modify the tile value of a certain
+selected position that is selected randomly or sequentially similar to cellular automata
+"""
 class NarrowRepresentation(Representation):
+    """
+    Initialize all the parameters used by that representation
+    """
     def __init__(self):
         super().__init__()
         self._random_tile = True
 
+    """
+    Resets the current representation where it resets the parent and the current
+    modified location
+
+    Parameters:
+        width (int): the generated map width
+        height (int): the generated map height
+        prob (dict(int,float)): the probability distribution of each tile value
+    """
     def reset(self, width, height, prob):
         super().reset(width, height, prob)
         self._x = 0
@@ -17,27 +33,76 @@ class NarrowRepresentation(Representation):
             self._x = self._random.randint(width)
             self._y = self._random.randint(height)
 
+    """
+    Gets the action space used by the narrow representation
+
+    Parameters:
+        width: the current map width
+        height: the current map height
+        num_tiles: the total number of the tile values
+
+    Returns:
+        Discrete: the action space used by that narrow representation which
+        correspond to which value for each tile type
+    """
     def get_action_space(self, width, height, num_tiles):
         return spaces.Discrete(num_tiles)
 
+    """
+    Get the observation space used by the narrow representation
+
+    Parameters:
+        width: the current map width
+        height: the current map height
+        num_tiles: the total number of the tile values
+
+    Returns:
+        Dict: the observation space used by that representation. "pos" Integer
+        x,y position for the current location. "map" 2D array of tile numbers
+    """
     def get_observation_space(self, width, height, num_tiles):
         return spaces.Dict({
             "pos": spaces.Box(low=np.array([0, 0]), high=np.array([width-1, height-1]), dtype=np.uint8),
             "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
         })
 
+    """
+    Get the current representation observation object at the current moment
+
+    Returns:
+        observation: the current observation at the current moment. "pos" Integer
+        x,y position for the current location. "map" 2D array of tile numbers
+    """
     def get_observation(self):
         return OrderedDict({
             "pos": np.array([self._x, self._y], dtype=np.uint8),
             "map": self._map.copy()
         })
 
+    """
+    Get the meaning of all the different actions
+
+    Parameters:
+        tiles (string[]): an array of the tile names
+
+    Returns:
+        string: that explains the different action names
+    """
     def get_action_meaning(self, tiles):
         result = ""
         for i in range(len(tiles)):
             result += str(i) + ": " + tiles[i] + "\n"
         return result
 
+    """
+    Get the meaning of the observation
+
+    Parameters:
+        tiles (string[]): an array of the tile names
+
+    Returns:
+        string: that explains the observation
+    """
     def get_observation_meaning(self, tiles):
         result  = "\'pos\' is a point that identify which tile is going to be modified\n"
         result += "\'map\' is the current generated map where the values are:\n"
@@ -45,10 +110,23 @@ class NarrowRepresentation(Representation):
             result += str(i) + ": " + tiles[i] + "\n"
         return result
 
+    """
+    Adjust the current used parameters
+
+    Parameters:
+        random_start (boolean): if the system will restart with a new map (true) or the previous map (false)
+        random_tile (boolean): if the system will move between tiles random (true) or sequentially (false)
+    """
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
         self._random_tile = kwargs.get('random_tile', self._random_tile)
 
+    """
+    Update the narrow representation with the input action
+
+    Parameters:
+        action: an action that is used to advance the environment (same as action space)
+    """
     def update(self, action):
         self._map[self._y][self._x] = action
         if self._random_tile:
@@ -62,6 +140,18 @@ class NarrowRepresentation(Representation):
                 if self._y >= self._map.shape[0]:
                     self._y = 0
 
+    """
+    Modify the level image with a red rectangle around the tile that is
+    going to be modified
+
+    Parameters:
+        lvl_image (img): the current level_image without modifications
+        tile_size (int): the size of tiles in pixels used in the lvl_image
+        border_size (int): an offeset in tiles if the borders are not part of the level
+
+    Returns:
+        img: the modified level image
+    """
     def render(self, lvl_image, tile_size, border_size):
         x_graphics = Image.new("RGBA", (tile_size,tile_size), (0,0,0,0))
         for x in range(tile_size):
