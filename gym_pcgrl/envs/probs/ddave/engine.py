@@ -183,7 +183,7 @@ class State:
                         self.player = {"x": x, "y": y, "health": 1, "airTime": 0, "diamonds": 0, "key": 0, "jumps": 0}
                     elif c == "H":
                         self.door = {"x": x, "y": y}
-                    elif k == "V":
+                    elif c == "V":
                         self.key = {"x": x, "y": y}
 
     def clone(self):
