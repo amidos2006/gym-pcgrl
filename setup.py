@@ -4,7 +4,7 @@ with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(name='gym_pcgrl',
-      version='0.3.0',
+      version='0.3.2',
       install_requires=['gym', 'numpy', 'pillow'],
       author="Ahmed Khalifa",
       author_email="ahmed@akhalifa.com",
