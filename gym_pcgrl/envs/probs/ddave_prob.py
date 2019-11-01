@@ -1,10 +1,17 @@
 from PIL import Image
 import os
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.probs.helper import calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.ddave.engine import State,BFSAgent,AStarAgent
 
+"""
+Generate a fully connected level for a simple platformer similar to Dangerous Dave (http://www.dangerousdave.com)
+where the player has to jump at least 2 times to finish
+"""
 class DDaveProblem(Problem):
+    """
+    The constructor is responsible of initializing all the game parameters
+    """
     def __init__(self):
         super().__init__()
         self._width = 11
@@ -25,22 +32,35 @@ class DDaveProblem(Problem):
             "spikes": 1,
             "regions": 5,
             "num-jumps": 2,
-            "dist-win": 1,
+            "dist-win": 0.1,
             "sol-length": 1
         }
 
+    """
+    Get a list of all the different tile names
+
+    Returns:
+        string[]: that contains all the tile names
+    """
     def get_tile_types(self):
         return ["empty", "solid", "player", "exit", "diamond", "key", "spike"]
 
+    """
+    Adjust the parameters for the current problem
+
+    Parameters:
+        width (int): change the width of the problem level
+        height (int): change the height of the problem level
+        probs (dict(string, float)): change the probability of each tile
+        intiialization, the names are "empty", "solid", "player", "exit", "diamond", "key", "spike"
+        max_diamonds (int): the maximum amount of diamonds that should be in a level
+        min_spikes (int): the minimum amount of spike that should be in a level
+        target_jumps (int): the number of jumps needed to consider the game a success
+        target_solution (int): the number of moves needed to consider the game a success
+        rewards (dict(string,float)): the weights of each reward change between the new_stats and old_stats
+    """
     def adjust_param(self, **kwargs):
-        self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
-        self._prob["empty"] = kwargs.get('empty_prob', self._prob["empty"])
-        self._prob["solid"] = kwargs.get('solid_prob', self._prob["solid"])
-        self._prob["player"] = kwargs.get('player_prob', self._prob["player"])
-        self._prob["exit"] = kwargs.get('exit_prob', self._prob["exit"])
-        self._prob["diamond"] = kwargs.get('diamond_prob', self._prob["diamond"])
-        self._prob["key"] = kwargs.get('key_prob', self._prob["key"])
-        self._prob["spike"] = kwargs.get('spikes_prob', self._prob["spike"])
+        super().adjust_param(**kwargs)
 
         self._max_diamonds = kwargs.get('max_diamonds', self._max_diamonds)
         self._min_spikes = kwargs.get('min_spikes', self._min_spikes)
@@ -48,18 +68,25 @@ class DDaveProblem(Problem):
         self._target_jumps = kwargs.get('target_jumps', self._target_jumps)
         self._target_solution = kwargs.get('target_solution', self._target_solution)
 
-        self._rewards = {
-            "player": kwargs.get("reward_player", self._rewards["player"]),
-            "exit": kwargs.get("reward_exit", self._rewards["exit"]),
-            "diamonds": kwargs.get("reward_diamonds", self._rewards["diamonds"]),
-            "key": kwargs.get("reward_key", self._rewards["key"]),
-            "spikes": kwargs.get("reward_spikes", self._rewards["spikes"]),
-            "regions": kwargs.get("reward_regions", self._rewards["regions"]),
-            "num-jumps": kwargs.get("reward_num_jumps", self._rewards["num-jumps"]),
-            "dist-win": kwargs.get("reward_dist_win", self._rewards["dist-win"]),
-            "sol-length": kwargs.get("reward_sol_length", self._rewards["sol-length"])
-        }
+        rewards = kwargs.get('rewards')
+        if rewards is not None:
+            for t in rewards:
+                if t in self._rewards:
+                    self._rewards[t] = rewards[t]
 
+    """
+    Private function that runs the game on the input level
+
+    Parameters:
+        map (string[][]): the input level to run the game on
+
+    Returns:
+        float: how close you are to winning (0 if you win)
+        int: the solution length if you win (0 otherwise)
+        dict(string,int): get the status of the best node - "health": player health at that state,
+        "airTime": how long before the player start falling, "num_jumps": the number of jumps used till now,
+        "col_diamonds": the number of collected diamonds so far, "col_key": the number of collected keys
+    """
     def _run_game(self, map):
         gameCharacters=" #@H$V*"
         string_to_char = dict((s, gameCharacters[i]) for i, s in enumerate(self.get_tile_types()))
@@ -100,6 +127,18 @@ class DDaveProblem(Problem):
 
         return solState.getHeuristic(), 0, solState.getGameStatus()
 
+
+    """
+    Get the current stats of the map
+
+    Returns:
+        dict(string,any): stats of the current map to be used in the reward, episode_over, debug_info calculations.
+        The used status are "player": number of player tiles, "exit": number of exit tiles,
+        "diamonds": number of diamond tiles, "key": number of key tiles, "spikes": number of spike tiles,
+        "reigons": number of connected empty tiles, "num-jumps": number of jumps did by a planning agent,
+        "col-diamonds": number of collected diamonds by a planning agent, "dist-win": how close to the win state,
+        "sol-length": length of the solution to win the level
+    """
     def get_stats(self, map):
         map_stats = {
             "player": calc_certain_tile(map, ["player"]),
@@ -120,6 +159,16 @@ class DDaveProblem(Problem):
                 map_stats["col-diamonds"] = play_stats["col_diamonds"]
         return map_stats
 
+    """
+    Get the current game reward between two stats
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        float: the current reward due to the change between the old map stats and the new map stats
+    """
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
@@ -180,10 +229,32 @@ class DDaveProblem(Problem):
             rewards["dist-win"] * self._rewards["dist-win"] +\
             rewards["sol-length"] * self._rewards["sol-length"]
 
+    """
+    Uses the stats to check if the problem ended (episode_over) which means reached
+    a satisfying quality based on the stats
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        boolean: True if the level reached satisfying quality based on the stats and False otherwise
+    """
     def get_episode_over(self, new_stats, old_stats):
         return new_stats["sol-length"] >= self._target_solution and\
                 new_stats["num-jumps"] > self._target_jumps
 
+    """
+    Get any debug information need to be printed
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        dict(any,any): is a debug information that can be used to debug what is
+        happening in the problem
+    """
     def get_debug_info(self, new_stats, old_stats):
         return {
             "player": new_stats["player"],
@@ -198,6 +269,15 @@ class DDaveProblem(Problem):
             "sol-length": new_stats["sol-length"]
         }
 
+    """
+    Get an image on how the map will look like for a specific map
+
+    Parameters:
+        map (string[][]): the current game map
+
+    Returns:
+        Image: a pillow image on how the map will look like using ddave graphics
+    """
     def render(self, map):
         if self._graphics == None:
             self._graphics = {

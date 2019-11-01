@@ -1,10 +1,17 @@
 import os
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.probs.helper import calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.mdungeon.engine import State,BFSAgent,AStarAgent
 
+"""
+Generate a fully connected level for a simple dungeon crawler similar to MiniDungeons 1 (http://minidungeons.com/)
+where the player has to kill 50% of enemies before done
+"""
 class MDungeonProblem(Problem):
+    """
+    The constructor is responsible of initializing all the game parameters
+    """
     def __init__(self):
         super().__init__()
         self._width = 7
@@ -25,43 +32,65 @@ class MDungeonProblem(Problem):
             "treasures": 1,
             "enemies": 5,
             "regions": 5,
-            "col-enemies": 2,
-            "dist-win": 1,
+            "col-enemies": 1,
+            "dist-win": 0.1,
             "sol-length": 1
         }
 
+    """
+    Get a list of all the different tile names
+
+    Returns:
+        string[]: that contains all the tile names
+    """
     def get_tile_types(self):
         return ["empty", "solid", "player", "exit", "potion", "treasure", "goblin", "ogre"]
 
+    """
+    Adjust the parameters for the current problem
+
+    Parameters:
+        width (int): change the width of the problem level
+        height (int): change the height of the problem level
+        probs (dict(string, float)): change the probability of each tile
+        intiialization, the names are "empty", "solid", "player", "exit","potion",
+        "treasure", "goblin", "ogre"
+        max_enemies (int): the max amount of enemies that should appear in a level
+        max_potions (int): the max amount of potions that should appear in a level
+        max_treasures (int): the max amount of treasure that should appear in a level
+        target_col_enemies (int): the target amount of killed enemies that the game is considered a success
+        target_solution (int): the minimum amount of movement needed to consider the level a success
+        rewards (dict(string,float)): the weights of each reward change between the new_stats and old_stats
+    """
     def adjust_param(self, **kwargs):
-        self._width, self._height = kwargs.get('width', self._width), kwargs.get('height', self._height)
-        self._prob["empty"] = kwargs.get('empty_prob', self._prob["empty"])
-        self._prob["solid"] = kwargs.get('solid_prob', self._prob["solid"])
-        self._prob["player"] = kwargs.get('player_prob', self._prob["player"])
-        self._prob["exit"] = kwargs.get('exit_prob',self._prob["exit"])
-        self._prob["potion"] = kwargs.get('potion_prob', self._prob["potion"])
-        self._prob["treasure"] = kwargs.get('treasure_prob', self._prob["treasure"])
-        self._prob["goblin"] = kwargs.get('goblin_prob', self._prob["goblin"])
-        self._prob["ogre"] = kwargs.get('ogre_prob', self._prob["ogre"])
+        super().adjust_param(**kwargs)
 
         self._max_enemies = kwargs.get('max_enemies', self._max_enemies)
         self._max_potions = kwargs.get('max_potions', self._max_potions)
         self._max_treasures = kwargs.get('max_treasures', self._max_treasures)
 
-        self._target_col_enemies = kwargs.get('min_col_enemies', self._target_col_enemies)
+        self._target_col_enemies = kwargs.get('target_col_enemies', self._target_col_enemies)
         self._target_solution = kwargs.get('target_solution', self._target_solution)
-        self._rewards = {
-            "player": kwargs.get("reward_player", self._rewards["player"]),
-            "exit": kwargs.get("reward_exit", self._rewards["exit"]),
-            "potions": kwargs.get("reward_potions", self._rewards["potions"]),
-            "treasures": kwargs.get("reward_treasures", self._rewards["treasures"]),
-            "enemies": kwargs.get("reward_enemies", self._rewards["enemies"]),
-            "regions": kwargs.get("reward_regions", self._rewards["regions"]),
-            "col-enemies": kwargs.get("reward_col_enemies", self._rewards["col-enemies"]),
-            "dist-win": kwargs.get("reward_dist_win", self._rewards["dist-win"]),
-            "sol-length": kwargs.get("reward_sol_length", self._rewards["sol-length"])
-        }
 
+        rewards = kwargs.get('rewards')
+        if rewards is not None:
+            for t in rewards:
+                if t in self._rewards:
+                    self._rewards[t] = rewards[t]
+
+    """
+    Private function that runs the game on the input level
+
+    Parameters:
+        map (string[][]): the input level to run the game on
+
+    Returns:
+        float: how close you are to winning (0 if you win)
+        int: the solution length if you win (0 otherwise)
+        dict(string,int): get the status of the best node - "health": the current player health,
+        "col_treasures": number of collected treasures, "col_potions": number of collected potions,
+        "col_enemies": number of killed enemies
+    """
     def _run_game(self, map):
         gameCharacters=" #@H*$go"
         string_to_char = dict((s, gameCharacters[i]) for i, s in enumerate(self.get_tile_types()))
@@ -102,6 +131,17 @@ class MDungeonProblem(Problem):
 
         return solState.getHeuristic(), 0, solState.getGameStatus()
 
+    """
+    Get the current stats of the map
+
+    Returns:
+        dict(string,any): stats of the current map to be used in the reward, episode_over, debug_info calculations.
+        The used status are "player": number of player tiles, "exit": number of exit tiles,
+        "potions": number of potion tiles, "treasures": number of treasure tiles, "enemies": number of goblin and ogre tiles,
+        "reigons": number of connected empty tiles, "col-potions": number of collected potions by a planning agent,
+        "col-treasures": number of collected treasures by a planning agent, "col-enemies": number of killed enemies by a planning agent,
+        "dist-win": how close to the win state, "sol-length": length of the solution to win the level
+    """
     def get_stats(self, map):
         map_stats = {
             "player": calc_certain_tile(map, ["player"]),
@@ -124,6 +164,16 @@ class MDungeonProblem(Problem):
                 map_stats["col-enemies"] = play_stats["col_enemies"]
         return map_stats
 
+    """
+    Get the current game reward between two stats
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        float: the current reward due to the change between the old map stats and the new map stats
+    """
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
@@ -168,10 +218,8 @@ class MDungeonProblem(Problem):
         rewards["regions"] = old_stats["regions"] - new_stats["regions"]
         if new_stats["regions"] == 0 and old_stats["regions"] > 0:
             rewards["regions"] = -1
-        #calculate ratio of killed enemies
-        new_col = new_stats["col-enemies"] / max(new_stats["enemies"], 1)
-        old_col = old_stats["col-enemies"] / max(old_stats["enemies"], 1)
-        rewards["col-enemies"] = new_col - old_col
+        #calculate number of killed enemies
+        rewards["col-enemies"] = new_stats["col-enemies"] - old_stats["col-enemies"]
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - new_stats["dist-win"]
         #calculate solution length
@@ -187,11 +235,33 @@ class MDungeonProblem(Problem):
             rewards["dist-win"] * self._rewards["dist-win"] +\
             rewards["sol-length"] * self._rewards["sol-length"]
 
+    """
+    Uses the stats to check if the problem ended (episode_over) which means reached
+    a satisfying quality based on the stats
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        boolean: True if the level reached satisfying quality based on the stats and False otherwise
+    """
     def get_episode_over(self, new_stats, old_stats):
         return new_stats["sol-length"] >= self._target_solution and\
                 new_stats["enemies"] > 0 and\
                 new_stats["col-enemies"] / max(1,new_stats["enemies"]) > self._target_col_enemies
 
+    """
+    Get any debug information need to be printed
+
+    Parameters:
+        new_stats (dict(string,any)): the new stats after taking an action
+        old_stats (dict(string,any)): the old stats before taking an action
+
+    Returns:
+        dict(any,any): is a debug information that can be used to debug what is
+        happening in the problem
+    """
     def get_debug_info(self, new_stats, old_stats):
         return {
             "player": new_stats["player"],
@@ -207,6 +277,15 @@ class MDungeonProblem(Problem):
             "sol-length": new_stats["sol-length"]
         }
 
+    """
+    Get an image on how the map will look like for a specific map
+
+    Parameters:
+        map (string[][]): the current game map
+
+    Returns:
+        Image: a pillow image on how the map will look like using mdungeon graphics
+    """
     def render(self, map):
         if self._graphics == None:
             self._graphics = {
