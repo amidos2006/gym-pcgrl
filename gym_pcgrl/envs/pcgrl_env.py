@@ -66,6 +66,7 @@ class PcgrlEnv(gym.Env):
     Adjust the used parameters by the problem or representation
 
     Parameters:
+        max_iterations (int): maximum number of iterations before the game terminates
         **kwargs (dict(string,any)): the defined parameters depend on the used
         representation and the used problem
     """
