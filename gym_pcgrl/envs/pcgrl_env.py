@@ -26,6 +26,8 @@ class PcgrlEnv(gym.Env):
         self._prob = PROBLEMS[prob]()
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
+        self._iteration = 0
+        self._max_iteration = 2000
 
         self.seed()
         self.viewer = None
@@ -54,6 +56,7 @@ class PcgrlEnv(gym.Env):
         the Observation Space
     """
     def reset(self):
+        self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
 
@@ -67,6 +70,7 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
+        self._max_iteration = kwargs.get('_max_iteration', self._max_iteration)
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, len(self._prob.get_tile_types()))
@@ -103,14 +107,17 @@ class PcgrlEnv(gym.Env):
         dictionary: debug information that might be useful to understand what's happening
     """
     def step(self, action):
+        self._iteration += 1
         #save copy of the old stats to calculate the reward
         old_stats = self._rep_stats
         # update the current state to the new state based on the taken action
         self._rep.update(action)
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
         #return the values
-        return self._rep.get_observation(), self._prob.get_reward(self._rep_stats, old_stats),\
-            self._prob.get_episode_over(self._rep_stats,old_stats), self._prob.get_debug_info(self._rep_stats,old_stats)
+        return self._rep.get_observation(),\
+            self._prob.get_reward(self._rep_stats, old_stats),\
+            self._prob.get_episode_over(self._rep_stats,old_stats) or self._iteration >= self._max_iteration,\
+            self._prob.get_debug_info(self._rep_stats,old_stats)
 
     """
     Render the current state of the environment
