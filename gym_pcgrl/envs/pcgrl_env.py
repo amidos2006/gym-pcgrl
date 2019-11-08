@@ -27,7 +27,7 @@ class PcgrlEnv(gym.Env):
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self._iteration = 0
-        self._max_iteration = 2000
+        self._max_iterations = 2000
 
         self.seed()
         self.viewer = None
@@ -70,7 +70,7 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
-        self._max_iteration = kwargs.get('max_iteration', self._max_iteration)
+        self._max_iterations = kwargs.get('max_iterations', self._max_iterations)
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, len(self._prob.get_tile_types()))
@@ -116,7 +116,7 @@ class PcgrlEnv(gym.Env):
         #return the values
         return self._rep.get_observation(),\
             self._prob.get_reward(self._rep_stats, old_stats),\
-            self._prob.get_episode_over(self._rep_stats,old_stats) or self._iteration >= self._max_iteration,\
+            self._prob.get_episode_over(self._rep_stats,old_stats) or self._iteration >= self._max_iterations,\
             self._prob.get_debug_info(self._rep_stats,old_stats)
 
     """
