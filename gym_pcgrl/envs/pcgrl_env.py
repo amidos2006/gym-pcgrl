@@ -70,7 +70,7 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
-        self._max_iteration = kwargs.get('_max_iteration', self._max_iteration)
+        self._max_iteration = kwargs.get('max_iteration', self._max_iteration)
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, len(self._prob.get_tile_types()))
