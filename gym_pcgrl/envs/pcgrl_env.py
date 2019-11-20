@@ -27,7 +27,7 @@ class PcgrlEnv(gym.Env):
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self._iteration = 0
-        self._max_iterations = 2000
+        self._max_iterations = int(2 * self._prob._width * self._prob._height)
 
         self.seed()
         self.viewer = None
@@ -63,14 +63,30 @@ class PcgrlEnv(gym.Env):
         return self._rep.get_observation()
 
     """
+    Get the border tile that can be used for padding
+
+    Returns:
+        int: the tile number that can be used for padding
+    """
+    def get_border_tile(self):
+        return self._prob._border_tile
+
+    """
     Adjust the used parameters by the problem or representation
 
     Parameters:
         max_iterations (int): maximum number of iterations before the game terminates
+        percentage_visits (float): is a different way to define the max iterations
+        as how many times each tile on the level is being visited on average.
+        for example: 0.5 means it gets iterations equal to half the number of tiles,
+        while 2 means it gets iterations equal to double the number of tiles.
+        It has less precidence than max_iterations if both exists
         **kwargs (dict(string,any)): the defined parameters depend on the used
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
+        if('percentage_visits' in kwargs):
+            self._max_iterations = int(kwargs.get('percentage_visits') * self._prob._width * self._prob._height)
         self._max_iterations = kwargs.get('max_iterations', self._max_iterations)
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
