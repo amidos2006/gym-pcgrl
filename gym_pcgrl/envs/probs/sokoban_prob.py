@@ -14,8 +14,8 @@ class SokobanProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 5
-        self._height = 5
+        self._width = 6
+        self._height = 6
         self._prob = {"empty":0.45, "solid":0.4, "player": 0.05, "crate": 0.05, "target": 0.05}
 
         self._max_crates = 3

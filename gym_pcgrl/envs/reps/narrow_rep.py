@@ -126,8 +126,12 @@ class NarrowRepresentation(Representation):
 
     Parameters:
         action: an action that is used to advance the environment (same as action space)
+
+    Returns:
+        boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
+        change = self._map[self._y][self._x] != action
         self._map[self._y][self._x] = action
         if self._random_tile:
             self._x = self._random.randint(self._map.shape[1])
@@ -139,6 +143,7 @@ class NarrowRepresentation(Representation):
                 self._y += 1
                 if self._y >= self._map.shape[0]:
                     self._y = 0
+        return change
 
     """
     Modify the level image with a red rectangle around the tile that is

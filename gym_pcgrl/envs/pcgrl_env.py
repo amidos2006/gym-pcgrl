@@ -27,7 +27,9 @@ class PcgrlEnv(gym.Env):
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self._iteration = 0
-        self._max_iterations = int(2 * self._prob._width * self._prob._height)
+        self._changes = 0
+        self._max_changes = max(int(0.5 * self._prob._width * self._prob._height), 1)
+        self._max_iterations = self._max_changes * self._prob._width * self._prob._height
 
         self.seed()
         self.viewer = None
@@ -56,6 +58,7 @@ class PcgrlEnv(gym.Env):
         the Observation Space
     """
     def reset(self):
+        self._changes = 0
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
@@ -75,19 +78,18 @@ class PcgrlEnv(gym.Env):
     Adjust the used parameters by the problem or representation
 
     Parameters:
-        max_iterations (int): maximum number of iterations before the game terminates
-        percentage_visits (float): is a different way to define the max iterations
-        as how many times each tile on the level is being visited on average.
-        for example: 0.5 means it gets iterations equal to half the number of tiles,
-        while 2 means it gets iterations equal to double the number of tiles.
-        It has less precidence than max_iterations if both exists
+        change_percentage (float): a value between 0 and 1 that determine the
+        percentage of tiles the algorithm is allowed to modify. Having small
+        values encourage the agent to learn to react to the input screen.
         **kwargs (dict(string,any)): the defined parameters depend on the used
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
-        if('percentage_visits' in kwargs):
-            self._max_iterations = int(kwargs.get('percentage_visits') * self._prob._width * self._prob._height)
-        self._max_iterations = kwargs.get('max_iterations', self._max_iterations)
+        if 'change_percentage' in kwargs:
+            epsilon = 1e-6
+            percentage = min(1-epsilon, max(epsilon, kwargs.get('change_percentage')))
+            self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
+        self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, len(self._prob.get_tile_types()))
@@ -128,13 +130,21 @@ class PcgrlEnv(gym.Env):
         #save copy of the old stats to calculate the reward
         old_stats = self._rep_stats
         # update the current state to the new state based on the taken action
-        self._rep.update(action)
+        if self._rep.update(action):
+            self._changes += 1
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+
+        # calculate the values
+        observation = self._rep.get_observation()
+        reward = self._prob.get_reward(self._rep_stats, old_stats)
+        done = self._prob.get_episode_over(self._rep_stats,old_stats) or self._changes >= self._max_changes or self._iteration >= self._max_iterations
+        info = self._prob.get_debug_info(self._rep_stats,old_stats)
+        info["iterations"] = self._iteration
+        info["changes"] = self._changes
+        info["max_iterations"] = self._max_iterations
+        info["max_changes"] = self._max_changes
         #return the values
-        return self._rep.get_observation(),\
-            self._prob.get_reward(self._rep_stats, old_stats),\
-            self._prob.get_episode_over(self._rep_stats,old_stats) or self._iteration >= self._max_iterations,\
-            self._prob.get_debug_info(self._rep_stats,old_stats)
+        return observation, reward, done, info
 
     """
     Render the current state of the environment

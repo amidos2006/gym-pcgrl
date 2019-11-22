@@ -119,6 +119,9 @@ class Representation:
 
     Parameters:
         action: an action that is used to advance the environment (same as action space)
+
+    Returns:
+        boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
         raise NotImplementedError('update is not implemented')

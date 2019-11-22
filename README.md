@@ -135,6 +135,7 @@ def get_observation(self):
 
 def update(self, action):
   ...
+  return change
 ```
 Feel free to override any other function if you need a behavior different from the normal behavior. For example: in the `narrow` representation, we wanted to show the location where the agent should change on the rendered image. We override the `render()` function to draw a red square around the correct tile.
 

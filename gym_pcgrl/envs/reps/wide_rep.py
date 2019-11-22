@@ -85,5 +85,16 @@ class WideRepresentation(Representation):
             result += str(i) + ": " + tiles[i] + "\n"
         return result
 
+    """
+    Update the wide representation with the input action
+
+    Parameters:
+        action: an action that is used to advance the environment (same as action space)
+
+    Returns:
+        boolean: True if the action change the map, False if nothing changed
+    """
     def update(self, action):
+        change = self._map[action[1]][action[0]] != action[2]
         self._map[action[1]][action[0]] = action[2]
+        return change

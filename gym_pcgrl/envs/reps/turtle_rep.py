@@ -136,8 +136,12 @@ class TurtleRepresentation(Representation):
 
     Parameters:
         action: an action that is used to advance the environment (same as action space)
+
+    Returns:
+        boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
+        change = False
         if action < len(self._dirs):
             self._x += self._dirs[action][0]
             if self._x < 0:
@@ -162,7 +166,9 @@ class TurtleRepresentation(Representation):
                 else:
                     self._y = self._map.shape[0] - 1
         else:
+            change = self._map[self._y][self._x] != action - len(self._dirs)
             self._map[self._y][self._x] = action - len(self._dirs)
+        return change
 
     """
     Modify the level image with a red rectangle around the tile that the turtle is on
