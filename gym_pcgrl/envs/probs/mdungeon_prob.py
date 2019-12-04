@@ -17,6 +17,7 @@ class MDungeonProblem(Problem):
         self._width = 7
         self._height = 11
         self._prob = {"empty":0.4, "solid": 0.4, "player":0.02, "exit":0.02, "potion":0.03, "treasure":0.03, "goblin":0.05, "ogre": 0.05}
+        self._border_tile = "solid"
 
         self._max_enemies = 6
         self._max_potions = 2

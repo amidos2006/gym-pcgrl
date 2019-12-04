@@ -17,6 +17,7 @@ class DDaveProblem(Problem):
         self._width = 11
         self._height = 7
         self._prob = {"empty":0.5, "solid":0.3, "player":0.02, "exit":0.02, "diamond":0.04, "key": 0.02, "spike":0.1}
+        self._border_tile = "solid"
 
         self._max_diamonds = 3
         self._min_spikes = 20

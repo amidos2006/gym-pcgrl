@@ -15,6 +15,7 @@ class BinaryProblem(Problem):
         self._width = 14
         self._height = 14
         self._prob = {"empty": 0.7, "solid":0.3}
+        self._border_tile = "solid"
 
         self._target_path = 50
 
