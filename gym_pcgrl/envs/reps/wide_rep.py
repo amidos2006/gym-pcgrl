@@ -40,7 +40,9 @@ class WideRepresentation(Representation):
         Box: the observation space used by that representation. A 2D array of tile numbers
     """
     def get_observation_space(self, width, height, num_tiles):
-        return spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
+        return spaces.Dict({
+            "map": spaces.Box(low=0, high=num_tiles-1, dtype=np.uint8, shape=(height, width))
+        })
 
     """
     Get the current representation observation object at the current moment
