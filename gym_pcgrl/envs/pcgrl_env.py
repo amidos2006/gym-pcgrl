@@ -72,7 +72,7 @@ class PcgrlEnv(gym.Env):
         int: the tile number that can be used for padding
     """
     def get_border_tile(self):
-        return self._prob._border_tile
+        return self._prob.get_tile_types().index(self._prob._border_tile)
 
     """
     Adjust the used parameters by the problem or representation
