@@ -3,6 +3,7 @@
 
 import gym
 import gym_pcgrl
+from gym_pcgrl import wrappers
 
 from stable_baselines.common.policies import MlpPolicy, CnnPolicy, FeedForwardPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
@@ -47,45 +48,10 @@ def callback(_locals, _globals):
     # Returning False will stop training early
     return True
 
-class PCGRL(gym.Wrapper):
-    def __init__(self, game):
-        self.env = gym.make(game)
-        self.env.adjust_param(random_tile=False, max_iterations = 1000)
-        gym.Wrapper.__init__(self, self.env)
-
-        #self.observation_space = gym.spaces.Box(low=0, high=1, shape=(198,), dtype=np.float32)
-        self.observation_space = gym.spaces.Box(low=0, high=1, shape=(14, 14, 1), dtype=np.uint8)
-
-    def step(self, action):
-        action = action.item()
-        obs, reward, done, info = self.env.step(action)
-        obs = self.transform(obs)
-        return obs, reward, done, info
-
-    def reset(self):
-        obs = self.env.reset()
-        obs = self.transform(obs)
-        return obs
-
-    def transform(self, obs):
-        #flatten
-        #map = obs['map'].flatten()
-        #pos = obs['pos']/168
-        #return np.concatenate([map, pos])
-
-        #image
-        map = obs['map']
-        x, y = obs['pos']
-        pos = np.zeros([14,14,1])
-        #pos = np.zeros_like(map)
-        pos[y][x] = 1
-        #return np.stack([map, pos], 2)
-        return pos
-
 def Cnn(image, **kwargs):
     activ = tf.nn.relu
-    layer_1 = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
+    layer_1 = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs)) # filter_size=3
+    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs)) #filter_size = 3
     layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
     layer_3 = conv_to_fc(layer_3)
     return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
@@ -97,11 +63,11 @@ class CustomPolicy(FeedForwardPolicy):
 def main(game, n_cpu):
     # multiprocess environment
     #env = SubprocVecEnv([(lambda worker: lambda: Monitor(PCGRL(game), log_dir, allow_early_resets=True))(i) for i in range(n_cpu)])
-    env = SubprocVecEnv([lambda: PCGRL(game) for i in range(n_cpu)])
-    #env = DummyVecEnv([lambda: PCGRL()])
+    env = SubprocVecEnv([lambda: wrappers.Cropped(game, 28, random_tile=False) for i in range(n_cpu)])
+    #env = DummyVecEnv([lambda: PCGRL(game)])
 
-    model = PPO2(CustomPolicy, env, verbose=0, tensorboard_log="./runs")
-    model.learn(total_timesteps=int(5e6), tb_log_name="Logging_Test") #, callback=callback)
+    model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
+    model.learn(total_timesteps=int(5e7), tb_log_name="Binary_Narrow_Limited") #, callback=callback)
     #model.save("ppo_binary")
 
     #del model # remove to demonstrate saving and loading
