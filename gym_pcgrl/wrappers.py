@@ -13,7 +13,7 @@ get_action = lambda a: a.item() if hasattr(a, "item") else a
 """
 Returns reward at the end of the episode
 """
-class AccumulatedReward(gym.Wrapper):
+class LateReward(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.env = gym.make(game)
         self.env.adjust_param(**kwargs)
