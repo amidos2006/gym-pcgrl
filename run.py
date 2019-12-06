@@ -60,26 +60,24 @@ class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
-def main(game, n_cpu):
-    # multiprocess environment
-    #env = SubprocVecEnv([(lambda worker: lambda: Monitor(PCGRL(game), log_dir, allow_early_resets=True))(i) for i in range(n_cpu)])
-    env = SubprocVecEnv([lambda: wrappers.Cropped(game, 28, random_tile=False) for i in range(n_cpu)])
-    #env = DummyVecEnv([lambda: PCGRL(game)])
+def main(game, representation, experiment_desc, env_func, steps, n_cpu):
+    env_name = '{}-{}-v0'.format(game, representation)
+    experiment = '{}_{}_{}'.format(game, representation, experiment_desc)
+
+    if(n_cpu > 1):
+        env = SubprocVecEnv([lambda: env_func(env_name) for i in range(n_cpu)])
+    else:
+        env = DummyVecEnv([lambda: env_func(env_name)])
 
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
-    model.learn(total_timesteps=int(5e7), tb_log_name="Binary_Narrow_Limited") #, callback=callback)
-    #model.save("ppo_binary")
-
-    #del model # remove to demonstrate saving and loading
-
-    #model = PPO2.load("ppo_binary")
-
-# Enjoy trained agent
-#obs = env.reset()
-#while True:
-#    action, _states = model.predict(obs)
-#    obs, rewards, dones, info = env.step(action)
-#    env.render()
+    model.learn(total_timesteps=int(steps), tb_log_name=experiment) #, callback=callback)
+    model.save(experiment)
 
 if __name__ == '__main__':
-    main('binary-narrow-v0', 24)
+    game = 'binary'
+    representation = 'narrow'
+    experiment = 'limited_centered'
+    n_cpu = 24
+    steps = 1e8
+    env = lambda game: wrappers.Cropped(game, 28, random_tile=False)
+    main(game, representation, experiment, env, steps, n_cpu)
