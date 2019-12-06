@@ -50,7 +50,7 @@ for t in range(1000):
 ```
 
 Beside the OpenAI GYM traditional functions. Our interface supports additional functionalities such as:
-- `get_border_tile()`: This function get the tile value to be used for padding a certain problem
+- `get_border_tile()`: This function get the tile index to be used for padding a certain problem. It is used by certain wrappers.
 - `adjust_param(**kwargs)`: This function that helps adjust the problem and/or representation parameters such as modifying `width` and `height` of the generated map.
 - `get_action_meaning()`: This function returns a string that explains the values of the different actions
 - `get_observation_meaning()`: This function returns a string that explains the values of the observation
