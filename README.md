@@ -4,7 +4,7 @@ An [OpenAI GYM](https://gym.openai.com/) environment for Procedural Content Gene
 The framework, along with some initial reinforcement learning results, is covered in the paper [Procedural Content Generation via Reinforcement Learning](). This paper should be cited if code from this project is used in any way:
 ```
 @inproceedings{khalifa2020pcgrl,
-  title={PCGLRL: Procedural Content Generation via Reinforcement Learning},
+  title={PCGRL: Procedural Content Generation via Reinforcement Learning},
   author={Khalifa, Ahmed and Bontrager, Philip and Togelius, Julian},
   booktitle={},
   year={2020},
