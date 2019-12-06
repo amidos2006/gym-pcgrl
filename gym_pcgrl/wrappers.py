@@ -81,7 +81,7 @@ class Image(gym.Wrapper):
         x, y = self.env.observation_space['map'].shape
         self.size = pos_size
         self.pad = pos_size//2
-        self.observation_space = gym.spaces.Box(low=0, high=1, shape=(x, y, 2), dtype=np.unit8)
+        self.observation_space = gym.spaces.Box(low=0, high=1, shape=(x, y, 2), dtype=np.uint8)
 
     def step(self, action):
         action = get_action(action)
@@ -98,10 +98,10 @@ class Image(gym.Wrapper):
         map = obs['map']
         x, y = obs['pos']
 
-        pos = np.zero_like(map)
+        pos = np.zeros_like(map)
         low_y,high_y=np.clip(y-self.pad,0,map.shape[0]),np.clip(y+(self.size-self.pad),0,map.shape[0])
         low_x,high_x=np.clip(x-self.pad,0,map.shape[1]),np.clip(x+(self.size-self.pad),0,map.shape[1])
-        pos[low_y:low_y,low_x:high_x] = 1
+        pos[low_y:high_y,low_x:high_x] = 1
         return np.stack([map, pos], 2)
 
 """
@@ -116,10 +116,10 @@ class Flat(gym.Wrapper):
         self.x, self.y = self.env.observation_space['map'].shape
         if('pos' in self.env.observation_space.spaces.keys()):
             self.pos = True
-            self.observation_space = gym.spaces.Box(low=0, high=1, shape=(2*self.x*self.y,), dtype=np.unit8)
+            self.observation_space = gym.spaces.Box(low=0, high=1, shape=(2*self.x*self.y,), dtype=np.uint8)
         else:
             self.pos = False
-            self.observation_space = gym.spaces.Box(low=0, high=1, shape=(self.x*self.y,), dtype=np.unit8)
+            self.observation_space = gym.spaces.Box(low=0, high=1, shape=(self.x*self.y,), dtype=np.uint8)
 
     def step(self, action):
         action = get_action(action)
@@ -135,7 +135,7 @@ class Flat(gym.Wrapper):
     def transform(self, obs):
         map = obs['map'].flatten()
         if(self.pos):
-            pos = np.zero_like(map)
+            pos = np.zeros_like(map)
             x, y = obs['pos']
             pos[y*self.x + x] = 1
             map = np.concatentate([map, pos])
