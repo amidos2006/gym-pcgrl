@@ -66,8 +66,10 @@ class PcgrlEnv(gym.Env):
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
-
-        return self._rep.get_observation()
+        
+        observation = self._rep.get_observation()
+        observation["heatmap"] = self._heatmap.copy()
+        return observation
 
     """
     Get the border tile that can be used for padding
