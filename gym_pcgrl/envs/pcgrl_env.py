@@ -34,8 +34,8 @@ class PcgrlEnv(gym.Env):
         self.seed()
         self.viewer = None
 
-        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, len(self._prob.get_tile_types()))
-        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, len(self._prob.get_tile_types()))
+        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
+        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
 
     """
     Seeding the used random variable to get the same result. If the seed is None,
@@ -75,6 +75,15 @@ class PcgrlEnv(gym.Env):
         return self._prob.get_tile_types().index(self._prob._border_tile)
 
     """
+    Get the number of different type of tiles that are allowed in the observation
+
+    Returns:
+        int: the number of different tiles
+    """
+    def get_num_tiles(self):
+        return len(self._prob.get_tile_types())
+
+    """
     Adjust the used parameters by the problem or representation
 
     Parameters:
@@ -92,8 +101,8 @@ class PcgrlEnv(gym.Env):
         self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._prob.adjust_param(**kwargs)
         self._rep.adjust_param(**kwargs)
-        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, len(self._prob.get_tile_types()))
-        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, len(self._prob.get_tile_types()))
+        self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
+        self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
 
     """
     Get the meaning of all the different actions
