@@ -51,42 +51,10 @@ class WideRepresentation(Representation):
         observation: the current observation at the current moment. A 2D array of tile numbers
     """
     def get_observation(self):
-        return self._map.copy()
-
-    """
-    Get the meaning of all the different actions
-
-    Parameters:
-        tiles (string[]): an array of the tile names
-
-    Returns:
-        string: that explains the different action names
-    """
-    def get_action_meaning(self, tiles):
-        result  = "For 1st Integer:\n"
-        result += "0.." + str(self._map.shape[1]-1) + ": is the x position\n"
-        result += "For 2nd Integer:\n"
-        result += "0.." + str(self._map.shape[0]-1) + ": is the y position\n"
-        result += "For 3rd Integer:\n"
-        for i in range(len(tiles)):
-            result += str(i) + ": " + tiles[i] + "\n"
-        return result
-
-    """
-    Get the meaning of the observation
-
-    Parameters:
-        tiles (string[]): an array of the tile names
-
-    Returns:
-        string: that explains the observation
-    """
-    def get_observation_meaning(self, tiles):
-        result = "The 2D array is the current generated map where the values are:\n"
-        for i in range(len(tiles)):
-            result += str(i) + ": " + tiles[i] + "\n"
-        return result
-
+        return {
+            "map": self._map.copy()
+        }
+        
     """
     Update the wide representation with the input action
 
@@ -99,4 +67,4 @@ class WideRepresentation(Representation):
     def update(self, action):
         change = self._map[action[1]][action[0]] != action[2]
         self._map[action[1]][action[0]] = action[2]
-        return change
+        return change, action[0], action[1]

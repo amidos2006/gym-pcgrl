@@ -3,6 +3,7 @@ from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 import numpy as np
 import gym
+from gym import spaces
 
 """
 The PCGRL GYM Environment
@@ -28,14 +29,16 @@ class PcgrlEnv(gym.Env):
         self._rep_stats = None
         self._iteration = 0
         self._changes = 0
-        self._max_changes = max(int(0.5 * self._prob._width * self._prob._height), 1)
+        self._max_changes = max(int(0.4 * self._prob._width * self._prob._height), 1)
         self._max_iterations = self._max_changes * self._prob._width * self._prob._height
+        self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         self.seed()
         self.viewer = None
 
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
+        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
 
     """
     Seeding the used random variable to get the same result. If the seed is None,
@@ -62,6 +65,7 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+        self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         return self._rep.get_observation()
 
@@ -103,24 +107,7 @@ class PcgrlEnv(gym.Env):
         self._rep.adjust_param(**kwargs)
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
-
-    """
-    Get the meaning of all the different actions
-
-    Returns:
-        string: that explains the different action names
-    """
-    def get_action_meaning(self):
-        return self._rep.get_action_meaning(self._prob.get_tile_types())
-
-    """
-    Get the meaning of the observation
-
-    Returns:
-        string: that explains the observation
-    """
-    def get_observation_meaning(self):
-        return self._rep.get_observation_meaning(self._prob.get_tile_types())
+        self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
 
     """
     Advance the environment using a specific action
@@ -139,12 +126,15 @@ class PcgrlEnv(gym.Env):
         #save copy of the old stats to calculate the reward
         old_stats = self._rep_stats
         # update the current state to the new state based on the taken action
-        if self._rep.update(action):
+        change, x, y = self._rep.update(action)
+        if change:
             self._changes += 1
+            self._heatmap[y][x] += 1.0
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
 
         # calculate the values
         observation = self._rep.get_observation()
+        observation["heatmap"] = self._heatmap.copy()
         reward = self._prob.get_reward(self._rep_stats, old_stats)
         done = self._prob.get_episode_over(self._rep_stats,old_stats) or self._changes >= self._max_changes or self._iteration >= self._max_iterations
         info = self._prob.get_debug_info(self._rep_stats,old_stats)

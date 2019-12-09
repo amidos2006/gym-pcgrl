@@ -82,30 +82,6 @@ class Representation:
         raise NotImplementedError('get_observation_space is not implemented')
 
     """
-    Get the meaning of all the different actions
-
-    Parameters:
-        tiles (string[]): an array of the tile names
-
-    Returns:
-        string: that explains the different action names
-    """
-    def get_action_meaning(self, tiles):
-        raise NotImplementedError('get_action_meaning is not implemented')
-
-    """
-    Get the meaning of the observation
-
-    Parameters:
-        tiles (string[]): an array of the tile names
-
-    Returns:
-        string: that explains the observation
-    """
-    def get_observation_meaning(self, tiles):
-        raise NotImplementedError('get_observation_meaning is not implemented')
-
-    """
     Get the current representation observation object at the current moment
 
     Returns:

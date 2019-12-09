@@ -5,7 +5,7 @@ The framework, along with some initial reinforcement learning results, is covere
 ```
 @inproceedings{khalifa2020pcgrl,
   title={PCGRL: Procedural Content Generation via Reinforcement Learning},
-  author={Khalifa, Ahmed and Bontrager, Philip and Togelius, Julian},
+  author={Khalifa, Ahmed and Bontrager, Philip and Erele, Sam and Togelius, Julian},
   booktitle={},
   year={2020},
   organization={}
@@ -53,8 +53,6 @@ Beside the OpenAI GYM traditional functions. Our interface supports additional f
 - `self.get_num_tiles()`: This function get the number of different tiles that can appear in the observation space
 - `get_border_tile()`: This function get the tile index to be used for padding a certain problem. It is used by certain wrappers.
 - `adjust_param(**kwargs)`: This function that helps adjust the problem and/or representation parameters such as modifying `width` and `height` of the generated map.
-- `get_action_meaning()`: This function returns a string that explains the values of the different actions
-- `get_observation_meaning()`: This function returns a string that explains the values of the observation
 
 ## Supported Problems
 Problems are the current games that we want to apply PCGRL towards them. The following table lists all the supported problems in the interface:
@@ -72,7 +70,7 @@ Representations are the way the Procedural Content Generation problem is formatt
 | Name   | Observation Space                                                                                  | Action Space                                                                                                                             |
 |--------|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
 | narrow | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space that represents the new tile value                                                                                    |
-| wide   | 2D Box of integers that represent the map                                                          | Three Discrete spaces that represent the x position, y position, new tile value                                                          |
+| wide   | 2D Box of integers that represent the map                                     | Three Discrete spaces that represent the x position, y position, new tile value                                                          |
 | turtle | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space where the first 4 actions move the turtle (left, right, up, or down) while the rest of actions are for the tile value |
 
 The `narrow`, `wide`, and `turtle` representation are adapted from [Tree Search vs Optimization Approaches for Map Generation](https://arxiv.org/pdf/1903.11678.pdf) work by Bhaumik et al.
@@ -119,12 +117,6 @@ def __init__(self, width, height, prob):
   super().__init__(width, height, prob)
   ...
 
-def get_action_meaning(self, tiles):
-  ...
-
-def get_observation_meaning(self, tiles):
-  ...
-
 def get_action_space(self):
   ...
 
@@ -136,7 +128,8 @@ def get_observation(self):
 
 def update(self, action):
   ...
-  return change
+  # boolean to define where the change happened and x,y for the location of change if it happened
+  return change, x, y
 ```
 Feel free to override any other function if you need a behavior different from the normal behavior. For example: in the `narrow` representation, we wanted to show the location where the agent should change on the rendered image. We override the `render()` function to draw a red square around the correct tile.
 

@@ -80,37 +80,6 @@ class NarrowRepresentation(Representation):
         })
 
     """
-    Get the meaning of all the different actions
-
-    Parameters:
-        tiles (string[]): an array of the tile names
-
-    Returns:
-        string: that explains the different action names
-    """
-    def get_action_meaning(self, tiles):
-        result = ""
-        for i in range(len(tiles)):
-            result += str(i) + ": " + tiles[i] + "\n"
-        return result
-
-    """
-    Get the meaning of the observation
-
-    Parameters:
-        tiles (string[]): an array of the tile names
-
-    Returns:
-        string: that explains the observation
-    """
-    def get_observation_meaning(self, tiles):
-        result  = "\'pos\' is a point that identify which tile is going to be modified\n"
-        result += "\'map\' is the current generated map where the values are:\n"
-        for i in range(len(tiles)):
-            result += str(i) + ": " + tiles[i] + "\n"
-        return result
-
-    """
     Adjust the current used parameters
 
     Parameters:
@@ -143,7 +112,7 @@ class NarrowRepresentation(Representation):
                 self._y += 1
                 if self._y >= self._map.shape[0]:
                     self._y = 0
-        return change
+        return change, self._x, self._y
 
     """
     Modify the level image with a red rectangle around the tile that is

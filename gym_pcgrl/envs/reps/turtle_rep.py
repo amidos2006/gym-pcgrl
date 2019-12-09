@@ -90,48 +90,6 @@ class TurtleRepresentation(Representation):
         })
 
     """
-    Get the meaning of all the different actions
-
-    Parameters:
-        tiles (string[]): an array of the tile names
-
-    Returns:
-        string: that explains the different action names
-    """
-    def get_action_meaning(self, tiles):
-        result = ""
-        for i in range(len(self._dirs)):
-            dir = ""
-            if self._dirs[i][0] < 0:
-                dir = "Left"
-            elif self._dirs[i][0] > 0:
-                dir = "Right"
-            elif self._dirs[i][1] < 0:
-                dir = "Up"
-            elif self._dirs[i][1] > 0:
-                dir = "Down"
-            result += str(i) + ": Move " + dir + "\n"
-        for i in range(len(tiles)):
-            result += str(i+len(self._dirs)) + ": " + tiles[i] + "\n"
-        return result
-
-    """
-    Get the meaning of the observation
-
-    Parameters:
-        tiles (string[]): an array of the tile names
-
-    Returns:
-        string: that explains the observation
-    """
-    def get_observation_meaning(self, tiles):
-        result  = "\'pos\' is a point that identify where is the turtle at this moment\n"
-        result += "\'map\' is the current generated map where the values are:\n"
-        for i in range(len(tiles)):
-            result += str(i) + ": " + tiles[i] + "\n"
-        return result
-
-    """
     Update the turtle representation with the input action
 
     Parameters:
@@ -168,7 +126,7 @@ class TurtleRepresentation(Representation):
         else:
             change = self._map[self._y][self._x] != action - len(self._dirs)
             self._map[self._y][self._x] = action - len(self._dirs)
-        return change
+        return change, self._x, self._y
 
     """
     Modify the level image with a red rectangle around the tile that the turtle is on
