@@ -5,7 +5,7 @@ with open("README.md", "r") as fh:
 
 setup(name='gym_pcgrl',
       version='0.3.5',
-      install_requires=['gym', 'numpy==1.17', 'pillow'],
+      install_requires=['gym', 'numpy>=1.17', 'pillow'],
       author="Ahmed Khalifa",
       author_email="ahmed@akhalifa.com",
       description="A package for \"Procedural Content Generation via Reinforcement Learning\" OpenAI Gym interface.",
