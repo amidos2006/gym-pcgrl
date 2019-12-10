@@ -18,7 +18,10 @@ Returns reward at the end of the episode
 """
 class LateReward(gym.Wrapper):
     def __init__(self, game, **kwargs):
-        self.env = gym.make(game)
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
         self.env.adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
         self.acum_reward = 0
