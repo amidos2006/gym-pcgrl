@@ -49,7 +49,7 @@ class Cropped(gym.Wrapper):
         self.size = crop_size
         self.pad = crop_size//2
         self.pad_value = self.env.get_border_tile()
-        self.observation_space = gym.spaces.Box(low=0, high=self.env.get_num_tiles()-1, shape=(crop_size, crop_size, 1), dtype=np.uint8)
+        self.observation_space = gym.spaces.Box(low=0, high=self.env.get_num_tiles()-1, shape=(crop_size, crop_size, 2), dtype=np.uint8)
 
     def step(self, action):
         action = get_action(action)
@@ -65,10 +65,17 @@ class Cropped(gym.Wrapper):
     def transform(self, obs):
         map = obs['map']
         x, y = obs['pos']
+        history = obs['heatmap']
 
+        #View Centering
         padded = np.pad(map, self.pad, constant_values=self.pad_value)
         cropped = padded[y:y+self.size, x:x+self.size]
-        return np.expand_dims(cropped, 2)
+
+        #Action History Centering
+        history = history/self.env._max_changes
+        action_padding = np.pad(history, self.pad, constant_values=0)
+        action_cropping = action_padding[y:y+self.size, x:x+self.size]
+        return np.stack([cropped, action_cropping], 2)
 
 """
 Provides an image of the map with a layer for position

@@ -27,3 +27,6 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+
+#Tensorboard Logs
+runs/
