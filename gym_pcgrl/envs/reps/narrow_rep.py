@@ -27,11 +27,8 @@ class NarrowRepresentation(Representation):
     """
     def reset(self, width, height, prob):
         super().reset(width, height, prob)
-        self._x = 0
-        self._y = 0
-        if self._random_tile:
-            self._x = self._random.randint(width)
-            self._y = self._random.randint(height)
+        self._x = self._random.randint(width)
+        self._y = self._random.randint(height)
 
     """
     Gets the action space used by the narrow representation
