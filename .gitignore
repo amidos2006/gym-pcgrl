@@ -30,3 +30,6 @@ MANIFEST
 
 #Tensorboard Logs
 runs/
+
+#Jupyter logs
+.ipynb_checkpoints/
