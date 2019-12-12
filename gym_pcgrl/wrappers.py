@@ -17,7 +17,8 @@ pdf = lambda x,mean,sigma: math.exp(-1/2 * math.pow((x-mean)/sigma,2))/math.exp(
 
 """
 Return a Box instead of dictionary by stacking different similar objects
-Can be stacked
+
+Can be stacked as Last Layer
 """
 class ToImage(gym.Wrapper):
     def __init__(self, game, names, **kwargs):
@@ -65,7 +66,8 @@ class ToImage(gym.Wrapper):
 
 """
 Return a single array with all in it
-can be stacked
+
+can be stacked as Last Layer
 """
 class ToFlat(gym.Wrapper):
     def __init__(self, game, names, **kwargs):
@@ -105,6 +107,7 @@ class ToFlat(gym.Wrapper):
 
 """
 Transform any object in the dictionary to one hot encoding
+
 can be stacked
 """
 class OneHotEncoding(gym.Wrapper):
@@ -148,6 +151,7 @@ class OneHotEncoding(gym.Wrapper):
 
 """
 Returns reward at the end of the episode
+
 Can be stacked
 """
 class LateReward(gym.Wrapper):
@@ -173,6 +177,7 @@ class LateReward(gym.Wrapper):
 
 """
 Normalize a certain attribute by the max and min values of its observation_space
+
 can be stacked
 """
 class Normalize(gym.Wrapper):
@@ -215,6 +220,7 @@ class Normalize(gym.Wrapper):
 Crops and centers the view around the agent and replace the map with cropped version
 The crop size can be larger than the actual view, it just pads the outside
 This wrapper only works on games with a position coordinate
+
 can be stacked
 """
 class Cropped(gym.Wrapper):
@@ -264,6 +270,7 @@ class Cropped(gym.Wrapper):
 """
 Add a 2D map with a window of 1s as pos key instead of normal pos
 This wrapper only works on games with a position coordinate
+
 can be stacked
 """
 class PosImage(gym.Wrapper):
@@ -305,12 +312,13 @@ class PosImage(gym.Wrapper):
         low_x,high_x=np.clip(x-self.pad,0,map.shape[1]),np.clip(x+(self.size-self.pad),0,map.shape[1])
         pos[low_y:high_y,low_x:high_x] = 1
 
-        obs['pos_map'] = pos
+        obs['pos'] = pos
         return obs
 
 """
 Similar to the Image Wrapper but the values in the image
 are sampled from gaussian distribution
+
 Can be stacked
 """
 class PosGaussianImage(PosImage):
@@ -343,7 +351,7 @@ class PosGaussianImage(PosImage):
 """
 The wrappers we use for our experiment
 """
-class DefaultImagePCGRLWrapper(gym.Wrapper):
+class CoppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
@@ -358,4 +366,25 @@ class DefaultImagePCGRLWrapper(gym.Wrapper):
         env = Normalize(env, 'heatmap')
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, ['map', 'heatmap'])
+        gym.Wrapper.__init__(self, self.env)
+
+"""
+Instead of cropping we are appending 1s in position layer
+"""
+class PositionImagePCGRLWrapper(gym.Wrapper):
+    def __init__(self, game, pos_size, guassian_std=0, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Normalize the heatmap
+        env = Normalize(self.pcgrl_env, 'heatmap')
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            env = OneHotEncoding(env, 'map')
+        # Transform the pos to image
+        if guassian_std > 0:
+            env = PosImage(env, pos_size, guassian_std)
+        else:
+            env = PosImage(env, pos_size)
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage(env, ['map', 'pos', 'heatmap'])
         gym.Wrapper.__init__(self, self.env)
