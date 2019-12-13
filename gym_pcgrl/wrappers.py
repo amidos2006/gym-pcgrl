@@ -351,7 +351,7 @@ class PosGaussianImage(PosImage):
 """
 The wrappers we use for our experiment
 """
-class CoppedImagePCGRLWrapper(gym.Wrapper):
+class CroppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
