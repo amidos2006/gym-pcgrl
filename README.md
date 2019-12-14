@@ -5,7 +5,7 @@ The framework, along with some initial reinforcement learning results, is covere
 ```
 @inproceedings{khalifa2020pcgrl,
   title={PCGRL: Procedural Content Generation via Reinforcement Learning},
-  author={Khalifa, Ahmed and Bontrager, Philip and Erele, Sam and Togelius, Julian},
+  author={Khalifa, Ahmed and Bontrager, Philip and Earle, Sam and Togelius, Julian},
   booktitle={},
   year={2020},
   organization={}
