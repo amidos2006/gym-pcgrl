@@ -29,7 +29,7 @@ class SokobanProblem(Problem):
             "target": 5,
             "regions": 5,
             "ratio": 1,
-            "dist-win": 0.1,
+            "dist-win": 0.01,
             "sol-length": 1
         }
 
@@ -140,7 +140,7 @@ class SokobanProblem(Problem):
             "sol-length": 0
         }
         if map_stats["player"] == 1:
-            if map_stats["crate"] == map_stats["target"] and map_stats["regions"] == 1:
+            if map_stats["crate"] == map_stats["target"] and map_stats["crate"] > 0 and map_stats["regions"] == 1:
                 map_stats["dist-win"], map_stats["sol-length"] = self._run_game(map)
         return map_stats
 
