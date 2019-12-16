@@ -79,5 +79,5 @@ if __name__ == '__main__':
     experiment = 'limited_centered'
     n_cpu = 24
     steps = 1e8
-    env = lambda game: wrappers.DefaultImagePCGRLWrapper(game, 28, random_tile=False)
+    env = lambda game: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=False)
     main(game, representation, experiment, env, steps, n_cpu)
