@@ -280,7 +280,7 @@ class State:
     def getKey(self):
         key = str(self.player["x"]) + "," + str(self.player["y"]) + "," + str(self.player["health"]) + "|"
         key += str(self.door["x"]) + "," + str(self.door["y"]) + "|"
-        if self.key is None:
+        if self.key is not None:
             key += str(self.key["x"]) + "," + str(self.key["y"]) + "|"
         for d in self.diamonds:
             key += str(d["x"]) + "," + str(d["y"]) + ","

@@ -153,8 +153,7 @@ class DDaveProblem(Problem):
             "dist-win": self._width * self._height,
             "sol-length": 0
         }
-        if map_stats["player"] == 1:
-            if map_stats["exit"] == 1 and map_stats["key"] == 1 and map_stats["regions"] == 1:
+        if map_stats["player"] == 1 and map_stats["exit"] == 1 and map_stats["key"] == 1 and map_stats["regions"] == 1:
                 map_stats["dist-win"], map_stats["sol-length"], play_stats = self._run_game(map)
                 map_stats["num-jumps"] = play_stats["num_jumps"]
                 map_stats["col-diamonds"] = play_stats["col_diamonds"]

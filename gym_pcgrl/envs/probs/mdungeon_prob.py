@@ -157,8 +157,7 @@ class MDungeonProblem(Problem):
             "dist-win": self._width * self._height,
             "sol-length": 0
         }
-        if map_stats["player"] == 1:
-            if map_stats["regions"] == 1:
+        if map_stats["player"] == 1 and map_status["exit"] == 1 and map_stats["regions"] == 1:
                 map_stats["dist-win"], map_stats["sol-length"], play_stats = self._run_game(map)
                 map_stats["col-potions"] = play_stats["col_potions"]
                 map_stats["col-treasures"] = play_stats["col_treasures"]
