@@ -14,8 +14,8 @@ class SokobanProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 6
-        self._height = 6
+        self._width = 5
+        self._height = 5
         self._prob = {"empty":0.45, "solid":0.4, "player": 0.05, "crate": 0.05, "target": 0.05}
         self._border_tile = "solid"
 
@@ -106,20 +106,20 @@ class SokobanProblem(Problem):
 
         sol,solState,iters = bfsAgent.getSolution(state, 5000)
         if solState.checkWin():
-            return 0, len(sol)
+            return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 1, 5000)
         if solState.checkWin():
-            return 0, len(sol)
+            return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
         if solState.checkWin():
-            return 0, len(sol)
+            return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 0.25, 5000)
         if solState.checkWin():
-            return 0, len(sol)
+            return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)
         if solState.checkWin():
-            return 0, len(sol)
-        return solState.getHeuristic(), 0
+            return 0, sol
+        return solState.getHeuristic(), []
 
     """
     Get the current stats of the map
@@ -137,11 +137,10 @@ class SokobanProblem(Problem):
             "target": calc_certain_tile(map, ["target"]),
             "regions": calc_num_regions(map, ["empty","player","crate","target"]),
             "dist-win": self._width * self._height * (self._width + self._height),
-            "sol-length": 0
+            "solution": []
         }
-        if map_stats["player"] == 1:
-            if map_stats["crate"] == map_stats["target"] and map_stats["crate"] > 0 and map_stats["regions"] == 1:
-                map_stats["dist-win"], map_stats["sol-length"] = self._run_game(map)
+        if map_stats["player"] == 1 and map_stats["crate"] == map_stats["target"] and map_stats["crate"] > 0 and map_stats["regions"] == 1:
+                map_stats["dist-win"], map_stats["solution"] = self._run_game(map)
         return map_stats
 
     """
@@ -196,7 +195,7 @@ class SokobanProblem(Problem):
         #calculate distance remaining to win
         rewards["dist-win"] = old_stats["dist-win"] - new_stats["dist-win"]
         #calculate solution length (more than min solution)
-        rewards["sol-length"] = new_stats["sol-length"] - old_stats["sol-length"]
+        rewards["sol-length"] = len(new_stats["solution"]) - len(old_stats["solution"])
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["crate"] * self._rewards["crate"] +\
@@ -218,7 +217,7 @@ class SokobanProblem(Problem):
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
     def get_episode_over(self, new_stats, old_stats):
-        return new_stats["sol-length"] >= self._target_solution
+        return len(new_stats["solution"]) >= self._target_solution
 
     """
     Get any debug information need to be printed
@@ -238,7 +237,7 @@ class SokobanProblem(Problem):
             "target": new_stats["target"],
             "regions": new_stats["regions"],
             "dist-win": new_stats["dist-win"],
-            "sol-length": new_stats["sol-length"]
+            "sol-length": len(new_stats["solution"])
         }
 
     """
