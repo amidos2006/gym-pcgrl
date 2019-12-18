@@ -189,22 +189,21 @@ class MDungeonProblem(Problem):
         }
         #calculate the player reward (only one player)
         rewards["player"] = old_stats["player"] - new_stats["player"]
-        if rewards["player"] > 0 and new_stats["player"] == 0:
-            rewards["player"] *= -1
-        elif rewards["player"] < 0 and new_stats["player"] == 1:
+        if (rewards["player"] > 0 and new_stats["player"] == 0) or\
+           (rewards["player"] < 0 and new_stats["player"] == 1):
             rewards["player"] *= -1
         #calculate the exit reward (only one exit)
         rewards["exit"] = old_stats["exit"] - new_stats["exit"]
-        if rewards["exit"] > 0 and new_stats["exit"] == 0:
-            rewards["exit"] *= -1
-        elif rewards["exit"] < 0 and new_stats["exit"] == 1:
+        if (rewards["exit"] > 0 and new_stats["exit"] == 0) or\
+           (rewards["exit"] < 0 and new_stats["exit"] == 1):
             rewards["exit"] *= -1
         #calculate enemies reward (between 1 and max_enemies)
         rewards["enemies"] = old_stats["enemies"] - new_stats["enemies"]
-        if rewards["enemies"] < 0 and old_stats["enemies"] == 0:
+        if (rewards["enemies"] < 0 and old_stats["enemies"] == 0) or\
+           (rewards["enemies"] < 0 and new_stats["enemies"] == 0):
             rewards["enemies"] *= -1
         elif new_stats["enemies"] >= 1 and new_stats["enemies"] <= self._max_enemies and\
-                old_stats["enemies"] >= 1 and old_stats["enemies"] <= self._max_enemies:
+             old_stats["enemies"] >= 1 and old_stats["enemies"] <= self._max_enemies:
             rewards["enemies"] = 0
         #calculate potions reward (less than max potions)
         rewards["potions"] = old_stats["potions"] - new_stats["potions"]
