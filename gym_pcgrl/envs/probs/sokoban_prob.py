@@ -172,18 +172,18 @@ class SokobanProblem(Problem):
         #calculate crate reward (between 1 and max_crates)
         rewards["crate"] = old_stats["crate"] - new_stats["crate"]
         if (rewards["crate"] < 0 and old_stats["crate"] == 0) or\
-           (rewards["crate"] > 0 and old_stats["crate"] == 0):
+           (rewards["crate"] > 0 and new_stats["crate"] == 0):
             rewards["crate"] *= -1
         elif new_stats["crate"] >= 1 and new_stats["crate"] <= self._max_crates and\
-                old_stats["crate"] >= 1 and old_stats["crate"] <= self._max_crates:
+             old_stats["crate"] >= 1 and old_stats["crate"] <= self._max_crates:
             rewards["crate"] = 0
         #calculate target reward (between 1 and max_crates)
         rewards["target"] = old_stats["target"] - new_stats["target"]
         if (rewards["target"] < 0 and old_stats["target"] == 0) or\
-           (rewards["target"] > 0 and old_stats["target"] == 0):
+           (rewards["target"] > 0 and new_stats["target"] == 0):
             rewards["target"] *= -1
         elif new_stats["target"] >= 1 and new_stats["target"] <= self._max_crates and\
-                old_stats["target"] >= 1 and old_stats["target"] <= self._max_crates:
+             old_stats["target"] >= 1 and old_stats["target"] <= self._max_crates:
             rewards["target"] = 0
         #calculate regions reward
         rewards["regions"] = old_stats["regions"] - new_stats["regions"]
