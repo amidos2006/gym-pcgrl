@@ -180,7 +180,7 @@ class SokobanProblem(Problem):
         #calculate target reward (between 1 and max_crates)
         rewards["target"] = old_stats["target"] - new_stats["target"]
         if (rewards["target"] < 0 and old_stats["target"] == 0) or\
-           (rewards["target"] > 0 and old_stats["target"] == 0)
+           (rewards["target"] > 0 and old_stats["target"] == 0):
             rewards["target"] *= -1
         elif new_stats["target"] >= 1 and new_stats["target"] <= self._max_crates and\
                 old_stats["target"] >= 1 and old_stats["target"] <= self._max_crates:
