@@ -4,22 +4,39 @@ A helper module that can be used by all problems
 import numpy as np
 
 """
+Public function to get a dictionary of all location of all tiles
+
+Parameters:
+    map (any[][]): the current map
+    tile_values (any[]): an array of all the tile values that are possible
+
+Returns:
+    <string,(int,int)[]>: positions for every certain tile_value
+"""
+def get_tile_locations(map, tile_values):
+    tiles = {}
+    for t in tile_values:
+        tiles[t] = []
+    for y in range(len(map)):
+        for x in range(len(map[y])):
+            tiles[map[y][x]].append((x,y))
+    return tiles
+
+"""
 Private function to get a list of all tile locations on the map that have any of
 the tile_values
 
 Parameters:
-    map (any[][]): the current map
+    map_locations (<string,(int,int)[]>): the histogram of locations of the current map
     tile_values (any[]): an array of all the tile values that the method is searching for
 
 Returns:
     (int,int)[]: a list of (x,y) position on the map that have a certain value
 """
-def _get_certain_tiles(map, tile_values):
-    tiles = []
-    for y in range(len(map)):
-        for x in range(len(map[y])):
-            if map[y][x] in tile_values:
-                tiles.append((x, y))
+def _get_certain_tiles(map_locations, tile_values):
+    tiles=[]
+    for v in tile_values:
+        tiles.extend(map_locations[v])
     return tiles
 
 """
@@ -57,13 +74,14 @@ Calculates the number of regions in the current map with passable_values
 
 Parameters:
     map (any[][]): the current map being tested
+    map_locations(<string,(int,int)[]>): the histogram of locations of the current map
     passable_values (any[]): an array of all the passable tile values
 
 Returns:
     int: number of regions in the map
 """
-def calc_num_regions(map, passable_values):
-    empty_tiles = _get_certain_tiles(map, passable_values)
+def calc_num_regions(map, map_locations, passable_values):
+    empty_tiles = _get_certain_tiles(map_locations, passable_values)
     region_index=0
     color_map = np.full((len(map), len(map[0])), -1)
     for (x,y) in empty_tiles:
@@ -108,13 +126,14 @@ Calculate the longest path on the map
 
 Parameters:
     map (any[][]): the current map being tested
+    map_locations (<string,(int,int)[]>): the histogram of locations of the current map
     passable_values (any[]): an array of all passable tiles in the map
 
 Returns:
     int: the longest path in tiles in the current map
 """
-def calc_longest_path(map, passable_values):
-    empty_tiles = _get_certain_tiles(map, passable_values)
+def calc_longest_path(map, map_locations, passable_values):
+    empty_tiles = _get_certain_tiles(map_locations, passable_values)
     final_visited_map = np.zeros((len(map), len(map[0])))
     final_value = 0
     for (x,y) in empty_tiles:
@@ -135,8 +154,8 @@ Calculate the number of tiles that have certain values in the map
 Returns:
     int: get number of tiles in the map that have certain tile values
 """
-def calc_certain_tile(map, tile_values):
-    return len(_get_certain_tiles(map, tile_values))
+def calc_certain_tile(map_locations, tile_values):
+    return len(_get_certain_tiles(map_locations, tile_values))
 
 """
 Calculate the number of reachable tiles of a certain values from a certain starting value
@@ -151,10 +170,10 @@ Parameters:
 Returns:
     int: number of tiles that has been reached of the reachable_values
 """
-def calc_num_reachable_tile(map, start_value, passable_values, reachable_values):
-    (sx,sy) = _get_certain_tiles(map, [start_value])[0]
+def calc_num_reachable_tile(map, map_locations, start_value, passable_values, reachable_values):
+    (sx,sy) = _get_certain_tiles(map_locations, [start_value])[0]
     dikjstra_map, _ = _run_dikjstra(sx, sy, map, passable_values)
-    tiles = _get_certain_tiles(map, reachable_values)
+    tiles = _get_certain_tiles(map_locations, reachable_values)
     total = 0
     for (tx,ty) in tiles:
         if dikjstra_map[ty][tx] >= 0:

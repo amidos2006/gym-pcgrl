@@ -2,7 +2,7 @@ import os
 from PIL import Image
 import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import get_tile_locations, calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.sokoban.engine import State,BFSAgent,AStarAgent
 
 """
@@ -131,11 +131,12 @@ class SokobanProblem(Problem):
         "dist-win": how close to the win state, "sol-length": length of the solution to win the level
     """
     def get_stats(self, map):
+        map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
-            "player": calc_certain_tile(map, ["player"]),
-            "crate": calc_certain_tile(map, ["crate"]),
-            "target": calc_certain_tile(map, ["target"]),
-            "regions": calc_num_regions(map, ["empty","player","crate","target"]),
+            "player": calc_certain_tile(map_locations, ["player"]),
+            "crate": calc_certain_tile(map_locations, ["crate"]),
+            "target": calc_certain_tile(map_locations, ["target"]),
+            "regions": calc_num_regions(map, map_locations, ["empty","player","crate","target"]),
             "dist-win": self._width * self._height * (self._width + self._height),
             "solution": []
         }

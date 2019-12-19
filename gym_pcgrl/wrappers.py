@@ -217,6 +217,41 @@ class Normalize(gym.Wrapper):
         return obs
 
 """
+Inverse the values a certain attribute of its observation_space
+
+can be stacked
+"""
+class Inverse(gym.Wrapper):
+    def __init__(self, game, name, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
+        self.name = name
+        self.low = self.env.observation_space[self.name].low
+        self.high = self.env.observation_space[self.name].high
+
+    def step(self, action):
+        action = get_action(action)
+        obs, reward, done, info = self.env.step(action)
+        obs = self.transform(obs)
+        return obs, reward, done, info
+
+    def reset(self):
+        obs = self.env.reset()
+        obs = self.transform(obs)
+        return obs
+
+    def transform(self, obs):
+        test = obs[self.name]
+        obs[self.name] = self.high - test + self.low
+        return obs
+
+"""
 Crops and centers the view around the agent and replace the map with cropped version
 The crop size can be larger than the actual view, it just pads the outside
 This wrapper only works on games with a position coordinate
@@ -348,6 +383,10 @@ class PosGaussianImage(PosImage):
                     obs['pos'][obs_y][obs_x][1] *= value
         return obs
 
+################################################################################
+#   Used Wrappers for the game
+################################################################################
+
 """
 The wrappers we use for our experiment
 """
@@ -364,6 +403,22 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         env = Cropped(env, crop_size, 0, 'heatmap')
         # Normalize the heatmap
         env = Normalize(env, 'heatmap')
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage(env, ['map', 'heatmap'])
+        gym.Wrapper.__init__(self, self.env)
+
+"""
+This wrapper ignore location data, pretty useful with wide representation
+"""
+class ImagePCGRLWrapper(gym.Wrapper):
+    def __init__(self, game, crop_size, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Normalize the heatmap
+        env = Normalize(self.pcgrl_env, 'heatmap')
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            env = OneHotEncoding(env, 'map')
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, ['map', 'heatmap'])
         gym.Wrapper.__init__(self, self.env)
@@ -387,4 +442,23 @@ class PositionImagePCGRLWrapper(gym.Wrapper):
             env = PosImage(env, pos_size)
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, ['map', 'pos', 'heatmap'])
+        gym.Wrapper.__init__(self, self.env)
+
+"""
+Flat input for fully connected layers
+"""
+class FlatPCGRLWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        # Normalize the heatmap
+        env = Normalize(self.pcgrl_env, 'heatmap')
+        # Normalize the position
+        if 'pos' in self.pcgrl_env.observation_space.spaces.keys():
+            env = Normalize(env, 'pos')
+        # Transform to one hot encoding if not binary
+        if 'binary' not in game:
+            env = OneHotEncoding(env, 'map')
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToFlat(env, ['map', 'heatmap', 'pos'])
         gym.Wrapper.__init__(self, self.env)

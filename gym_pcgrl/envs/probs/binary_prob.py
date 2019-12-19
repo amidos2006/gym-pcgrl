@@ -1,7 +1,7 @@
 import os
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import calc_num_regions, calc_longest_path
+from gym_pcgrl.envs.helper import get_tile_locations, calc_num_regions, calc_longest_path
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -63,9 +63,10 @@ class BinaryProblem(Problem):
         The used status are "reigons": number of connected empty tiles, "path-length": the longest path across the map
     """
     def get_stats(self, map):
+        map_locations = get_tile_locations(map, self.get_tile_types())
         return {
-            "regions": calc_num_regions(map, ["empty"]),
-            "path-length": calc_longest_path(map, ["empty"])
+            "regions": calc_num_regions(map, map_locations, ["empty"]),
+            "path-length": calc_longest_path(map, map_locations, ["empty"])
         }
 
     """
