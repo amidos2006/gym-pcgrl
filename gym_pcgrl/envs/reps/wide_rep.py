@@ -54,7 +54,7 @@ class WideRepresentation(Representation):
         return {
             "map": self._map.copy()
         }
-        
+
     """
     Update the wide representation with the input action
 
@@ -65,6 +65,6 @@ class WideRepresentation(Representation):
         boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
-        change = self._map[action[1]][action[0]] != action[2]
+        change = [0,1][self._map[action[1]][action[0]] != action[2]]
         self._map[action[1]][action[0]] = action[2]
         return change, action[0], action[1]

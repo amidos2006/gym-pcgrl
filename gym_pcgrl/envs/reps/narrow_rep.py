@@ -97,7 +97,7 @@ class NarrowRepresentation(Representation):
         boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
-        change = self._map[self._y][self._x] != action
+        change = [0,1][self._map[self._y][self._x] != action]
         self._map[self._y][self._x] = action
         if self._random_tile:
             self._x = self._random.randint(self._map.shape[1])

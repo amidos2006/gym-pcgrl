@@ -99,7 +99,7 @@ class TurtleRepresentation(Representation):
         boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
-        change = False
+        change = 0
         if action < len(self._dirs):
             self._x += self._dirs[action][0]
             if self._x < 0:
@@ -124,7 +124,7 @@ class TurtleRepresentation(Representation):
                 else:
                     self._y = self._map.shape[0] - 1
         else:
-            change = self._map[self._y][self._x] != action - len(self._dirs)
+            change = [0,1][self._map[self._y][self._x] != action - len(self._dirs)]
             self._map[self._y][self._x] = action - len(self._dirs)
         return change, self._x, self._y
 

@@ -78,6 +78,9 @@ if __name__ == '__main__':
     representation = 'narrow'
     experiment = 'limited_centered'
     n_cpu = 24
-    steps = 1e8
-    env = lambda game: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=True)
+    steps = 5e7
+    if representation == 'wide':
+        env = lambda game: wrappers.ImagePCGRLWrapper(game, 28, random_tile=True)
+    else:
+        env = lambda game: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=True)
     main(game, representation, experiment, env, steps, n_cpu)

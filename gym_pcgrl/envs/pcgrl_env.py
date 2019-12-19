@@ -129,11 +129,10 @@ class PcgrlEnv(gym.Env):
         old_stats = self._rep_stats
         # update the current state to the new state based on the taken action
         change, x, y = self._rep.update(action)
-        if change:
-            self._changes += 1
+        if change > 0:
+            self._changes += change
             self._heatmap[y][x] += 1.0
             self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
-
         # calculate the values
         observation = self._rep.get_observation()
         observation["heatmap"] = self._heatmap.copy()
