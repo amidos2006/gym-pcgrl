@@ -1,7 +1,8 @@
 import os
+import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_tile_locations, calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.mdungeon.engine import State,BFSAgent,AStarAgent
 
 """
@@ -178,52 +179,16 @@ class MDungeonProblem(Problem):
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
-            "player": 0,
-            "exit": 0,
-            "potions": 0,
-            "treasures": 0,
-            "enemies": 0,
-            "regions": 0,
-            "col-enemies": 0,
-            "dist-win": 0,
-            "sol-length": 0
+            "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
+            "exit": get_range_reward(new_stats["exit"], old_stats["exit"], 1, 1),
+            "potions": get_range_reward(new_stats["potions"], old_stats["potions"], -np.inf, self._max_potions),
+            "treasures": get_range_reward(new_stats["treasures"], old_stats["treasures"], -np.inf, self._max_treasures),
+            "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], 1, self._max_enemies),
+            "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
+            "col-enemies": get_range_reward(new_stats["col-enemies"], old_stats["col-enemies"], np.inf, np.inf),
+            "dist-win": get_range_reward(new_stats["dist-win"], old_stats["dist-win"], -np.inf, -np.inf),
+            "sol-length": get_range_reward(new_stats["sol-length"], old_stats["sol-length"], np.inf, np.inf)
         }
-        #calculate the player reward (only one player)
-        rewards["player"] = old_stats["player"] - new_stats["player"]
-        if (rewards["player"] > 0 and new_stats["player"] == 0) or\
-           (rewards["player"] < 0 and new_stats["player"] == 1):
-            rewards["player"] *= -1
-        #calculate the exit reward (only one exit)
-        rewards["exit"] = old_stats["exit"] - new_stats["exit"]
-        if (rewards["exit"] > 0 and new_stats["exit"] == 0) or\
-           (rewards["exit"] < 0 and new_stats["exit"] == 1):
-            rewards["exit"] *= -1
-        #calculate enemies reward (between 1 and max_enemies)
-        rewards["enemies"] = old_stats["enemies"] - new_stats["enemies"]
-        if (rewards["enemies"] < 0 and old_stats["enemies"] == 0) or\
-           (rewards["enemies"] < 0 and new_stats["enemies"] == 0):
-            rewards["enemies"] *= -1
-        elif new_stats["enemies"] >= 1 and new_stats["enemies"] <= self._max_enemies and\
-             old_stats["enemies"] >= 1 and old_stats["enemies"] <= self._max_enemies:
-            rewards["enemies"] = 0
-        #calculate potions reward (less than max potions)
-        rewards["potions"] = old_stats["potions"] - new_stats["potions"]
-        if new_stats["potions"] <= self._max_potions and old_stats["potions"] <= self._max_potions:
-            rewards["potions"] = 0
-        #calculate treasure reward (less than max treasures)
-        rewards["treasures"] = old_stats["treasures"] - new_stats["treasures"]
-        if new_stats["treasures"] < self._max_treasures and old_stats["treasures"] <= self._max_treasures:
-            rewards["treasures"] = 0
-        #calculate regions reward (only one region)
-        rewards["regions"] = old_stats["regions"] - new_stats["regions"]
-        if new_stats["regions"] == 0 and old_stats["regions"] > 0:
-            rewards["regions"] = -1
-        #calculate number of killed enemies
-        rewards["col-enemies"] = new_stats["col-enemies"] - old_stats["col-enemies"]
-        #calculate distance remaining to win
-        rewards["dist-win"] = old_stats["dist-win"] - new_stats["dist-win"]
-        #calculate solution length
-        rewards["sol-length"] = new_stats["sol-length"] - old_stats["sol-length"]
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["exit"] * self._rewards["exit"] +\

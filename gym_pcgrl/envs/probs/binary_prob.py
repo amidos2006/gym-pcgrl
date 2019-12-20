@@ -1,7 +1,8 @@
 import os
+import numpy as np
 from PIL import Image
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_tile_locations, calc_num_regions, calc_longest_path
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_num_regions, calc_longest_path
 
 """
 Generate a fully connected top down layout where the longest path is greater than a certain threshold
@@ -17,7 +18,7 @@ class BinaryProblem(Problem):
         self._prob = {"empty": 0.7, "solid":0.3}
         self._border_tile = "solid"
 
-        self._target_path = 50
+        self._target_path = 48
 
         self._rewards = {
             "regions": 5,
@@ -82,12 +83,9 @@ class BinaryProblem(Problem):
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
-            "regions": old_stats["regions"] - new_stats["regions"],
-            "path-length": new_stats["path-length"] - old_stats["path-length"]
+            "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
+            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
         }
-        #unless the number of regions become zero, it has to be punished
-        if new_stats["regions"] == 0 and old_stats["regions"] > 0:
-            rewards["regions"] = -1
         #calculate the total reward
         return rewards["regions"] * self._rewards["regions"] +\
             rewards["path-length"] * self._rewards["path-length"]

@@ -1,7 +1,8 @@
 from PIL import Image
 import os
+import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_tile_locations, calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.ddave.engine import State,BFSAgent,AStarAgent
 
 """
@@ -173,52 +174,16 @@ class DDaveProblem(Problem):
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
-            "player": 0,
-            "exit": 0,
-            "diamonds": 0,
-            "key": 0,
-            "spikes": 0,
-            "regions": 0,
-            "num-jumps": 0,
-            "dist-win": 0,
-            "sol-length": 0
+            "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
+            "exit": get_range_reward(new_stats["exit"], old_stats["exit"], 1, 1),
+            "diamonds": get_range_reward(new_stats["diamonds"], old_stats["diamonds"], -np.inf, self._max_diamonds),
+            "key": get_range_reward(new_stats["key"], old_stats["key"], 1, 1),
+            "spikes": get_range_reward(new_stats["spikes"], old_stats["spikes"], self._min_spikes, np.inf),
+            "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
+            "num-jumps": get_range_reward(new_stats["num-jumps"], old_stats["num-jumps"], np.inf, np.inf),
+            "dist-win": get_range_reward(new_stats["dist-win"], old_stats["dist-win"], -np.inf, -np.inf),
+            "sol-length": get_range_reward(new_stats["sol-length"], old_stats["sol-length"], np.inf, np.inf)
         }
-        #calculate the player reward (only one player)
-        rewards["player"] = old_stats["player"] - new_stats["player"]
-        if rewards["player"] > 0 and new_stats["player"] == 0:
-            rewards["player"] *= -1
-        elif rewards["player"] < 0 and new_stats["player"] == 1:
-            rewards["player"] *= -1
-        #calculate the exit reward (only one exit)
-        rewards["exit"] = old_stats["exit"] - new_stats["exit"]
-        if rewards["exit"] > 0 and new_stats["exit"] == 0:
-            rewards["exit"] *= -1
-        elif rewards["exit"] < 0 and new_stats["exit"] == 1:
-            rewards["exit"] *= -1
-        #calculate the key reward (only one key)
-        rewards["key"] = old_stats["key"] - new_stats["key"]
-        if rewards["key"] > 0 and new_stats["key"] == 0:
-            rewards["key"] *= -1
-        elif rewards["key"] < 0 and new_stats["key"] == 1:
-            rewards["key"] *= -1
-        #calculate spike reward (more than min spikes)
-        rewards["spikes"] = new_stats["spikes"] - old_stats["spikes"]
-        if new_stats["spikes"] >= self._min_spikes and old_stats["spikes"] >= self._min_spikes:
-            rewards["spikes"] = 0
-        #calculate diamond reward (less than max diamonds)
-        rewards["diamonds"] = old_stats["diamonds"] - new_stats["diamonds"]
-        if new_stats["diamonds"] <= self._max_diamonds and old_stats["diamonds"] <= self._max_diamonds:
-            rewards["diamonds"] = 0
-        #calculate regions reward (only one region)
-        rewards["regions"] = old_stats["regions"] - new_stats["regions"]
-        if new_stats["regions"] == 0 and old_stats["regions"] > 0:
-            rewards["regions"] = -1
-        #calculate num jumps reward (more than min jumps)
-        rewards["num-jumps"] = new_stats["num-jumps"] - old_stats["num-jumps"]
-        #calculate distance remaining to win
-        rewards["dist-win"] = old_stats["dist-win"] - new_stats["dist-win"]
-        #calculate solution length
-        rewards["sol-length"] = new_stats["sol-length"] - old_stats["sol-length"]
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["exit"] * self._rewards["exit"] +\

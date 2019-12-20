@@ -2,7 +2,7 @@ import os
 from PIL import Image
 import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_tile_locations, calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, calc_num_regions
 from gym_pcgrl.envs.probs.sokoban.engine import State,BFSAgent,AStarAgent
 
 """
@@ -157,47 +157,14 @@ class SokobanProblem(Problem):
     def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
-            "player": 0,
-            "crate": 0,
-            "target": 0,
-            "regions": 0,
-            "ratio": 0,
-            "dist-win": 0,
-            "sol-length": 0
+            "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
+            "crate": get_range_reward(new_stats["crate"], old_stats["crate"], 1, self._max_crates),
+            "target": get_range_reward(new_stats["target"], old_stats["target"], 1, self._max_crates),
+            "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
+            "ratio": get_range_reward(abs(new_stats["crate"]-new_stats["target"]), abs(old_stats["crate"]-old_stats["target"]), -np.inf, -np.inf),
+            "dist-win": get_range_reward(new_stats["dist-win"], old_stats["dist-win"], -np.inf, -np.inf),
+            "sol-length": get_range_reward(len(new_stats["solution"]), len(old_stats["solution"]), np.inf, np.inf)
         }
-        #calculate the player reward
-        rewards["player"] = old_stats["player"] - new_stats["player"]
-        if (rewards["player"] > 0 and new_stats["player"] == 0) or\
-           (rewards["player"] < 0 and new_stats["player"] == 1):
-            rewards["player"] *= -1
-        #calculate crate reward (between 1 and max_crates)
-        rewards["crate"] = old_stats["crate"] - new_stats["crate"]
-        if (rewards["crate"] < 0 and old_stats["crate"] == 0) or\
-           (rewards["crate"] > 0 and new_stats["crate"] == 0):
-            rewards["crate"] *= -1
-        elif new_stats["crate"] >= 1 and new_stats["crate"] <= self._max_crates and\
-             old_stats["crate"] >= 1 and old_stats["crate"] <= self._max_crates:
-            rewards["crate"] = 0
-        #calculate target reward (between 1 and max_crates)
-        rewards["target"] = old_stats["target"] - new_stats["target"]
-        if (rewards["target"] < 0 and old_stats["target"] == 0) or\
-           (rewards["target"] > 0 and new_stats["target"] == 0):
-            rewards["target"] *= -1
-        elif new_stats["target"] >= 1 and new_stats["target"] <= self._max_crates and\
-             old_stats["target"] >= 1 and old_stats["target"] <= self._max_crates:
-            rewards["target"] = 0
-        #calculate regions reward
-        rewards["regions"] = old_stats["regions"] - new_stats["regions"]
-        if new_stats["regions"] == 0 and old_stats["regions"] > 0:
-            rewards["regions"] = -1
-        #calculate ratio rewards
-        new_ratio = abs(new_stats["crate"] - new_stats["target"])
-        old_ratio = abs(old_stats["crate"] - old_stats["target"])
-        rewards["ratio"] = old_ratio - new_ratio
-        #calculate distance remaining to win
-        rewards["dist-win"] = old_stats["dist-win"] - new_stats["dist-win"]
-        #calculate solution length (more than min solution)
-        rewards["sol-length"] = len(new_stats["solution"]) - len(old_stats["solution"])
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
             rewards["crate"] * self._rewards["crate"] +\

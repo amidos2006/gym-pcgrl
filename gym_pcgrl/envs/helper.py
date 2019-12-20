@@ -11,7 +11,7 @@ Parameters:
     tile_values (any[]): an array of all the tile values that are possible
 
 Returns:
-    <string,(int,int)[]>: positions for every certain tile_value
+    Dict(string,(int,int)[]): positions for every certain tile_value
 """
 def get_tile_locations(map, tile_values):
     tiles = {}
@@ -27,7 +27,7 @@ Private function to get a list of all tile locations on the map that have any of
 the tile_values
 
 Parameters:
-    map_locations (<string,(int,int)[]>): the histogram of locations of the current map
+    map_locations (Dict(string,(int,int)[])): the histogram of locations of the current map
     tile_values (any[]): an array of all the tile values that the method is searching for
 
 Returns:
@@ -74,7 +74,7 @@ Calculates the number of regions in the current map with passable_values
 
 Parameters:
     map (any[][]): the current map being tested
-    map_locations(<string,(int,int)[]>): the histogram of locations of the current map
+    map_locations(Dict(string,(int,int)[])): the histogram of locations of the current map
     passable_values (any[]): an array of all the passable tile values
 
 Returns:
@@ -93,7 +93,7 @@ def calc_num_regions(map, map_locations, passable_values):
     return region_index
 
 """
-Private function that runs dikjstra algorithm and return the map
+Public function that runs dikjstra algorithm and return the map
 
 Parameters:
     x (int): the starting x position for dikjstra algorithm
@@ -104,7 +104,7 @@ Parameters:
 Returns:
     int[][]: returns the dikjstra map after running the dijkstra algorithm
 """
-def _run_dikjstra(x, y, map, passable_values):
+def run_dikjstra(x, y, map, passable_values):
     dikjstra_map = np.full((len(map), len(map[0])),-1)
     visited_map = np.zeros((len(map), len(map[0])))
     queue = [(x, y, 0)]
@@ -126,7 +126,7 @@ Calculate the longest path on the map
 
 Parameters:
     map (any[][]): the current map being tested
-    map_locations (<string,(int,int)[]>): the histogram of locations of the current map
+    map_locations (Dict(string,(int,int)[])): the histogram of locations of the current map
     passable_values (any[]): an array of all passable tiles in the map
 
 Returns:
@@ -139,10 +139,10 @@ def calc_longest_path(map, map_locations, passable_values):
     for (x,y) in empty_tiles:
         if final_visited_map[y][x] > 0:
             continue
-        dikjstra_map, visited_map = _run_dikjstra(x, y, map, passable_values)
+        dikjstra_map, visited_map = run_dikjstra(x, y, map, passable_values)
         final_visited_map += visited_map
         (mx,my) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
-        dikjstra_map, _ = _run_dikjstra(mx, my, map, passable_values)
+        dikjstra_map, _ = run_dikjstra(mx, my, map, passable_values)
         max_value = np.max(dikjstra_map)
         if max_value > final_value:
             final_value = max_value
@@ -172,7 +172,7 @@ Returns:
 """
 def calc_num_reachable_tile(map, map_locations, start_value, passable_values, reachable_values):
     (sx,sy) = _get_certain_tiles(map_locations, [start_value])[0]
-    dikjstra_map, _ = _run_dikjstra(sx, sy, map, passable_values)
+    dikjstra_map, _ = run_dikjstra(sx, sy, map, passable_values)
     tiles = _get_certain_tiles(map_locations, reachable_values)
     total = 0
     for (tx,ty) in tiles:
@@ -244,3 +244,27 @@ def get_int_prob(prob, tiles):
     for i in result:
         result[i] /= total
     return result
+
+"""
+A method to help calculate the reward value based on the change around optimal region
+
+Parameters:
+    new_value (float): the new value to be checked
+    old_value (float): the old value to be checked
+    low (float): low bound for the optimal region
+    high (float): high bound for the optimal region
+
+Retruns:
+    float: the reward value for the change between new_value and old_value
+"""
+def get_range_reward(new_value, old_value, low, high):
+    if new_value >= low and new_value <= high and old_value >= low and old_value <= high:
+        return 0
+    if old_value <= high and new_value <= high:
+        return min(new_value,low) - min(old_value,low)
+    if old_value >= low and new_value >= low:
+        return max(old_value,high) - max(new_value,high)
+    if new_value > high and old_value < low:
+        return high - new_value + old_value - low
+    if new_value < low and old_value > high:
+        return high - old_value + new_value - low
