@@ -95,7 +95,7 @@ class ZeldaProblem(Problem):
                 dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "player", "bat", "spider", "scorpion"])
                 min_dist = self._width * self._height
                 for e_x,e_y in enemies:
-                    if dikjstra[e_y][e_x] < min_dist:
+                    if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
                         min_dist = dikjstra[e_y][e_x]
                 map_stats["nearest-enemy"] = min_dist
             if map_stats["key"] == 1 and map_stats["door"] == 1 and map_stats["enemies"] <= self._max_enemies:

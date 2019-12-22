@@ -150,6 +150,45 @@ class OneHotEncoding(gym.Wrapper):
         return obs
 
 """
+Adding sum of the heatmap to the observation grid
+
+can be stacked
+"""
+class AddChanges(gym.Wrapper):
+    def __init__(self, game, is_map=True, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        assert 'heatmap' in self.env.observation_space.spaces.keys(), 'Heatmap does not exists in the environment space.'
+        heatmap_obs = self.observation_space.spaces['heatmap']
+        self.is_map = is_map
+
+        if not self.is_map:
+            self.observation_space.spaces['changes'] = gym.spaces.Box(low=[heatmap_obs.low.min()], high=[heatmap_obs.high.max()], dtype=heatmap_obs.dtype)
+        else:
+            self.observation_space.spaces['changes'] = gym.spaces.Box(low=heatmap_obs.low.min(), high=heatmap_obs.high.max(), shape=heatmap_obs.shape, dtype=heatmap_obs.dtype)
+
+    def reset(self):
+        obs = self.env.reset()
+        return self.transform(obs)
+
+    def step(self, action):
+        action = get_action(action)
+        obs, reward, done, info = self.env.step(action)
+        obs = self.transform(obs)
+        return obs, reward, done, info
+
+    def transform(self, obs):
+        obs['changes'] = obs['heatmap'].sum()
+        if self.is_map:
+            obs['changes'] = np.full(obs['heatmap'].shape, obs['changes'])
+        return obs
+
+"""
 Returns reward at the end of the episode
 
 Can be stacked
@@ -258,7 +297,7 @@ class Normalize(gym.Wrapper):
 
     def transform(self, obs):
         test = obs[self.name]
-        obs[self.name] = (test - self.low) / (self.high - self.low)
+        obs[self.name] = (test - self.low).astype(np.float32) / (self.high - self.low).astype(np.float32)
         return obs
 
 """
@@ -444,12 +483,18 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
+        # Adding changes to the channels
+        env = AddChanges(env, True)
+        # Cropping the changes to same size
+        env = Cropped(env, crop_size, 0, 'changes')
+        # Normalizing the changes to be between 0 and 1
+        env = Normalize(env, 'changes')
         # Cropping the heatmap similar to the map
         env = Cropped(env, crop_size, 0, 'heatmap')
         # Normalize the heatmap
         env = Normalize(env, 'heatmap')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap'])
+        self.env = ToImage(env, ['map', 'heatmap', 'changes'])
         gym.Wrapper.__init__(self, self.env)
 
 """

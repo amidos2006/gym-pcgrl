@@ -21,7 +21,7 @@ class DDaveProblem(Problem):
         self._border_tile = "solid"
 
         self._max_diamonds = 3
-        self._min_spikes = 20
+        self._min_spikes = 10
 
         self._target_jumps = 2
         self._target_solution = 20
