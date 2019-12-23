@@ -70,9 +70,12 @@ Representations are the way the Procedural Content Generation problem is formatt
 
 | Name   | Observation Space                                                                                  | Action Space                                                                                                                             |
 |--------|----------------------------------------------------------------------------------------------------|------------------------------------------------------------------------------------------------------------------------------------------|
-| narrow | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space that represents the new tile value                                                                                    |
-| wide   | 2D Box of integers that represent the map                                     | Three Discrete spaces that represent the x position, y position, new tile value                                                          |
-| turtle | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space where the first 4 actions move the turtle (left, right, up, or down) while the rest of actions are for the tile value |
+| narrow      | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space that represents the new tile value                                                                                    |
+| narrowcast  | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | Two Discrete spaces that represent the type of change (no change, single, 3x3 grid) and the new tile value       |
+| narrowmulti | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | Nine Discrete spaces that represent the new tile value                                                            |
+| wide        | 2D Box of integers that represent the map                                     | Three Discrete spaces that represent the x position, y position, new tile value                                                          |
+| turtle      | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | One Discrete space where the first 4 actions move the turtle (left, right, up, or down) while the rest of actions are for the tile value |
+| turtlecast  | 2D Box of integers that represent the map and 1D Box of integers that represents the x, y position | Two Discrete spaces that represents movement+type and tile values. The first space represents 4 actions to move the turtle (left, right, up, or down) while the rest of actions are type of change (1 tile, 3x3 grid) |
 
 The `narrow`, `wide`, and `turtle` representation are adapted from [Tree Search vs Optimization Approaches for Map Generation](https://arxiv.org/pdf/1903.11678.pdf) work by Bhaumik et al.
 
