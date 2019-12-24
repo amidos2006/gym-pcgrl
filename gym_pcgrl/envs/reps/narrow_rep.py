@@ -43,7 +43,7 @@ class NarrowRepresentation(Representation):
         correspond to which value for each tile type
     """
     def get_action_space(self, width, height, num_tiles):
-        return spaces.Discrete(num_tiles)
+        return spaces.Discrete(num_tiles + 1)
 
     """
     Get the observation space used by the narrow representation
@@ -97,8 +97,10 @@ class NarrowRepresentation(Representation):
         boolean: True if the action change the map, False if nothing changed
     """
     def update(self, action):
-        change = [0,1][self._map[self._y][self._x] != action]
-        self._map[self._y][self._x] = action
+        change = 0
+        if action > 0:
+            change += [0,1][self._map[self._y][self._x] != action-1]
+            self._map[self._y][self._x] = action-1
         if self._random_tile:
             self._x = self._random.randint(self._map.shape[1])
             self._y = self._random.randint(self._map.shape[0])

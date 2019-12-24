@@ -24,7 +24,7 @@ class NarrowMultiRepresentation(NarrowRepresentation):
     def get_action_space(self, width, height, num_tiles):
         action_space = []
         for i in range(9):
-            action_space.append(num_tiles)
+            action_space.append(num_tiles + 1)
         return spaces.MultiDiscrete(action_space)
 
     """
@@ -42,9 +42,9 @@ class NarrowMultiRepresentation(NarrowRepresentation):
         low_x,high_x=max(self._x-1,0),min(self._x+2,self._map.shape[1])
         for i in range(len(action)):
             x, y = self._x + (i % 3)-1, self._y + int(i / 3)-1
-            if x >= low_x and x < high_x and y >= low_y and y < high_y:
-                change += [0,1][self._map[y][x] != action[i]]
-                self._map[y][x] = action[i]
+            if x >= low_x and x < high_x and y >= low_y and y < high_y and action[i] > 0:
+                change += [0,1][self._map[y][x] != action[i]-1]
+                self._map[y][x] = action[i]-1
 
         if self._random_tile:
             self._x = self._random.randint(self._map.shape[1])
