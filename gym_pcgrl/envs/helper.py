@@ -141,7 +141,7 @@ def calc_longest_path(map, map_locations, passable_values):
             continue
         dikjstra_map, visited_map = run_dikjstra(x, y, map, passable_values)
         final_visited_map += visited_map
-        (mx,my) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
+        (my,mx) = np.unravel_index(np.argmax(dikjstra_map, axis=None), dikjstra_map.shape)
         dikjstra_map, _ = run_dikjstra(mx, my, map, passable_values)
         max_value = np.max(dikjstra_map)
         if max_value > final_value:
@@ -237,7 +237,7 @@ Returns:
 def get_int_prob(prob, tiles):
     string_to_int = dict((s, i) for i, s in enumerate(tiles))
     result = {}
-    total = 0
+    total = 0.0
     for t in tiles:
         result[string_to_int[t]] = prob[t]
         total += prob[t]
