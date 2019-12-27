@@ -21,15 +21,15 @@ class SokobanProblem(Problem):
 
         self._max_crates = 3
 
-        self._target_solution = 20
+        self._target_solution = 18
 
         self._rewards = {
-            "player": 5,
-            "crate": 5,
-            "target": 5,
-            "regions": 5,
+            "player": 2,
+            "crate": 2,
+            "target": 2,
+            "regions": 3,
             "ratio": 1,
-            "dist-win": 0.01,
+            "dist-win": 0.02,
             "sol-length": 1
         }
 
@@ -111,9 +111,6 @@ class SokobanProblem(Problem):
         if solState.checkWin():
             return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
-        if solState.checkWin():
-            return 0, sol
-        sol,solState,iters = aStarAgent.getSolution(state, 0.25, 5000)
         if solState.checkWin():
             return 0, sol
         sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)

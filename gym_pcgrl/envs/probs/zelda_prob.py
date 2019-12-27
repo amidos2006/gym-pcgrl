@@ -24,12 +24,12 @@ class ZeldaProblem(Problem):
         self._target_path = 16
 
         self._rewards = {
-            "player": 5,
-            "key": 5,
-            "door": 5,
-            "regions": 5,
+            "player": 2,
+            "key": 2,
+            "door": 2,
+            "regions": 3,
             "enemies": 1,
-            "nearest-enemy": 2,
+            "nearest-enemy": 1,
             "path-length": 1
         }
 
@@ -98,7 +98,7 @@ class ZeldaProblem(Problem):
                     if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
                         min_dist = dikjstra[e_y][e_x]
                 map_stats["nearest-enemy"] = min_dist
-            if map_stats["key"] == 1 and map_stats["door"] == 1 and map_stats["enemies"] <= self._max_enemies:
+            if map_stats["key"] == 1 and map_stats["door"] == 1:
                 k_x,k_y = map_locations["key"][0]
                 d_x,d_y = map_locations["door"][0]
                 dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])

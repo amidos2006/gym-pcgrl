@@ -506,11 +506,15 @@ class ImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env.adjust_param(**kwargs)
         # Normalize the heatmap
         env = Normalize(self.pcgrl_env, 'heatmap')
+        # Adding changes to the channels
+        env = AddChanges(env, True)
+        # Normalize Changes
+        env = Normalize(env, 'changes')
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap'])
+        self.env = ToImage(env, ['map', 'heatmap', 'changes'])
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -524,11 +528,15 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         env = ActionMap(self.pcgrl_env)
         # Normalize the heatmap
         env = Normalize(env, 'heatmap')
+        # Adding changes to the channels
+        env = AddChanges(env, True)
+        # Normalize Changes
+        env = Normalize(env, 'changes')
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap'])
+        self.env = ToImage(env, ['map', 'heatmap', 'changes'])
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -540,6 +548,10 @@ class PositionImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env.adjust_param(**kwargs)
         # Normalize the heatmap
         env = Normalize(self.pcgrl_env, 'heatmap')
+        # Adding changes to the channels
+        env = AddChanges(env, True)
+        # Normalize Changes
+        env = Normalize(env, 'changes')
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
@@ -549,7 +561,7 @@ class PositionImagePCGRLWrapper(gym.Wrapper):
         else:
             env = PosImage(env, pos_size)
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'pos', 'heatmap'])
+        self.env = ToImage(env, ['map', 'pos', 'heatmap', 'changes'])
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -561,6 +573,10 @@ class FlatPCGRLWrapper(gym.Wrapper):
         self.pcgrl_env.adjust_param(**kwargs)
         # Normalize the heatmap
         env = Normalize(self.pcgrl_env, 'heatmap')
+        # Adding changes to the channels
+        env = AddChanges(env, False)
+        # Normalize Changes
+        env = Normalize(env, 'changes')
         # Normalize the position
         if 'pos' in self.pcgrl_env.observation_space.spaces.keys():
             env = Normalize(env, 'pos')
@@ -568,5 +584,5 @@ class FlatPCGRLWrapper(gym.Wrapper):
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToFlat(env, ['map', 'heatmap', 'pos'])
+        self.env = ToFlat(env, ['map', 'heatmap', 'pos', 'changes'])
         gym.Wrapper.__init__(self, self.env)
