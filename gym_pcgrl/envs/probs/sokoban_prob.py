@@ -21,14 +21,14 @@ class SokobanProblem(Problem):
 
         self._max_crates = 3
 
-        self._target_solution = 18
+        self._target_solution = 16
 
         self._rewards = {
-            "player": 2,
-            "crate": 2,
-            "target": 2,
-            "regions": 3,
-            "ratio": 1,
+            "player": 3,
+            "crate": 3,
+            "target": 3,
+            "regions": 5,
+            "ratio": 2,
             "dist-win": 0.02,
             "sol-length": 1
         }

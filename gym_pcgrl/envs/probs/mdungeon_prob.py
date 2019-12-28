@@ -28,12 +28,12 @@ class MDungeonProblem(Problem):
         self._target_solution = 20
 
         self._rewards = {
-            "player": 2,
-            "exit": 2,
+            "player": 3,
+            "exit": 3,
             "potions": 1,
             "treasures": 1,
             "enemies": 2,
-            "regions": 3,
+            "regions": 5,
             "col-enemies": 1,
             "dist-win": 0.1,
             "sol-length": 1

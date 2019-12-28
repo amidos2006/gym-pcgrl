@@ -27,12 +27,12 @@ class DDaveProblem(Problem):
         self._target_solution = 20
 
         self._rewards = {
-            "player": 2,
-            "exit": 2,
+            "player": 3,
+            "exit": 3,
             "diamonds": 1,
-            "key": 2,
+            "key": 3,
             "spikes": 1,
-            "regions": 3,
+            "regions": 5,
             "num-jumps": 2,
             "dist-win": 0.1,
             "sol-length": 1
