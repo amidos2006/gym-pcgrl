@@ -165,6 +165,8 @@ class PcgrlEnv(gym.Env):
             from gym.envs.classic_control import rendering
             if self.viewer is None:
                 self.viewer = rendering.SimpleImageViewer()
+            if not hasattr(img, 'shape'):
+                img = np.array(img)
             self.viewer.imshow(img)
             return self.viewer.isopen
 
