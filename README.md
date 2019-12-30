@@ -54,6 +54,13 @@ Beside the OpenAI GYM traditional functions. Our interface supports additional f
 - `get_border_tile()`: This function get the tile index to be used for padding a certain problem. It is used by certain wrappers.
 - `adjust_param(**kwargs)`: This function that helps adjust the problem and/or representation parameters such as modifying `width` and `height` of the generated map.
 
+## Dockerfile
+
+Run:
+```
+docker image build -t pcgrl:latest . && docker run --runtime=nvidia pcgrl:latest
+```
+
 ## Supported Problems
 Problems are the current games that we want to apply PCGRL towards them. The following table lists all the supported problems in the interface:
 
