@@ -501,7 +501,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
 This wrapper ignore location data, pretty useful with wide representation
 """
 class ImagePCGRLWrapper(gym.Wrapper):
-    def __init__(self, game, crop_size, **kwargs):
+    def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Normalize the heatmap
@@ -521,7 +521,7 @@ class ImagePCGRLWrapper(gym.Wrapper):
 Similar to the previous wrapper but the input now is 3D map (height, width, num_tiles)
 """
 class ActionMapImagePCGRLWrapper(gym.Wrapper):
-    def __init__(self, game, crop_size, **kwargs):
+    def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Add the action map wrapper

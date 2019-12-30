@@ -4,6 +4,7 @@ from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 import numpy as np
 import gym
 from gym import spaces
+import PIL
 
 """
 The PCGRL GYM Environment
