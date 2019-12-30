@@ -239,14 +239,19 @@ class ActionMap(gym.Wrapper):
         else:
             h, w = self.env.observation_space['map'].shape
             dim = self.env.observation_space['map'].high.max()
-        self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
+        self.h = h
+        self.w = w
+        self.dim = self.env.get_num_tiles()
+       #self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
+        self.action_space = gym.spaces.Discrete(h*w*self.dim)
 
     def reset(self):
         self.old_obs = self.env.reset()
         return self.old_obs
 
     def step(self, action):
-        y, x, v = np.unravel_index(np.argmax(action), action.shape)
+       #y, x, v = np.unravel_index(np.argmax(action), action.shape)
+        y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
         if 'pos' in self.old_obs:
             o_x, o_y = self.old_obs['pos']
             if o_x == x and o_y == y:
