@@ -4,6 +4,7 @@ from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 import numpy as np
 import gym
 from gym import spaces
+import PIL
 
 """
 The PCGRL GYM Environment
@@ -175,6 +176,8 @@ class PcgrlEnv(gym.Env):
             from gym.envs.classic_control import rendering
             if self.viewer is None:
                 self.viewer = rendering.SimpleImageViewer()
+            if type(img) == PIL.Image.Image: # why does this happen?
+                img = np.array(img)
             self.viewer.imshow(img)
             return self.viewer.isopen
 

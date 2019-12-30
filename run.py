@@ -111,5 +111,5 @@ if __name__ == '__main__':
     experiment = 'limited_centered'
     n_cpu = 24
     steps = 5e7
-    render = False
+    render = True
     main(game, representation, experiment, steps, n_cpu, render)
