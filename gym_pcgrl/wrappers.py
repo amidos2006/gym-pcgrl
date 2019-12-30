@@ -1,8 +1,10 @@
 import gym
 import gym_pcgrl
+from stable_baselines.bench import Monitor
 
 import numpy as np
 import math
+import os
 
 import pdb
 
@@ -494,7 +496,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Normalize the heatmap
         env = Normalize(env, 'heatmap')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap', 'changes'])
+        self.env = ToImage(env, ['map', 'heatmap', 'changes'], **kwargs)
         gym.Wrapper.__init__(self, self.env)
 
 """
