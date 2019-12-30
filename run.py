@@ -107,15 +107,27 @@ def main(game, representation, experiment, steps, n_cpu, render):
                  )
     model.save(experiment)
 
+"""
+Wrap the environment in a Monitor to save data in .csv files.
+"""
+def wrap_monitor(env, **kwargs):
+    rank = kwargs['rank']
+    log_dir = kwargs['log_dir']
+   #print('wrapper rank {}'.format(rank))
+    log_dir = os.path.join(log_dir, str(rank))
+    env = Monitor(env, log_dir)
+    return env
 
 def make_env(env_name, representation, rank, **kwargs):
     def _thunk():
         if representation == 'wide':
-            return wrappers.ActionMapImagePCGRLWrapper(env_name, 28, random_tile=True,
+            env = wrappers.ActionMapImagePCGRLWrapper(env_name, 28, random_tile=True,
                     rank=rank, **kwargs)
         else:
-            return wrappers.CroppedImagePCGRLWrapper(env_name, 28, random_tile=True,
+            env = wrappers.CroppedImagePCGRLWrapper(env_name, 28, random_tile=True,
                     rank=rank, **kwargs)
+        env = wrap_monitor(env, rank=rank, **kwargs)
+        return env
     return _thunk
 
 if __name__ == '__main__':

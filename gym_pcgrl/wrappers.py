@@ -18,17 +18,6 @@ get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) else get_pcgrl_e
 pdf = lambda x,mean,sigma: math.exp(-1/2 * math.pow((x-mean)/sigma,2))/math.exp(0)
 
 """
-Wrap the environment in a Monitor to save data in .csv files.
-"""
-def wrap_monitor(env, **kwargs):
-    rank = kwargs['rank']
-    log_dir = kwargs['log_dir']
-   #print('wrapper rank {}'.format(rank))
-    log_dir = os.path.join(log_dir, str(rank))
-    env = Monitor(env, log_dir)
-    return env
-
-"""
 Return a Box instead of dictionary by stacking different similar objects
 
 Can be stacked as Last Layer
@@ -40,7 +29,6 @@ class ToImage(gym.Wrapper):
         else:
             self.env = game
         get_pcgrl_env(self.env).adjust_param(**kwargs)
-        self.env = wrap_monitor(self.env, **kwargs)
         gym.Wrapper.__init__(self, self.env)
         self.shape = None
         depth=0
@@ -90,7 +78,6 @@ class ToFlat(gym.Wrapper):
         else:
             self.env = game
         get_pcgrl_env(self.env).adjust_param(**kwargs)
-        self.env = wrap_monitor(self.env, **kwargs)
         gym.Wrapper.__init__(self, self.env)
         length=0
         max_value=0
