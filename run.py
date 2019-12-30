@@ -14,6 +14,8 @@ from stable_baselines import PPO2
 
 import tensorflow as tf
 import numpy as np
+import os
+import shutil
 
 import pdb
 
@@ -29,24 +31,26 @@ def callback(_locals, _globals):
     global n_steps, best_mean_reward
     # Print stats every 1000 calls
     if (n_steps + 1) % 1 == 0:
-        # Evaluate policy training performance
         x, y = ts2xy(load_results(log_dir), 'timesteps')
-        pdb.set_trace()
-        if len(x) > 0:
-            pdb.set_trace()
+        if len(x) > 100:
+           #pdb.set_trace()
             mean_reward = np.mean(y[-100:])
             print(x[-1], 'timesteps')
             print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(best_mean_reward, mean_reward))
 
-            # New best model, you could save the agent here
+            # New best model, we save the agent here
             if mean_reward > best_mean_reward:
                 best_mean_reward = mean_reward
                 # Example for saving best model
                 print("Saving new best model")
-                _locals['self'].save(log_dir + 'best_model.pkl')
+                _locals['self'].save(os.path.join(log_dir + 'best_model.pkl'))
+        else:
+           #print('{} monitor entries'.format(len(x)))
+            pass
     n_steps += 1
     # Returning False will stop training early
     return True
+
 
 def Cnn(image, **kwargs):
     activ = tf.nn.relu
@@ -60,18 +64,46 @@ class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
-def main(game, representation, experiment_desc, env_func, steps, n_cpu):
+def main(game, representation, experiment, steps, n_cpu, render):
     env_name = '{}-{}-v0'.format(game, representation)
-    experiment = '{}_{}_{}'.format(game, representation, experiment_desc)
-
-    if(n_cpu > 1):
-        env = SubprocVecEnv([lambda: env_func(env_name) for i in range(n_cpu)])
+    exp_name = '{}_{}_{}'.format(game, representation, experiment)
+    global log_dir
+    log_dir = os.path.join("./runs", exp_name)
+    # write monitors to folder based on 'experiment'
+    # (would be better off in same folder as tf data)
+    if not os.path.exists(log_dir):
+        os.mkdir(log_dir)
     else:
-        env = DummyVecEnv([lambda: env_func(env_name)])
+        shutil.rmtree(log_dir)
+        os.mkdir(log_dir)
+    kwargs = {
+            'log_dir': log_dir,
+            'render': render,
+            }
+    if(n_cpu > 1):
+        env_lst = [make_env(env_name, representation, 0, **kwargs)]
+        for i in range(n_cpu-1):
+            env_lst += [make_env(env_name, representation, i+1, **kwargs)]
+        env = SubprocVecEnv(env_lst)
+    else:
+        env = DummyVecEnv([make_env(env_name, representation, 0, **kwargs)])
 
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
-    model.learn(total_timesteps=int(steps), tb_log_name=experiment) #, callback=callback)
+    model.learn(total_timesteps=int(steps), tb_log_name=experiment,
+                 callback=callback,
+                 )
     model.save(experiment)
+
+
+def make_env(env_name, representation, rank, **kwargs):
+    def _thunk():
+        if representation == 'wide':
+            return wrappers.ActionMapImagePCGRLWrapper(env_name, 28, random_tile=True,
+                    rank=rank, **kwargs)
+        else:
+            return wrappers.CroppedImagePCGRLWrapper(env_name, 28, random_tile=True,
+                    rank=rank, **kwargs)
+    return _thunk
 
 if __name__ == '__main__':
     game = 'binary'
@@ -79,8 +111,5 @@ if __name__ == '__main__':
     experiment = 'limited_centered'
     n_cpu = 24
     steps = 5e7
-    if representation == 'wide':
-        env = lambda game: wrappers.ImagePCGRLWrapper(game, 28, random_tile=True)
-    else:
-        env = lambda game: wrappers.CroppedImagePCGRLWrapper(game, 28, random_tile=True)
-    main(game, representation, experiment, env, steps, n_cpu)
+    render = False
+    main(game, representation, experiment, steps, n_cpu, render)
