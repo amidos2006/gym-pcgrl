@@ -60,7 +60,6 @@ def Cnn(image, **kwargs):
     layer_3 = conv_to_fc(layer_3)
     return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
 
-
 def FullyConv(image, **kwargs):
     #TODO: why is kwargs empty?
     activ = tf.nn.relu
@@ -72,15 +71,14 @@ def FullyConv(image, **kwargs):
    #    pad='SAME', init_scale=np.sqrt(2), **kwargs))
     return conv_to_fc(x)
 
-
 class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
-def main(game, representation, experiment, steps, n_cpu, render):
+def main(game, representation, experiment, steps, n_cpu, render, logging):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = '{}_{}_{}'.format(game, representation, experiment)
-    if callback != None:
+
     global log_dir
     log_dir = os.path.join("./runs", exp_name)
     # write monitors to folder based on 'experiment'
@@ -91,9 +89,11 @@ def main(game, representation, experiment, steps, n_cpu, render):
         shutil.rmtree(log_dir)
         os.mkdir(log_dir)
     kwargs = {
-            'render_rank': 0,
-            'render': render
-            }
+        'render_rank': 0,
+        'render': render
+    }
+    if not logging:
+        log_dir = None
     if(n_cpu > 1):
         env_lst = []
         for i in range(n_cpu):
@@ -103,13 +103,14 @@ def main(game, representation, experiment, steps, n_cpu, render):
         env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
 
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
-    model.learn(total_timesteps=int(steps), tb_log_name=experiment,
-                 callback=callback
-                 )
+    if not logging:
+        model.learn(total_timesteps=int(steps), tb_log_name=experiment)
+    else:
+        model.learn(total_timesteps=int(steps), tb_log_name=experiment, callback=callback)
     model.save(experiment)
 
 """
-Wrap the environment in a Monitor to save data in .csv files.
+Wrapper for the environment to save data in .csv files.
 """
 class RenderMointer(Monitor):
     def __init__(self, env, rank, log_dir, **kwargs):
@@ -124,7 +125,9 @@ class RenderMointer(Monitor):
     def step(self, action):
         if self.render_gui and self.render == self.render_rank:
             self.render()
-        self.env.step(action)
+
+        obs, reward, done, info = self.env.step(action)
+        return obs, reward, done, info
 
 def make_env(env_name, representation, rank, log_dir, **kwargs):
     def _thunk():
@@ -132,7 +135,7 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
         else:
             env = wrappers.CroppedImagePCGRLWrapper(env_name, 28, **kwargs)
-        if log_dir != null and len(log_dir) > 0:
+        if log_dir != None and len(log_dir) > 0:
             env = RenderMointer(env, rank, log_dir, **kwargs)
         return env
     return _thunk
@@ -144,4 +147,5 @@ if __name__ == '__main__':
     n_cpu = 24
     steps = 5e7
     render = False
-    main(game, representation, experiment, steps, n_cpu, render)
+    logging = False
+    main(game, representation, experiment, steps, n_cpu, render, logging)
