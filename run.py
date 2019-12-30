@@ -30,7 +30,7 @@ def callback(_locals, _globals):
     """
     global n_steps, best_mean_reward
     # Print stats every 1000 calls
-    if (n_steps + 1) % 1 == 0:
+    if (n_steps + 1) % 1000 == 0:
         x, y = ts2xy(load_results(log_dir), 'timesteps')
         if len(x) > 100:
            #pdb.set_trace()
@@ -80,6 +80,7 @@ class CustomPolicy(FeedForwardPolicy):
 def main(game, representation, experiment, steps, n_cpu, render):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = '{}_{}_{}'.format(game, representation, experiment)
+    if callback != None:
     global log_dir
     log_dir = os.path.join("./runs", exp_name)
     # write monitors to folder based on 'experiment'
@@ -103,7 +104,7 @@ def main(game, representation, experiment, steps, n_cpu, render):
 
     model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
     model.learn(total_timesteps=int(steps), tb_log_name=experiment,
-                 callback=callback,
+                 callback=callback
                  )
     model.save(experiment)
 
