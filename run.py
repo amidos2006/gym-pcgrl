@@ -60,6 +60,19 @@ def Cnn(image, **kwargs):
     layer_3 = conv_to_fc(layer_3)
     return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
 
+
+def FullyConv(image, **kwargs):
+    #TODO: why is kwargs empty?
+    activ = tf.nn.relu
+    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
+        pad='SAME', init_scale=np.sqrt(2), **kwargs))
+   #x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
+   #    pad='SAME', init_scale=np.sqrt(2), **kwargs))
+   #x = activ(conv(x, 'c3', n_filters=14, filter_size=3, stride=1,
+   #    pad='SAME', init_scale=np.sqrt(2), **kwargs))
+    return conv_to_fc(x)
+
+
 class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
@@ -111,5 +124,5 @@ if __name__ == '__main__':
     experiment = 'limited_centered'
     n_cpu = 24
     steps = 5e7
-    render = True
+    render = False
     main(game, representation, experiment, steps, n_cpu, render)
