@@ -20,6 +20,8 @@ class MDungeonProblem(Problem):
         self._prob = {"empty":0.4, "solid": 0.4, "player":0.02, "exit":0.02, "potion":0.03, "treasure":0.03, "goblin":0.05, "ogre": 0.05}
         self._border_tile = "solid"
 
+        self._solver_power = 5000
+
         self._max_enemies = 6
         self._max_potions = 2
         self._max_treasures = 3
@@ -34,7 +36,7 @@ class MDungeonProblem(Problem):
             "treasures": 1,
             "enemies": 2,
             "regions": 5,
-            "col-enemies": 1,
+            "col-enemies": 2,
             "dist-win": 0.1,
             "sol-length": 1
         }
@@ -66,6 +68,8 @@ class MDungeonProblem(Problem):
     """
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
+
+        self._solver_power = kwargs.get('solver_power', self._solver_power)
 
         self._max_enemies = kwargs.get('max_enemies', self._max_enemies)
         self._max_potions = kwargs.get('max_potions', self._max_potions)
@@ -118,16 +122,16 @@ class MDungeonProblem(Problem):
         aStarAgent = AStarAgent()
         bfsAgent = BFSAgent()
 
-        sol,solState,iters = aStarAgent.getSolution(state, 1, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 1, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0.5, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = bfsAgent.getSolution(state, 5000)
+        sol,solState,iters = bfsAgent.getSolution(state, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
 

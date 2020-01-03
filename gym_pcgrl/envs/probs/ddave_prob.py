@@ -20,6 +20,8 @@ class DDaveProblem(Problem):
         self._prob = {"empty":0.5, "solid":0.3, "player":0.02, "exit":0.02, "diamond":0.04, "key": 0.02, "spike":0.1}
         self._border_tile = "solid"
 
+        self._solver_power = 5000
+
         self._max_diamonds = 3
         self._min_spikes = 10
 
@@ -33,7 +35,7 @@ class DDaveProblem(Problem):
             "key": 3,
             "spikes": 1,
             "regions": 5,
-            "num-jumps": 2,
+            "num-jumps": 3,
             "dist-win": 0.1,
             "sol-length": 1
         }
@@ -63,6 +65,8 @@ class DDaveProblem(Problem):
     """
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
+
+        self._solver_power = kwargs.get('solver_power', self._solver_power)
 
         self._max_diamonds = kwargs.get('max_diamonds', self._max_diamonds)
         self._min_spikes = kwargs.get('min_spikes', self._min_spikes)
@@ -114,16 +118,16 @@ class DDaveProblem(Problem):
         aStarAgent = AStarAgent()
         bfsAgent = BFSAgent()
 
-        sol,solState,iters = aStarAgent.getSolution(state, 1, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 1, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0.5, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
-        sol,solState,iters = bfsAgent.getSolution(state, 5000)
+        sol,solState,iters = bfsAgent.getSolution(state, self._solver_power)
         if solState.checkWin():
             return 0, len(sol), solState.getGameStatus()
 
