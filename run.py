@@ -123,7 +123,7 @@ class RenderMointer(Monitor):
         Monitor.__init__(self, env, log_dir)
 
     def step(self, action):
-        if self.render_gui and self.render == self.render_rank:
+        if self.render_gui and self.rank == self.render_rank:
             self.render()
 
         obs, reward, done, info = self.env.step(action)
