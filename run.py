@@ -197,7 +197,7 @@ if __name__ == '__main__':
     game = 'binary'
     representation = 'wide'
     experiment = None
-    n_cpu = 1
+    n_cpu = 96
     steps = 5e7
     render = True
     logging = True
