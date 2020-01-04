@@ -16,9 +16,12 @@ import tensorflow as tf
 import numpy as np
 import os
 import shutil
+import re
+import glob
 
 import pdb
 
+n_steps = 0
 log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
 
@@ -30,7 +33,7 @@ def callback(_locals, _globals):
     """
     global n_steps, best_mean_reward
     # Print stats every 1000 calls
-    if (n_steps + 1) % 1000 == 0:
+    if (n_steps + 1) % 10 == 0:
         x, y = ts2xy(load_results(log_dir), 'timesteps')
         if len(x) > 100:
            #pdb.set_trace()
@@ -43,9 +46,9 @@ def callback(_locals, _globals):
                 best_mean_reward = mean_reward
                 # Example for saving best model
                 print("Saving new best model")
-                _locals['self'].save(os.path.join(log_dir + 'best_model.pkl'))
+                _locals['self'].save(os.path.join(log_dir, 'best_model.pkl'))
         else:
-           #print('{} monitor entries'.format(len(x)))
+            print('{} monitor entries'.format(len(x)))
             pass
     n_steps += 1
     # Returning False will stop training early
@@ -113,11 +116,13 @@ class CustomPolicy(FeedForwardPolicy):
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = '{}_{}_{}'.format(game, representation, experiment)
+    exp_name = '{}_{}'.format(game, representation)
     change_percentage = kwargs.get('change_percentage', None)
     path_length = kwargs.get('path_length', None)
     if change_percentage is not None:
-        exp_name = exp_name + '_chng{}_pth{}'.format(change_percentage, path_length)
+        exp_name = '{}_chng{}_pth{}'.format(exp_name, change_percentage, path_length)
+    if experiment is not None:
+        exp_name = '{}_{}'.format(exp_name, experiment)
 
     if representation == 'wide':
         policy = FullyConvPolicy
@@ -128,11 +133,16 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     log_dir = os.path.join("./runs", exp_name)
     # write monitors to folder based on 'experiment'
     # (would be better off in same folder as tf data)
-    if not os.path.exists(log_dir):
-        os.mkdir(log_dir)
+    log_files = glob.glob('{}*'.format(log_dir))
+    if len(log_files) == 0:
+        n = 1
     else:
-        shutil.rmtree(log_dir)
-        os.mkdir(log_dir)
+        log_ns = [re.search('_(\d+)', f).group(1) for f in log_files]
+        n = max(log_ns)
+        n = int(n) + 1
+    log_dir = '{}_{}'.format(log_dir, n)
+    log_dir = '{}_{}'.format(log_dir, 'log')
+    os.mkdir(log_dir)
     kwargs = {
         **kwargs,
         'render_rank': 0,
@@ -149,9 +159,9 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
     model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     if not logging:
-        model.learn(total_timesteps=int(steps), tb_log_name=experiment)
+        model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
-        model.learn(total_timesteps=int(steps), tb_log_name=experiment, callback=callback)
+        model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
     model.save(experiment)
 
 
@@ -170,9 +180,7 @@ class RenderMoniter(Monitor):
     def step(self, action):
         if self.render_gui and self.rank == self.render_rank:
             self.render()
-
-        obs, reward, done, info = self.env.step(action)
-        return obs, reward, done, info
+        return Monitor.step(self, action)
 
 def make_env(env_name, representation, rank, log_dir, **kwargs):
     def _thunk():
@@ -188,8 +196,8 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
 if __name__ == '__main__':
     game = 'binary'
     representation = 'wide'
-    experiment = '0'
-    n_cpu = 48
+    experiment = None
+    n_cpu = 1
     steps = 5e7
     render = True
     logging = True
