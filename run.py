@@ -111,9 +111,14 @@ class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
-def main(game, representation, experiment, steps, n_cpu, render, logging):
+def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = '{}_{}_{}'.format(game, representation, experiment)
+    change_percentage = kwargs.get('change_percentage', None)
+    path_length = kwargs.get('path_length', None)
+    if change_percentage is not None:
+        exp_name = exp_name + '_chng{}_pth{}'.format(change_percentage, path_length)
+
     if representation == 'wide':
         policy = FullyConvPolicy
     else:
@@ -129,9 +134,9 @@ def main(game, representation, experiment, steps, n_cpu, render, logging):
         shutil.rmtree(log_dir)
         os.mkdir(log_dir)
     kwargs = {
+        **kwargs,
         'render_rank': 0,
         'render': render,
-        'change_percentage': 0.2,
     }
     if not logging:
         log_dir = None
@@ -184,8 +189,13 @@ if __name__ == '__main__':
     game = 'binary'
     representation = 'wide'
     experiment = '0'
-    n_cpu = 24
+    n_cpu = 48
     steps = 5e7
     render = True
     logging = True
-    main(game, representation, experiment, steps, n_cpu, render, logging)
+    kwargs = {
+            # specific to binary:
+            'change_percentage': 0.2,
+            'path_length': 48,
+            }
+    main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs)
