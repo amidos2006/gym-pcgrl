@@ -110,12 +110,13 @@ class FullyConvPolicy(ActorCriticPolicy):
     def value(self, obs, state=None, mask=None):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
+
 class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
-def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
-    env_name = '{}-{}-v0'.format(game, representation)
+
+def get_exp_name(game, representation, experiment, **kwargs):
     exp_name = '{}_{}'.format(game, representation)
     change_percentage = kwargs.get('change_percentage', None)
     path_length = kwargs.get('path_length', None)
@@ -123,23 +124,31 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         exp_name = '{}_chng{}_pth{}'.format(exp_name, change_percentage, path_length)
     if experiment is not None:
         exp_name = '{}_{}'.format(exp_name, experiment)
+    return exp_name
 
-    if representation == 'wide':
-        policy = FullyConvPolicy
-    else:
-        policy = CustomPolicy
 
-    global log_dir
+def max_exp_idx(exp_name):
     log_dir = os.path.join("./runs", exp_name)
-    # write monitors to folder based on 'experiment'
-    # (would be better off in same folder as tf data)
     log_files = glob.glob('{}*'.format(log_dir))
     if len(log_files) == 0:
         n = 1
     else:
         log_ns = [re.search('_(\d+)', f).group(1) for f in log_files]
         n = max(log_ns)
-        n = int(n) + 1
+    return n
+
+
+def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
+    env_name = '{}-{}-v0'.format(game, representation)
+    exp_name = get_exp_name()
+    if representation == 'wide':
+        policy = FullyConvPolicy
+    else:
+        policy = CustomPolicy
+
+    global log_dir
+    n = max_exp_idx(exp_name)
+    n = n + 1
     log_dir = '{}_{}'.format(log_dir, n)
     log_dir = '{}_{}'.format(log_dir, 'log')
     os.mkdir(log_dir)
@@ -165,19 +174,61 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     model.save(experiment)
 
 
+def infer(game, representation, experiment, **kwargs):
+    kwargs = {
+            **kwargs,
+            'inference': True,
+            'render': True,
+            }
+    env_name = '{}-{}-v0'.format(game, representation)
+    exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    global log_dir
+    n = max_exp_idx(exp_name)
+    log_dir = '{}_{}_log'.format(exp_name, n)
+    log_dir = os.path.join('runs', log_dir, 'best_model.pkl')
+    model = PPO2.load(log_dir)
+    log_dir = None
+   #log_dir = os.path.join(log_dir, 'eval')
+    env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
+    obs = env.reset()
+    n_step = 0
+    while True:
+        if n_step >= 1200:
+            obs = env.reset()
+            n_step = 0
+        else:
+            action = get_action(obs, env, model)
+            obs, rewards, dones, info = env.step(action)
+            n_step += 1
+
+
+def get_action(obs, env, model, action_type=True):
+    action = None
+    if action_type == 0:
+        action, _ = model.predict(obs)
+    elif action_type == 1:
+        action_prob = model.action_probability(obs)[0]
+        action = np.random.choice(a=list(range(len(action_prob))), size=1, p=action_prob)
+    else:
+        action = np.array([env.action_space.sample()])
+    return action
+
+
 """
 Wrapper for the environment to save data in .csv files.
 """
-class RenderMoniter(Monitor):
+class RenderMonitor(Monitor):
     def __init__(self, env, rank, log_dir, **kwargs):
         self.log_dir = log_dir
         self.rank = rank
         self.render_gui = kwargs.get('render', False)
         self.render_rank = kwargs.get('render_rank', 0)
-        log_dir = os.path.join(log_dir, str(rank))
+        if log_dir is not None:
+            log_dir = os.path.join(log_dir, str(rank))
         Monitor.__init__(self, env, log_dir)
 
     def step(self, action):
+        print(self.render_gui, self.rank)
         if self.render_gui and self.rank == self.render_rank:
             self.render()
         return Monitor.step(self, action)
@@ -188,22 +239,29 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
         else:
             env = wrappers.CroppedImagePCGRLWrapper(env_name, 28, **kwargs)
-        if log_dir != None and len(log_dir) > 0:
-            env = RenderMoniter(env, rank, log_dir, **kwargs)
+        if log_dir != None and len(log_dir) > 0 or kwargs.get('inference', False):
+            env = RenderMonitor(env, rank, log_dir, **kwargs)
         return env
     return _thunk
 
+
+game = 'binary'
+representation = 'wide'
+experiment = None
+n_cpu = 96
+steps = 5e7
+render = True
+logging = True
+kwargs = {
+        # specific to binary:
+        'change_percentage': 0.2,
+        'path_length': 48,
+        }
+
+
+def enjoy():
+    infer(game, representation, experiment, **kwargs)
+
+
 if __name__ == '__main__':
-    game = 'binary'
-    representation = 'wide'
-    experiment = None
-    n_cpu = 96
-    steps = 5e7
-    render = True
-    logging = True
-    kwargs = {
-            # specific to binary:
-            'change_percentage': 0.2,
-            'path_length': 48,
-            }
     main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs)
