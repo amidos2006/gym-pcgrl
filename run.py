@@ -158,7 +158,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 """
 Wrapper for the environment to save data in .csv files.
 """
-class RenderMointer(Monitor):
+class RenderMoniter(Monitor):
     def __init__(self, env, rank, log_dir, **kwargs):
         self.log_dir = log_dir
         self.rank = rank
@@ -181,7 +181,7 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
         else:
             env = wrappers.CroppedImagePCGRLWrapper(env_name, 28, **kwargs)
         if log_dir != None and len(log_dir) > 0:
-            env = RenderMointer(env, rank, log_dir, **kwargs)
+            env = RenderMoniter(env, rank, log_dir, **kwargs)
         return env
     return _thunk
 
