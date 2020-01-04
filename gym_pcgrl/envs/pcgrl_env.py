@@ -25,8 +25,6 @@ class PcgrlEnv(gym.Env):
         constant in gym_pcgrl.envs.reps.__init__.py
     """
     def __init__(self, prob="binary", rep = "narrow"):
-        self.rank = 0
-        self.render_gui = False
         self._prob = PROBLEMS[prob]()
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
@@ -113,11 +111,6 @@ class PcgrlEnv(gym.Env):
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
-        if 'rank' in kwargs:
-            self.rank = kwargs['rank']
-        if 'render' in kwargs:
-            self.render_gui = kwargs['render']
-
 
     """
     Advance the environment using a specific action
@@ -132,9 +125,6 @@ class PcgrlEnv(gym.Env):
         dictionary: debug information that might be useful to understand what's happening
     """
     def step(self, action):
-        if self.render_gui and self.rank == 0:
-            self.render()
-
         self._iteration += 1
         #save copy of the old stats to calculate the reward
         old_stats = self._rep_stats
@@ -176,7 +166,7 @@ class PcgrlEnv(gym.Env):
             from gym.envs.classic_control import rendering
             if self.viewer is None:
                 self.viewer = rendering.SimpleImageViewer()
-            if type(img) == PIL.Image.Image: # why does this happen?
+            if not hasattr(img, 'shape'):
                 img = np.array(img)
             self.viewer.imshow(img)
             return self.viewer.isopen

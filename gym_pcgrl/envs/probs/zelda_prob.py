@@ -24,12 +24,12 @@ class ZeldaProblem(Problem):
         self._target_path = 16
 
         self._rewards = {
-            "player": 2,
-            "key": 2,
-            "door": 2,
-            "regions": 3,
+            "player": 3,
+            "key": 3,
+            "door": 3,
+            "regions": 5,
             "enemies": 1,
-            "nearest-enemy": 1,
+            "nearest-enemy": 2,
             "path-length": 1
         }
 

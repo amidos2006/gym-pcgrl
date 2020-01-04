@@ -30,7 +30,7 @@ def callback(_locals, _globals):
     """
     global n_steps, best_mean_reward
     # Print stats every 1000 calls
-    if (n_steps + 1) % 1 == 0:
+    if (n_steps + 1) % 1000 == 0:
         x, y = ts2xy(load_results(log_dir), 'timesteps')
         if len(x) > 100:
            #pdb.set_trace()
@@ -59,7 +59,6 @@ def Cnn(image, **kwargs):
     layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
     layer_3 = conv_to_fc(layer_3)
     return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
-
 
 def FullyConv(image, **kwargs):
     activ = tf.nn.relu
@@ -108,15 +107,14 @@ class FullyConvPolicy(ActorCriticPolicy):
     def value(self, obs, state=None, mask=None):
         return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
-
 class CustomPolicy(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
-
-def main(game, representation, experiment, steps, n_cpu, render):
+def main(game, representation, experiment, steps, n_cpu, render, logging):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = '{}_{}_{}'.format(game, representation, experiment)
+
     global log_dir
     log_dir = os.path.join("./runs", exp_name)
     # write monitors to folder based on 'experiment'
@@ -127,56 +125,61 @@ def main(game, representation, experiment, steps, n_cpu, render):
         shutil.rmtree(log_dir)
         os.mkdir(log_dir)
     kwargs = {
-            'log_dir': log_dir,
-            'render': render,
-            'change_percentage': 1,
-            }
+        'render': render,
+        'change_percentage': 0.2,
+    }
+    if not logging:
+        log_dir = None
     if(n_cpu > 1):
-        env_lst = [make_env(env_name, representation, 0, **kwargs)]
-        for i in range(n_cpu-1):
-            env_lst += [make_env(env_name, representation, i+1, **kwargs)]
+        env_lst = []
+        for i in range(n_cpu):
+            env_lst.append(make_env(env_name, representation, i, log_dir, **kwargs))
         env = SubprocVecEnv(env_lst)
     else:
-        env = DummyVecEnv([make_env(env_name, representation, 0, **kwargs)])
-
-    model = PPO2(FullyConvPolicy, env, verbose=1, tensorboard_log="./runs")
-    model.learn(total_timesteps=int(steps), tb_log_name=experiment,
-                 callback=callback,
-                 )
+        env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
+    model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
+    if not logging:
+        model.learn(total_timesteps=int(steps), tb_log_name=experiment)
+    else:
+        model.learn(total_timesteps=int(steps), tb_log_name=experiment, callback=callback)
     model.save(experiment)
 
 
 """
-Wrap the environment in a Monitor to save data in .csv files.
+Wrapper for the environment to save data in .csv files.
 """
-def wrap_monitor(env, **kwargs):
-    rank = kwargs['rank']
-    log_dir = kwargs['log_dir']
-   #print('wrapper rank {}'.format(rank))
-    log_dir = os.path.join(log_dir, str(rank))
-    env = Monitor(env, log_dir)
-    return env
+class RenderMointer(Monitor):
+    def __init__(self, env, rank, log_dir, **kwargs):
+        self.log_dir = log_dir
+        self.rank = rank
+        self.render_gui = kwargs.get('render', False) and self.rank == 0
+        log_dir = os.path.join(log_dir, str(rank))
+        Monitor.__init__(self, env, log_dir)
 
+    def step(self, action):
+        if self.render_gui:# and self.render == self.render_rank:
+            self.render()
 
-def make_env(env_name, representation, rank, **kwargs):
+        obs, reward, done, info = self.env.step(action)
+        return obs, reward, done, info
+
+def make_env(env_name, representation, rank, log_dir, **kwargs):
     def _thunk():
-        print(env_name)
-        if 'wide' in representation:
-            env = wrappers.ActionMapImagePCGRLWrapper(env_name, 28, random_tile=True,
-                    rank=rank, **kwargs)
+        if representation == 'wide':
+            env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
         else:
-            env = wrappers.CroppedImagePCGRLWrapper(env_name, 28, random_tile=True,
-                    rank=rank, **kwargs)
-        env = wrap_monitor(env, rank=rank, **kwargs)
-        print(env.action_space)
+            env = wrappers.CroppedImagePCGRLWrapper(env_name, 28, **kwargs)
+        if log_dir != None and len(log_dir) > 0:
+            env = RenderMointer(env, rank, log_dir, **kwargs)
         return env
     return _thunk
 
 if __name__ == '__main__':
     game = 'binary'
     representation = 'wide'
-    experiment = 'wide_Cnn_fullChange_test'
-    n_cpu = 2
-    steps = 10e7
+    experiment = 'limited_centered'
+    n_cpu = 24
+    steps = 5e7
     render = True
-    main(game, representation, experiment, steps, n_cpu, render)
+    logging = True
+    main(game, representation, experiment, steps, n_cpu, render, logging)

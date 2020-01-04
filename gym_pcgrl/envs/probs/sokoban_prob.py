@@ -19,17 +19,19 @@ class SokobanProblem(Problem):
         self._prob = {"empty":0.45, "solid":0.4, "player": 0.05, "crate": 0.05, "target": 0.05}
         self._border_tile = "solid"
 
+        self._solver_power = 5000
+
         self._max_crates = 3
 
-        self._target_solution = 16
+        self._target_solution = 18
 
         self._rewards = {
             "player": 3,
-            "crate": 3,
-            "target": 3,
+            "crate": 2,
+            "target": 2,
             "regions": 5,
             "ratio": 2,
-            "dist-win": 0.02,
+            "dist-win": 0.0,
             "sol-length": 1
         }
 
@@ -58,6 +60,7 @@ class SokobanProblem(Problem):
     def adjust_param(self, **kwargs):
         super().adjust_param(**kwargs)
 
+        self._solver_power = kwargs.get('solver_power', self._solver_power)
         self._max_crates = kwargs.get('max_crates', self._max_crates)
         self._max_crates = kwargs.get('max_targets', self._max_crates)
 
@@ -104,16 +107,16 @@ class SokobanProblem(Problem):
         aStarAgent = AStarAgent()
         bfsAgent = BFSAgent()
 
-        sol,solState,iters = bfsAgent.getSolution(state, 5000)
+        sol,solState,iters = bfsAgent.getSolution(state, self._solver_power)
         if solState.checkWin():
             return 0, sol
-        sol,solState,iters = aStarAgent.getSolution(state, 1, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 1, self._solver_power)
         if solState.checkWin():
             return 0, sol
-        sol,solState,iters = aStarAgent.getSolution(state, 0.5, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0.5, self._solver_power)
         if solState.checkWin():
             return 0, sol
-        sol,solState,iters = aStarAgent.getSolution(state, 0, 5000)
+        sol,solState,iters = aStarAgent.getSolution(state, 0, self._solver_power)
         if solState.checkWin():
             return 0, sol
         return solState.getHeuristic(), []

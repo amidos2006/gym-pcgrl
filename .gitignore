@@ -28,8 +28,11 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-#Tensorboard Logs
+# Tensorboard Logs
 runs/
 
-#Jupyter logs
+# Jupyter logs
 .ipynb_checkpoints/
+
+# Saved models
+*.zip

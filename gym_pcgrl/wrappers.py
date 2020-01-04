@@ -1,10 +1,8 @@
 import gym
 import gym_pcgrl
-from stable_baselines.bench import Monitor
 
 import numpy as np
 import math
-import os
 
 import pdb
 
@@ -501,14 +499,14 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Normalize the heatmap
         env = Normalize(env, 'heatmap')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap', 'changes'], **kwargs)
+        self.env = ToImage(env, ['map', 'heatmap', 'changes'])
         gym.Wrapper.__init__(self, self.env)
 
 """
 This wrapper ignore location data, pretty useful with wide representation
 """
 class ImagePCGRLWrapper(gym.Wrapper):
-    def __init__(self, game, crop_size, **kwargs):
+    def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Normalize the heatmap
@@ -528,7 +526,7 @@ class ImagePCGRLWrapper(gym.Wrapper):
 Similar to the previous wrapper but the input now is 3D map (height, width, num_tiles)
 """
 class ActionMapImagePCGRLWrapper(gym.Wrapper):
-    def __init__(self, game, crop_size, **kwargs):
+    def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Add the action map wrapper
