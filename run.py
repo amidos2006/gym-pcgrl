@@ -214,8 +214,9 @@ def infer(game, representation, experiment, **kwargs):
             }
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
-    global log1r
     n = max_exp_idx(exp_name)
+    if n == 0:
+        raise Exception('found')
     log_dir = '{}_{}_log'.format(exp_name, n)
     log_dir = os.path.join('runs', log_dir, 'best_model.pkl')
     model = PPO2.load(log_dir)
