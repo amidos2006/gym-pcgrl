@@ -162,16 +162,16 @@ def max_exp_idx(exp_name):
     log_dir = os.path.join("./runs", exp_name)
     log_files = glob.glob('{}*'.format(log_dir))
     if len(log_files) == 0:
-        n = 1
+        n = 0
     else:
         log_ns = [re.search('_(\d+)', f).group(1) for f in log_files]
         n = max(log_ns)
-    return n
+    return int(n)
 
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = get_exp_name()
+    exp_name = get_exp_name(game, representation, experiment, **kwargs)
     if representation == 'wide':
         policy = FullyConvPolicy
     else:
@@ -180,8 +180,9 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     global log_dir
     n = max_exp_idx(exp_name)
     n = n + 1
-    log_dir = '{}_{}'.format(log_dir, n)
+    log_dir = 'runs/{}_{}'.format(exp_name, n)
     log_dir = '{}_{}'.format(log_dir, 'log')
+    print(log_dir)
     os.mkdir(log_dir)
     kwargs = {
         **kwargs,
@@ -277,6 +278,7 @@ class RenderMonitor(Monitor):
             self.render()
         return Monitor.step(self, action)
 
+
 def make_env(env_name, representation, rank, log_dir, **kwargs):
     def _thunk():
         if representation == 'wide':
@@ -290,12 +292,12 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
 
 
 game = 'binary'
-representation = 'wide'
+representation = 'narrow'
 experiment = None
-n_cpu = 96
+n_cpu = 24
 steps = 5e7
-render = True
-logging = True
+render = False
+logging = False
 kwargs = {
         # specific to binary:
         'change_percentage': 0.2,
