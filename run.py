@@ -55,7 +55,7 @@ def callback(_locals, _globals):
 def Cnn(image, **kwargs):
     activ = tf.nn.relu
     layer_1 = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs)) # filter_size=3
-    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs)) #filter_size = 3
+    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs)) #filter_size = 3
     layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
     layer_3 = conv_to_fc(layer_3)
     return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
@@ -114,6 +114,10 @@ class CustomPolicy(FeedForwardPolicy):
 def main(game, representation, experiment, steps, n_cpu, render, logging):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = '{}_{}_{}'.format(game, representation, experiment)
+    if representation == 'wide':
+        policy = FullyConvPolicy
+    else:
+        policy = CustomPolicy
 
     global log_dir
     log_dir = os.path.join("./runs", exp_name)
@@ -125,6 +129,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging):
         shutil.rmtree(log_dir)
         os.mkdir(log_dir)
     kwargs = {
+        'render_rank': 0,
         'render': render,
         'change_percentage': 0.2,
     }
@@ -137,7 +142,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging):
         env = SubprocVecEnv(env_lst)
     else:
         env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
-    model = PPO2(CustomPolicy, env, verbose=1, tensorboard_log="./runs")
+    model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=experiment)
     else:
@@ -152,12 +157,13 @@ class RenderMointer(Monitor):
     def __init__(self, env, rank, log_dir, **kwargs):
         self.log_dir = log_dir
         self.rank = rank
-        self.render_gui = kwargs.get('render', False) and self.rank == 0
+        self.render_gui = kwargs.get('render', False)
+        self.render_rank = kwargs.get('render_rank', 0)
         log_dir = os.path.join(log_dir, str(rank))
         Monitor.__init__(self, env, log_dir)
 
     def step(self, action):
-        if self.render_gui:# and self.render == self.render_rank:
+        if self.render_gui and self.rank == self.render_rank:
             self.render()
 
         obs, reward, done, info = self.env.step(action)
@@ -177,7 +183,7 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
 if __name__ == '__main__':
     game = 'binary'
     representation = 'wide'
-    experiment = 'limited_centered'
+    experiment = '0'
     n_cpu = 24
     steps = 5e7
     render = True
