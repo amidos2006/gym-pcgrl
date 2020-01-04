@@ -18,12 +18,43 @@ import os
 import shutil
 import re
 import glob
+import matplotlib.pyplot as plt
+
 
 import pdb
 
 n_steps = 0
 log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
+
+
+def show_state(env, l, c, r, step=0, name="", info=""):
+    fig = plt.figure(10)
+    plt.clf()
+
+    plt.title("{} | Step: {} Path: {} Changes: {} Regions: {}".format(name, step, l[-1], c[-1], r[-1]))
+
+    ax1 = fig.add_subplot(1,4,1)
+    ax1 = plt.imshow(env.render(mode='rgb_array'))
+    plt.axis('off')
+
+    ax2 = fig.add_subplot(1,4,2)
+    ax2 = plt.plot(l)
+
+    ax3 = fig.add_subplot(1,4,3)
+    ax3 = plt.plot(c)
+
+    ax4 = fig.add_subplot(1,4,4)
+    ax4 = plt.plot(r)
+
+
+    fig.set_figwidth(15)
+    plt.tight_layout()
+
+    plt.show()
+   #display.clear_output(wait=True)
+   #display.display(plt.gcf())
+
 
 def callback(_locals, _globals):
     """
@@ -119,7 +150,7 @@ class CustomPolicy(FeedForwardPolicy):
 def get_exp_name(game, representation, experiment, **kwargs):
     exp_name = '{}_{}'.format(game, representation)
     change_percentage = kwargs.get('change_percentage', None)
-    path_length = kwargs.get('path_length', None)
+    path_length = kwargs.get('target_path', None)
     if change_percentage is not None:
         exp_name = '{}_chng{}_pth{}'.format(exp_name, change_percentage, path_length)
     if experiment is not None:
@@ -182,16 +213,24 @@ def infer(game, representation, experiment, **kwargs):
             }
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
-    global log_dir
+    global log1r
     n = max_exp_idx(exp_name)
     log_dir = '{}_{}_log'.format(exp_name, n)
     log_dir = os.path.join('runs', log_dir, 'best_model.pkl')
     model = PPO2.load(log_dir)
     log_dir = None
    #log_dir = os.path.join(log_dir, 'eval')
+    kwargs = {
+            **kwargs,
+            'change_percentage': 1,
+            'target_path': 98,
+            }
     env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
     obs = env.reset()
     n_step = 0
+    path_length = []
+    changes = []
+    regions = []
     while True:
         if n_step >= 1200:
             obs = env.reset()
@@ -199,6 +238,12 @@ def infer(game, representation, experiment, **kwargs):
         else:
             action = get_action(obs, env, model)
             obs, rewards, dones, info = env.step(action)
+            path_length.append(info[0]['path-length'])
+            changes.append(info[0]['changes'])
+            regions.append(info[0]['regions'])
+            print(info)
+            if dones:
+                show_state(env, path_length, changes, regions, n_step)
             n_step += 1
 
 
@@ -228,7 +273,6 @@ class RenderMonitor(Monitor):
         Monitor.__init__(self, env, log_dir)
 
     def step(self, action):
-        print(self.render_gui, self.rank)
         if self.render_gui and self.rank == self.render_rank:
             self.render()
         return Monitor.step(self, action)
@@ -255,7 +299,7 @@ logging = True
 kwargs = {
         # specific to binary:
         'change_percentage': 0.2,
-        'path_length': 48,
+        'target_path': 48,
         }
 
 
