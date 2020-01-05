@@ -50,6 +50,9 @@ def callback(_locals, _globals):
                 # Example for saving best model
                 print("Saving new best model")
                 _locals['self'].save(os.path.join(log_dir, 'best_model.pkl'))
+            else:
+                print("Saving latest model")
+                _locals['self'].save(os.path.join(log_dir, 'latest_model.pkl'))
         else:
             print('{} monitor entries'.format(len(x)))
             pass
@@ -65,6 +68,7 @@ def Cnn(image, **kwargs):
     layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
     layer_3 = conv_to_fc(layer_3)
     return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
+
 
 def FullyConv(image, **kwargs):
     activ = tf.nn.relu
@@ -141,21 +145,30 @@ def max_exp_idx(exp_name):
     return int(n)
 
 
+def load_model(log_dir):
+    model_path = os.path.join(log_dir, 'latest_model.pkl')
+    model = PPO2.load(model_path, tensorboard_log="./runs")
+    return model
+
+
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    resume = kwargs.get('resume', False)
     if representation == 'wide':
         policy = FullyConvPolicy
     else:
         policy = CustomPolicy
 
-    global log_dir
     n = max_exp_idx(exp_name)
-    n = n + 1
-    log_dir = 'runs/{}_{}'.format(exp_name, n)
-    log_dir = '{}_{}'.format(log_dir, 'log')
-    print(log_dir)
-    os.mkdir(log_dir)
+    global log_dir
+    if not resume:
+        n = n + 1
+    log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
+    if not resume:
+        os.mkdir(log_dir)
+    else:
+        model = load_model(log_dir)
     kwargs = {
         **kwargs,
         'render_rank': 0,
@@ -170,12 +183,15 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         env = SubprocVecEnv(env_lst)
     else:
         env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
-    model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
+    if not resume or model is None:
+        model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
+    else:
+        model.set_env(env)
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
-    model.save(experiment)
+    model.save(os.path.join(log_dir, 'latest_model.pkl'))
 
 
 """
@@ -214,9 +230,10 @@ representation = 'wide'
 experiment = None
 n_cpu = 96
 steps = 1e8
-render = False
-logging = False
+render = True
+logging = True
 kwargs = {
+        'resume': False,
         'change_percentage': 0.2,
         # binary problem
         'target_path': 48,
