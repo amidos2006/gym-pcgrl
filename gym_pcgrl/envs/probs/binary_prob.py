@@ -17,9 +17,9 @@ class BinaryProblem(Problem):
         self._height = 14
         self._prob = {"empty": 0.7, "solid":0.3}
         self._border_tile = "solid"
-
+        
         self._target_path = 48
-
+        
         self._rewards = {
             "regions": 5,
             "path-length": 1
