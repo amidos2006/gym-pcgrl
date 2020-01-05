@@ -233,10 +233,7 @@ steps = 1e8
 render = False
 logging = True
 kwargs = {
-        'resume': False,
-        'change_percentage': 0.2,
-        # binary problem
-        'target_path': 48,
+        'resume': False
         }
 
 
