@@ -192,19 +192,6 @@ Parameters:
 Returns:
     int[][]: the random generated map
 """
-def gen_random_map_legacy(random, width, height, prob):
-    map = np.zeros((height, width), dtype=np.uint8)
-    for y in range(height):
-        for x in range(width):
-            total = 0
-            randv = random.rand()
-            for v in prob:
-                total += prob[v]
-                if randv < total:
-                    map[y][x] = int(v)
-                    break
-    return map
-
 def gen_random_map(random, width, height, prob):
     rand_map = random.uniform(low=0, high=1, size=(height, width, len(prob)))
     last = np.zeros(shape=(height, width, 1), dtype='uint8')
