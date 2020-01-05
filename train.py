@@ -228,9 +228,9 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
 game = 'binary'
 representation = 'wide'
 experiment = None
-n_cpu = 96
+n_cpu = 100
 steps = 1e8
-render = True
+render = False
 logging = True
 kwargs = {
         'resume': False,
