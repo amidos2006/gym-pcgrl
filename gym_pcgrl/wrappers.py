@@ -265,6 +265,47 @@ class ActionMap(gym.Wrapper):
         return obs, reward, done, info
 
 """
+Add visited map to the observation which help keep track of all the tiles that
+have been visited but not changed. It was designed to battle the need for having
+a memory for the turtle representation.
+
+can be stacked
+"""
+class VisitedMap(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a pos key'
+        (self._w, self._h) = self.env.observation_space.spaces["pos"].high + 1
+        max_iterations = get_pcgrl_env(self.env)._max_iterations
+
+        self.observation_space.spaces['visits'] = gym.spaces.Box(low=0, high=max_iterations+1, shape=(self._h, self._w), dtype=np.uint8)
+
+    def reset(self):
+        obs = self.env.reset()
+        self._visits = np.zeros((self._h, self._w))
+        (x, y) = obs["pos"]
+        self._visits[y][x] += 1
+        return self.transform(obs)
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        if not done:
+            (x, y) = obs["pos"]
+            self._visits[y][x] += 1
+        obs = self.transform(obs)
+        return obs, reward, done, info
+
+    def transform(self, obs):
+        obs['visits'] = self._visits.copy()
+        return obs
+
+"""
 Normalize a certain attribute by the max and min values of its observation_space
 
 can be stacked
@@ -477,7 +518,7 @@ class PosGaussianImage(PosImage):
 ################################################################################
 
 """
-The wrappers we use for our experiment
+The wrappers we use for narrow and turtle experiments
 """
 class CroppedImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, crop_size, **kwargs):
@@ -488,18 +529,20 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
+        #Adding Visited Map
+        env = VisitedMap(env)
+        env = Cropped(env, crop_size, 0, 'visits')
+        env = Normalize(env, 'visits')
         # Adding changes to the channels
         env = AddChanges(env, True)
-        # Cropping the changes to same size
         env = Cropped(env, crop_size, 0, 'changes')
-        # Normalizing the changes to be between 0 and 1
         env = Normalize(env, 'changes')
         # Cropping the heatmap similar to the map
         env = Cropped(env, crop_size, 0, 'heatmap')
-        # Normalize the heatmap
         env = Normalize(env, 'heatmap')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap', 'changes'])
+        flat_indeces = ['map', 'heatmap', 'changes', 'visits']
+        self.env = ToImage(env, flat_indeces)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -523,7 +566,8 @@ class ImagePCGRLWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
 
 """
-Similar to the previous wrapper but the input now is 3D map (height, width, num_tiles)
+Similar to the previous wrapper but the input now is the index in a 3D map (height, width, num_tiles) of the highest value
+Used for wide experiments
 """
 class ActionMapImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
