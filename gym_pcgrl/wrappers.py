@@ -529,24 +529,19 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
-        if 'turtle' in game:
-            env = VisitedMap(env)
-            env = Cropped(env, crop_size, 0, 'visits')
-            env = Normalize(env, 'visits')
+        #Adding Visited Map
+        env = VisitedMap(env)
+        env = Cropped(env, crop_size, 0, 'visits')
+        env = Normalize(env, 'visits')
         # Adding changes to the channels
         env = AddChanges(env, True)
-        # Cropping the changes to same size
         env = Cropped(env, crop_size, 0, 'changes')
-        # Normalizing the changes to be between 0 and 1
         env = Normalize(env, 'changes')
         # Cropping the heatmap similar to the map
         env = Cropped(env, crop_size, 0, 'heatmap')
-        # Normalize the heatmap
         env = Normalize(env, 'heatmap')
         # Final Wrapper has to be ToImage or ToFlat
-        flat_indeces = ['map', 'heatmap', 'changes']
-        if 'turtle' in game:
-            flat_indeces.append('visits')
+        flat_indeces = ['map', 'heatmap', 'changes', 'visits']
         self.env = ToImage(env, flat_indeces)
         gym.Wrapper.__init__(self, self.env)
 
