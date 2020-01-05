@@ -280,8 +280,10 @@ class VisitedMap(gym.Wrapper):
         get_pcgrl_env(self.env).adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
 
-        assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a pos key'
-        (self._w, self._h) = self.env.observation_space.spaces["pos"].high + 1
+        assert 'map' in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a map key'
+
+        (self._h, self._w) = self.env.observation_space.spaces["map"].shape
+        self._has_pos = 'pos' in self.env.observation_space.spaces.keys()
         max_iterations = get_pcgrl_env(self.env)._max_iterations
 
         self.observation_space.spaces['visits'] = gym.spaces.Box(low=0, high=max_iterations+1, shape=(self._h, self._w), dtype=np.uint8)
@@ -289,14 +291,18 @@ class VisitedMap(gym.Wrapper):
     def reset(self):
         obs = self.env.reset()
         self._visits = np.zeros((self._h, self._w))
-        (x, y) = obs["pos"]
-        self._visits[y][x] += 1
+        if self._has_pos:
+            (x, y) = obs["pos"]
+            self._visits[y][x] += 1
         return self.transform(obs)
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         if not done:
-            (x, y) = obs["pos"]
+            if self._has_pos:
+                (x, y) = obs["pos"]
+            else:
+                (x, y) = (action[0], action[1])
             self._visits[y][x] += 1
         obs = self.transform(obs)
         return obs, reward, done, info
