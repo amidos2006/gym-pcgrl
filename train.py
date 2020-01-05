@@ -147,7 +147,7 @@ def max_exp_idx(exp_name):
 
 def load_model(log_dir):
     model_path = os.path.join(log_dir, 'latest_model.pkl')
-    model = PPO2.load(model_path, tensorboard_log="./runs")
+    model = PPO2.load(model_path)
     return model
 
 
