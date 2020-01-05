@@ -193,16 +193,7 @@ Returns:
     int[][]: the random generated map
 """
 def gen_random_map(random, width, height, prob):
-    map = np.zeros((height, width), dtype=np.uint8)
-    for y in range(height):
-        for x in range(width):
-            total = 0
-            randv = random.rand()
-            for v in prob:
-                total += prob[v]
-                if randv < total:
-                    map[y][x] = int(v)
-                    break
+    map = random.choice(list(prob.keys()),size=(height,width),p=list(prob.values())).astype(np.uint8)
     return map
 
 """
