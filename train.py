@@ -28,34 +28,6 @@ log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
 
 
-def show_state(env, l, c, r, step=0, name="", info=""):
-    fig = plt.figure(10)
-    plt.clf()
-
-    plt.title("{} | Step: {} Path: {} Changes: {} Regions: {}".format(name, step, l[-1], c[-1], r[-1]))
-
-    ax1 = fig.add_subplot(1,4,1)
-    ax1 = plt.imshow(env.render(mode='rgb_array'))
-    plt.axis('off')
-
-    ax2 = fig.add_subplot(1,4,2)
-    ax2 = plt.plot(l)
-
-    ax3 = fig.add_subplot(1,4,3)
-    ax3 = plt.plot(c)
-
-    ax4 = fig.add_subplot(1,4,4)
-    ax4 = plt.plot(r)
-
-
-    fig.set_figwidth(15)
-    plt.tight_layout()
-
-    plt.show()
-   #display.clear_output(wait=True)
-   #display.display(plt.gcf())
-
-
 def callback(_locals, _globals):
     """
     Callback called at each step (for DQN an others) or after n steps (see ACER or PPO2)
@@ -206,61 +178,6 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     model.save(experiment)
 
 
-def infer(game, representation, experiment, **kwargs):
-    kwargs = {
-            **kwargs,
-            'inference': True,
-            'render': True,
-            }
-    env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = get_exp_name(game, representation, experiment, **kwargs)
-    n = max_exp_idx(exp_name)
-    if n == 0:
-        raise Exception('found')
-    log_dir = '{}_{}_log'.format(exp_name, n)
-    log_dir = os.path.join('runs', log_dir, 'best_model.pkl')
-    model = PPO2.load(log_dir)
-    log_dir = None
-   #log_dir = os.path.join(log_dir, 'eval')
-    kwargs = {
-            **kwargs,
-            'change_percentage': 1,
-            'target_path': 98,
-            }
-    env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
-    obs = env.reset()
-    n_step = 0
-    path_length = []
-    changes = []
-    regions = []
-    while True:
-        if n_step >= 1200:
-            obs = env.reset()
-            n_step = 0
-        else:
-            action = get_action(obs, env, model)
-            obs, rewards, dones, info = env.step(action)
-            path_length.append(info[0]['path-length'])
-            changes.append(info[0]['changes'])
-            regions.append(info[0]['regions'])
-            print(info)
-            if dones:
-                show_state(env, path_length, changes, regions, n_step)
-            n_step += 1
-
-
-def get_action(obs, env, model, action_type=True):
-    action = None
-    if action_type == 0:
-        action, _ = model.predict(obs)
-    elif action_type == 1:
-        action_prob = model.action_probability(obs)[0]
-        action = np.random.choice(a=list(range(len(action_prob))), size=1, p=action_prob)
-    else:
-        action = np.array([env.action_space.sample()])
-    return action
-
-
 """
 Wrapper for the environment to save data in .csv files.
 """
@@ -293,21 +210,17 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
 
 
 game = 'binary'
-representation = 'narrow'
+representation = 'wide'
 experiment = None
-n_cpu = 24
-steps = 5e7
+n_cpu = 96
+steps = 1e8
 render = False
 logging = False
 kwargs = {
-        # specific to binary:
         'change_percentage': 0.2,
+        # binary problem
         'target_path': 48,
         }
-
-
-def enjoy():
-    infer(game, representation, experiment, **kwargs)
 
 
 if __name__ == '__main__':
