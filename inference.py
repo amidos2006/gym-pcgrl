@@ -36,11 +36,12 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             }
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
-    n = max_exp_idx(exp_name)
+    if n is None:
+        n = max_exp_idx(exp_name)
     if n == 0:
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
     log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
-    model = load_model(exp_name)
+    model = load_model(log_dir)
     log_dir = None
    #log_dir = os.path.join(log_dir, 'eval')
     kwargs = {
@@ -91,6 +92,7 @@ kwargs = {
         'change_percentage': 0.2,
         'target_path': 48,
         'render': True,
+        'n': 5, # rank of saved experiment
         }
 
 # For inference
