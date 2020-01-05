@@ -193,18 +193,17 @@ Returns:
     int[][]: the random generated map
 """
 def gen_random_map(random, width, height, prob):
-    rand_map = random.uniform(low=0, high=1, size=(height, width, len(prob)))
+    map = np.random.uniform(low=0, high=1, size=(height, width, len(prob)))
     last = np.zeros(shape=(height, width, 1), dtype='uint8')
     v_i = 0
-    map_out = np.zeros(shape=(height, width, len(prob)), dtype='uint8')
+    map_out = np.zeros(shape=(height, width, 1), dtype='uint8')
     total = 0
     for v in prob:
         total += prob[v]
-        slice_i = map_out[:,:, v_i:v_i+1]
-        slice_i = (slice_i < total).astype('uint8')
-        slice_i = (slice_i != last).astype('uint8')
-        map_out += (slice_i.astype('uint8') * int(v))
-        last = slice_i
+        slice = map[:,:, v_i:v_i+1]
+        slice = (slice < total).astype('uint8')
+        slice = last = (slice != last).astype('uint8')
+        map_out += (slice.astype('uint8') * int(v))
         v_i += 1
     map_out = np.squeeze(map_out)
     return map_out
