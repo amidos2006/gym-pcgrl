@@ -92,11 +92,37 @@ def FullyConv(image, **kwargs):
     return act, val
 
 
+def FullyConv2(image, **kwargs):
+    activ = tf.nn.relu
+    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
+        pad='SAME', init_scale=np.sqrt(2)))
+    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
+        pad='SAME', init_scale=np.sqrt(2)))
+    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
+        pad='SAME', init_scale=np.sqrt(2)))
+    x = activ(conv(x, 'c4', n_filters=64, filter_size=3, stride=1,
+        pad='SAME', init_scale=np.sqrt(2)))
+    x = activ(conv(x, 'c5', n_filters=64, filter_size=3, stride=1,
+        pad='SAME', init_scale=np.sqrt(2)))
+   #return x
+    act = conv_to_fc(x)
+    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
+        init_scale=np.sqrt(2)))
+    val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
+        init_scale=np.sqrt(3)))
+    val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
+        init_scale=np.sqrt(2), pad='SAME'))
+   #val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
+   #    init_scale=np.sqrt(2)))
+    val = conv_to_fc(x)
+    return act, val
+
+
 class FullyConvPolicy(ActorCriticPolicy):
     def __init__(self, *args, **kwargs):
         super(FullyConvPolicy, self).__init__(*args, **kwargs)
         with tf.variable_scope("model", reuse=kwargs['reuse']):
-            pi_latent, vf_latent = FullyConv(self.processed_obs, **kwargs)
+            pi_latent, vf_latent = FullyConv2(self.processed_obs, **kwargs)
             self._value_fn = linear(vf_latent, 'vf', 1)
             self._proba_distribution, self._policy, self.q_value = \
                 self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
@@ -214,12 +240,17 @@ class RenderMonitor(Monitor):
 
 
 def make_env(env_name, representation, rank, log_dir, **kwargs):
+    max_step = kwargs.get('max_step', None)
+    render = kwargs.get('render', False)
     def _thunk():
         if representation == 'wide':
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
         else:
             env = wrappers.CroppedImagePCGRLWrapper(env_name, 28, **kwargs)
-        if log_dir != None and len(log_dir) > 0 or kwargs.get('inference', False):
+        if max_step is not None:
+            env = wrappers.MaxStep(env, max_step)
+        if render or log_dir != None and len(log_dir) > 0:
+            # RenderMonitor must come last
             env = RenderMonitor(env, rank, log_dir, **kwargs)
         return env
     return _thunk
@@ -227,13 +258,15 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
 
 game = 'binary'
 representation = 'wide'
-experiment = None
+experiment = 'FullyConv2'
 n_cpu = 100
 steps = 1e8
-render = False
+render = True
 logging = True
 kwargs = {
-        'resume': False
+        'resume': False,
+        'change_percentage': 1,
+        'target_path': 105,
         }
 
 

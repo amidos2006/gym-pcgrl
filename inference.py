@@ -1,5 +1,6 @@
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from train import get_exp_name, max_exp_idx, load_model, make_env
+
 import matplotlib.pyplot as plt
 import numpy as np
 
@@ -34,6 +35,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             'inference': True,
             'render': True,
             }
+    n = kwargs.get('n', None)
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     if n is None:
@@ -51,25 +53,19 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             }
     env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **infer_kwargs)])
     obs = env.reset()
-    n_step = 0
     path_length = []
     changes = []
     regions = []
     while True:
-        if n_step >= 1200:
-            obs = env.reset()
-            n_step = 0
-        else:
-            action = get_action(obs, env, model)
-            obs, rewards, dones, info = env.step(action)
-            path_length.append(info[0]['path-length'])
-            changes.append(info[0]['changes'])
-            regions.append(info[0]['regions'])
-            print(info)
-            if dones:
-               #show_state(env, path_length, changes, regions, n_step)
-                pass
-            n_step += 1
+        action = get_action(obs, env, model)
+        obs, rewards, dones, info = env.step(action)
+        path_length.append(info[0]['path-length'])
+        changes.append(info[0]['changes'])
+        regions.append(info[0]['regions'])
+        print(info)
+        if dones:
+           #show_state(env, path_length, changes, regions, n_step)
+            pass
 
 
 def get_action(obs, env, model, action_type=True):
@@ -89,16 +85,17 @@ game = 'binary'
 representation = 'wide'
 experiment = None
 kwargs = {
-        'change_percentage': 0.2,
-        'target_path': 48,
+        'change_percentage': 1,
+        'target_path': 105,
         'render': True,
-        'n': 5, # rank of saved experiment
+       #'n': 1, # rank of saved experiment
         }
 
 # For inference
 infer_kwargs = {
-        'change_percentage': 1,
-        'target_path': 200,
+       #'change_percentage': 1,
+       #'target_path': 200,
+        'max_step': 1500,
         'render': True,
         }
 
