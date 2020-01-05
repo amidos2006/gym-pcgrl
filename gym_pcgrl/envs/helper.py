@@ -208,6 +208,10 @@ def gen_random_map(random, width, height, prob):
     map_out = np.squeeze(map_out)
     return map_out
 
+def gen_random_map_oneline(random, width, height, prob):
+    map = random.choice(list(prob.keys()),size=(height,width),p=list(prob.values())).astype(np.uint8)
+    return map
+
 """
 A method to convert the map to use the tile names instead of tile numbers
 
