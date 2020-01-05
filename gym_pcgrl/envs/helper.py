@@ -192,7 +192,7 @@ Parameters:
 Returns:
     int[][]: the random generated map
 """
-def gen_random_map(random, width, height, prob):
+def gen_random_map_legacy(random, width, height, prob):
     map = np.zeros((height, width), dtype=np.uint8)
     for y in range(height):
         for x in range(width):
@@ -204,6 +204,23 @@ def gen_random_map(random, width, height, prob):
                     map[y][x] = int(v)
                     break
     return map
+
+def gen_random_map(random, width, height, prob):
+    rand_map = random.uniform(low=0, high=1, size=(height, width, len(prob)))
+    last = np.zeros(shape=(height, width, 1), dtype='uint8')
+    v_i = 0
+    map_out = np.zeros(shape=(height, width, len(prob)), dtype='uint8')
+    total = 0
+    for v in prob:
+        total += prob[v]
+        slice_i = map_out[:,:, v_i:v_i+1]
+        slice_i = (slice_i < total).astype('uint8')
+        slice_i = (slice_i != last).astype('uint8')
+        map_out += (slice_i.astype('uint8') * int(v))
+        last = slice_i
+        v_i += 1
+    map_out = np.squeeze(map_out)
+    return map_out
 
 """
 A method to convert the map to use the tile names instead of tile numbers
