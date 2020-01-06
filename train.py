@@ -174,15 +174,16 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         'render_rank': 0,
         'render': render,
     }
+    used_dir = log_dir
     if not logging:
-        log_dir = None
+        used_dir = None
     if(n_cpu > 1):
         env_lst = []
         for i in range(n_cpu):
-            env_lst.append(make_env(env_name, representation, i, log_dir, **kwargs))
+            env_lst.append(make_env(env_name, representation, i, used_dir, **kwargs))
         env = SubprocVecEnv(env_lst)
     else:
-        env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
+        env = DummyVecEnv([make_env(env_name, representation, 0, used_dir, **kwargs)])
     if not resume or model is None:
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:
@@ -191,6 +192,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
+
     model.save(os.path.join(log_dir, 'latest_model.pkl'))
 
 
