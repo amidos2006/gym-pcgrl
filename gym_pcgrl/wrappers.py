@@ -281,8 +281,11 @@ class VisitedMap(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
 
         assert 'map' in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a map key'
-
-        (self._h, self._w) = self.env.observation_space.spaces["map"].shape
+        shape = self.env.observation_space.spaces["map"].shape
+        if len(shape) > 2:
+            (self._h, self._w, _) = shape
+        else:
+            (self._h, self._w) = shape
         self._has_pos = 'pos' in self.env.observation_space.spaces.keys()
         max_iterations = get_pcgrl_env(self.env)._max_iterations
 
