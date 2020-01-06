@@ -220,23 +220,25 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
         if representation == 'wide':
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
         else:
-            env = wrappers.CroppedImagePCGRLWrapper(env_name, 28, **kwargs)
-        if log_dir != None and len(log_dir) > 0 or kwargs.get('inference', False):
+            crop_size = kwargs['cropped-size']
+            env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+        if log_dir != None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)
         return env
     return _thunk
 
 
 game = 'binary'
-representation = 'wide'
+representation = 'narrow'
 experiment = None
-n_cpu = 100
+n_cpu = 50
 steps = 1e8
 render = False
 logging = True
 kwargs = {
-        'resume': False
-        }
+    'resume': False,
+    'cropped-size': 28
+}
 
 
 if __name__ == '__main__':
