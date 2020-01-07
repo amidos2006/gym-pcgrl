@@ -29,45 +29,6 @@ def show_state(env, l, c, r, step=0, name="", info=""):
     plt.show()
 
 
-def infer(game, representation, experiment, infer_kwargs, **kwargs):
-    infer_kwargs = {
-            **infer_kwargs,
-            'inference': True,
-            'render': True,
-            }
-    n = kwargs.get('n', None)
-    env_name = '{}-{}-v0'.format(game, representation)
-    exp_name = get_exp_name(game, representation, experiment, **kwargs)
-    if n is None:
-        n = max_exp_idx(exp_name)
-    if n == 0:
-        raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
-    log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
-    model = load_model(log_dir)
-    log_dir = None
-   #log_dir = os.path.join(log_dir, 'eval')
-    kwargs = {
-            **kwargs,
-            'change_percentage': 1,
-            'target_path': 98,
-            }
-    env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **infer_kwargs)])
-    obs = env.reset()
-    path_length = []
-    changes = []
-    regions = []
-    while True:
-        action = get_action(obs, env, model)
-        obs, rewards, dones, info = env.step(action)
-        path_length.append(info[0]['path-length'])
-        changes.append(info[0]['changes'])
-        regions.append(info[0]['regions'])
-        print(info)
-        if dones:
-           #show_state(env, path_length, changes, regions, n_step)
-            pass
-
-
 def get_action(obs, env, model, action_type=True):
     action = None
     if action_type == 0:
@@ -80,11 +41,79 @@ def get_action(obs, env, model, action_type=True):
     return action
 
 
+def infer(game, representation, experiment, infer_kwargs, **kwargs):
+    infer_kwargs = {
+            **infer_kwargs,
+            'inference': True,
+            'render': True,
+            }
+    max_trials = kwargs.get('max_trials')
+    n = kwargs.get('n', None)
+    env_name = '{}-{}-v0'.format(game, representation)
+    exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    if n is None:
+        n = max_exp_idx(exp_name)
+    if n == 0:
+        raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
+    log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
+    model = load_model(log_dir)
+    log_dir = None
+    env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **infer_kwargs)])
+    obs = env.reset()
+    # Record final values of each trial
+    if 'binary' in env_name:
+        path_length = []
+        changes = []
+        regions = []
+        infer_info = {
+                'path_length': [],
+                'changes': [],
+                'regions': [],
+                }
+    max_trials = max_trials
+    n_trials = 0
+    while n_trials != max_trials:
+        action = get_action(obs, env, model)
+        obs, rewards, dones, info = env.step(action)
+        if 'binary' in env_name:
+            path_length.append(info[0]['path-length'])
+            changes.append(info[0]['changes'])
+            regions.append(info[0]['regions'])
+        if dones:
+           #show_state(env, path_length, changes, regions, n_step)
+            if 'binary' in env_name:
+                infer_info['path_length'] = path_length[-1]
+                infer_info['changes'] = changes[-1]
+                infer_info['regions'] = regions[-1]
+            n_trials += 1
+    return infer_info
+
+
+def evaluate(test_params, *args, **kwargs):
+    '''
+    - test_params: A dictionary mapping parameters of the environment to lists of values
+                  to be tested. Must apply to the environment specified by args.
+    '''
+    eval_info = {}
+    # set environment parameters
+    for param, val in test_params.items():
+        kwargs[param] = val
+        infer_info = infer(*args, **kwargs)
+        # get average of metrics over trials
+        for k, v in infer_info.items():
+            N = len(v)
+            mean = sum(v) / N
+            stdev = (sum([(mean - v_i) ** 2 for v_i in v]) / (N - 1)) ** .5
+            eval_info[k] = (mean, stdev)
+            print(eval_info)
+
+
 # For locating trained model
 game = 'binary'
 representation = 'wide'
-experiment = None
+experiment = 'FullyConv2'
 kwargs = {
+        'max_trials': -1,
         'change_percentage': 1,
         'target_path': 105,
         'render': True,
