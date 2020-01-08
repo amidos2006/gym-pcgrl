@@ -1,32 +1,21 @@
 #pip install tensorflow==1.15
 #Install stable-baselines as described in the documentation
 
-import gym
-import gym_pcgrl
-from gym_pcgrl import wrappers
-
-from stable_baselines.common.policies import MlpPolicy, CnnPolicy, ActorCriticPolicy, FeedForwardPolicy
+from stable_baselines.common.policies import ActorCriticPolicy, FeedForwardPolicy
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines.a2c.utils import conv, linear, conv_to_fc
 from stable_baselines.results_plotter import load_results, ts2xy
-from stable_baselines.bench import Monitor
 from stable_baselines import PPO2
+
+from helper import get_exp_name, max_exp_idx, load_model, make_env
 
 import tensorflow as tf
 import numpy as np
 import os
-import shutil
-import re
-import glob
-import matplotlib.pyplot as plt
-
-
-import pdb
 
 n_steps = 0
 log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
-
 
 def callback(_locals, _globals):
     """
@@ -123,34 +112,6 @@ class CustomPolicy(FeedForwardPolicy):
         super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
 
-def get_exp_name(game, representation, experiment, **kwargs):
-    exp_name = '{}_{}'.format(game, representation)
-    change_percentage = kwargs.get('change_percentage', None)
-    path_length = kwargs.get('target_path', None)
-    if change_percentage is not None:
-        exp_name = '{}_chng{}_pth{}'.format(exp_name, change_percentage, path_length)
-    if experiment is not None:
-        exp_name = '{}_{}'.format(exp_name, experiment)
-    return exp_name
-
-
-def max_exp_idx(exp_name):
-    log_dir = os.path.join("./runs", exp_name)
-    log_files = glob.glob('{}*'.format(log_dir))
-    if len(log_files) == 0:
-        n = 0
-    else:
-        log_ns = [re.search('_(\d+)', f).group(1) for f in log_files]
-        n = max(log_ns)
-    return int(n)
-
-
-def load_model(log_dir):
-    model_path = os.path.join(log_dir, 'latest_model.pkl')
-    model = PPO2.load(model_path)
-    return model
-
-
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
@@ -195,39 +156,6 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 
     model.save(os.path.join(log_dir, 'latest_model.pkl'))
 
-
-"""
-Wrapper for the environment to save data in .csv files.
-"""
-class RenderMonitor(Monitor):
-    def __init__(self, env, rank, log_dir, **kwargs):
-        self.log_dir = log_dir
-        self.rank = rank
-        self.render_gui = kwargs.get('render', False)
-        self.render_rank = kwargs.get('render_rank', 0)
-        if log_dir is not None:
-            log_dir = os.path.join(log_dir, str(rank))
-        Monitor.__init__(self, env, log_dir)
-
-    def step(self, action):
-        if self.render_gui and self.rank == self.render_rank:
-            self.render()
-        return Monitor.step(self, action)
-
-
-def make_env(env_name, representation, rank, log_dir, **kwargs):
-    def _thunk():
-        if representation == 'wide':
-            env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
-        else:
-            crop_size = kwargs['cropped-size']
-            env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
-        if log_dir != None and len(log_dir) > 0:
-            env = RenderMonitor(env, rank, log_dir, **kwargs)
-        return env
-    return _thunk
-
-
 game = 'binary'
 representation = 'narrow'
 experiment = None
@@ -237,9 +165,8 @@ render = False
 logging = True
 kwargs = {
     'resume': False,
-    'cropped-size': 28
+    'cropped_size': 28
 }
-
 
 if __name__ == '__main__':
     main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs)
