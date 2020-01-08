@@ -81,7 +81,7 @@ class ToFlat(gym.Wrapper):
         max_value=0
         for n in names:
             assert n in self.env.observation_space.spaces.keys(), 'This wrapper only works if your observation_space is spaces.Dict with the input names.'
-            new_shape = self.env.observation_space[n]
+            new_shape = self.env.observation_space[n].shape
             length += np.prod(new_shape)
             if self.env.observation_space[n].high.max() > max_value:
                 max_value = self.env.observation_space[n].high.max()
@@ -103,7 +103,7 @@ class ToFlat(gym.Wrapper):
         concatenations = []
         for n in self.names:
             concatenations.append(obs[n].flatten())
-        return np.concatentate(concatenations)
+        return np.concatenate(concatenations)
 
 """
 Transform any object in the dictionary to one hot encoding
@@ -168,7 +168,7 @@ class AddChanges(gym.Wrapper):
         self.is_map = is_map
 
         if not self.is_map:
-            self.observation_space.spaces['changes'] = gym.spaces.Box(low=[heatmap_obs.low.min()], high=[heatmap_obs.high.max()], dtype=heatmap_obs.dtype)
+            self.observation_space.spaces['changes'] = gym.spaces.Box(low=np.array([heatmap_obs.low.min()]), high=np.array([heatmap_obs.high.max()]), dtype=heatmap_obs.dtype)
         else:
             self.observation_space.spaces['changes'] = gym.spaces.Box(low=heatmap_obs.low.min(), high=heatmap_obs.high.max(), shape=heatmap_obs.shape, dtype=heatmap_obs.dtype)
 
@@ -408,6 +408,7 @@ class Cropped(gym.Wrapper):
 
         assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works for representations thave have a position'
         assert name in self.env.observation_space.spaces.keys(), 'This wrapper only works if you have a {} key'.format(name)
+        assert len(self.env.observation_space.spaces[name].shape) == 2, "This wrapper only works on 2D arrays."
         self.name = name
         self.size = crop_size
         self.pad = crop_size//2
@@ -458,7 +459,11 @@ class PosImage(gym.Wrapper):
 
         assert 'pos' in self.env.observation_space.spaces.keys(), 'This wrapper only works for views that have a position'
         assert 'map' in self.env.observation_space.spaces.keys(), 'This wrapper only works for views that have a map'
-        x, y = self.env.observation_space['map'].shape
+        shape = self.env.observation_space.spaces["map"].shape
+        if len(shape) > 2:
+            x, y, _ = shape
+        else:
+            x, y = shape
         self.size = pos_size
         self.pad = pos_size//2
         self.observation_space = gym.spaces.Dict({})
@@ -538,19 +543,26 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
-        #Adding Visited Map
-        env = VisitedMap(env)
-        env = Cropped(env, crop_size, 0, 'visits')
-        env = Normalize(env, 'visits')
-        # Adding changes to the channels
-        env = AddChanges(env, True)
-        env = Cropped(env, crop_size, 0, 'changes')
-        env = Normalize(env, 'changes')
+        # Indices for flatting
+        flat_indeces = ['map']
         # Cropping the heatmap similar to the map
-        env = Cropped(env, crop_size, 0, 'heatmap')
-        env = Normalize(env, 'heatmap')
+        if kwargs.get('add_heatmap', True):
+            env = Cropped(env, crop_size, 0, 'heatmap')
+            env = Normalize(env, 'heatmap')
+            flat_indeces.append('heatmap')
+        # Adding changes to the channels
+        if kwargs.get('add_changes', True):
+            env = AddChanges(env, True)
+            env = Cropped(env, crop_size, 0, 'changes')
+            env = Normalize(env, 'changes')
+            flat_indeces.append('changes')
+        # Adding Visited Map
+        if kwargs.get('add_visits', True):
+            env = VisitedMap(env)
+            env = Cropped(env, crop_size, 0, 'visits')
+            env = Normalize(env, 'visits')
+            flat_indeces.append('visits')
         # Final Wrapper has to be ToImage or ToFlat
-        flat_indeces = ['map', 'heatmap', 'changes', 'visits']
         self.env = ToImage(env, flat_indeces)
         gym.Wrapper.__init__(self, self.env)
 
@@ -561,17 +573,28 @@ class ImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
-        # Normalize the heatmap
-        env = Normalize(self.pcgrl_env, 'heatmap')
-        # Adding changes to the channels
-        env = AddChanges(env, True)
-        # Normalize Changes
-        env = Normalize(env, 'changes')
+        # Indices for flatting
+        flat_indeces = ['map']
+        env = self.pcgrl_env
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
+        # Normalize the heatmap
+        if kwargs.get('add_heatmap', True):
+            env = Normalize(env, 'heatmap')
+            flat_indeces.append('heatmap')
+        # Adding changes to the channels
+        if kwargs.get('add_changes', True):
+            env = AddChanges(env, True)
+            env = Normalize(env, 'changes')
+            flat_indeces.append('changes')
+        # Adding visited map
+        if kwargs.get('add_visits', True):
+            env = VisitedMap(env)
+            env = Normalize(env, 'visits')
+            flat_indeces.append('visits')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap', 'changes'])
+        self.env = ToImage(env, flat_indeces)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -582,19 +605,30 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
+        # Indices for flatting
+        flat_indeces = ['map']
+        env = self.pcgrl_env
         # Add the action map wrapper
-        env = ActionMap(self.pcgrl_env)
-        # Normalize the heatmap
-        env = Normalize(env, 'heatmap')
-        # Adding changes to the channels
-        env = AddChanges(env, True)
-        # Normalize Changes
-        env = Normalize(env, 'changes')
+        env = ActionMap(env)
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
+        # Normalize the heatmap
+        if kwargs.get('add_heatmap', True):
+            env = Normalize(env, 'heatmap')
+            flat_indeces.append('heatmap')
+        # Adding changes to the channels
+        if kwargs.get('add_changes', True):
+            env = AddChanges(env, True)
+            env = Normalize(env, 'changes')
+            flat_indeces.append('changes')
+        # Adding visited map
+        if kwargs.get('add_visits', True):
+            env = VisitedMap(env)
+            env = Normalize(env, 'visits')
+            flat_indeces.append('visits')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'heatmap', 'changes'])
+        self.env = ToImage(env, flat_indeces)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -604,22 +638,35 @@ class PositionImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, pos_size, guassian_std=0, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
-        # Normalize the heatmap
-        env = Normalize(self.pcgrl_env, 'heatmap')
-        # Adding changes to the channels
-        env = AddChanges(env, True)
-        # Normalize Changes
-        env = Normalize(env, 'changes')
+        # Indeces for flatting
+        flat_indeces = ['map']
+        env = self.pcgrl_env
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
+        # Normalize the heatmap
+        if kwargs.get('add_heatmap', True):
+            env = Normalize(env, 'heatmap')
+            flat_indeces.append('heatmap')
+        # Adding changes to the channels
+        if kwargs.get('add_changes', True):
+            env = AddChanges(env, True)
+            env = Normalize(env, 'changes')
+            flat_indeces.append('changes')
+        # Adding visited map
+        if kwargs.get('add_visits', True):
+            env = VisitedMap(env)
+            env = Normalize(env, 'visits')
+            flat_indeces.append('visits')
         # Transform the pos to image
-        if guassian_std > 0:
-            env = PosImage(env, pos_size, guassian_std)
-        else:
-            env = PosImage(env, pos_size)
+        if kwargs.get('add_pos', True):
+            if guassian_std > 0:
+                env = PosImage(env, pos_size, guassian_std)
+            else:
+                env = PosImage(env, pos_size)
+            flat_indeces.append('pos')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, ['map', 'pos', 'heatmap', 'changes'])
+        self.env = ToImage(env, flat_indeces)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -629,18 +676,31 @@ class FlatPCGRLWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
-        # Normalize the heatmap
-        env = Normalize(self.pcgrl_env, 'heatmap')
-        # Adding changes to the channels
-        env = AddChanges(env, False)
-        # Normalize Changes
-        env = Normalize(env, 'changes')
-        # Normalize the position
-        if 'pos' in self.pcgrl_env.observation_space.spaces.keys():
-            env = Normalize(env, 'pos')
+        # Indeces for flatting
+        flat_indeces = ['map']
+        env = self.pcgrl_env
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
+        # Adding the normalized heatmap
+        if kwargs.get('add_heatmap', True):
+            env = Normalize(env, 'heatmap')
+            flat_indeces.append('heatmap')
+        # Adding changes to the channels
+        if kwargs.get('add_changes', True):
+            env = AddChanges(env, False)
+            env = Normalize(env, 'changes')
+            flat_indeces.append('changes')
+        # Adding visited map
+        if kwargs.get('add_visits', True):
+            env = VisitedMap(env)
+            env = Normalize(env, 'visits')
+            flat_indeces.append('visits')
+        # Adding the normalized position
+        if kwargs.get('add_pos', True):
+            if 'pos' in self.pcgrl_env.observation_space.spaces.keys():
+                env = Normalize(env, 'pos')
+                flat_indeces.append('pos')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToFlat(env, ['map', 'heatmap', 'pos', 'changes'])
+        self.env = ToFlat(env, flat_indeces)
         gym.Wrapper.__init__(self, self.env)
