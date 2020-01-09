@@ -82,10 +82,10 @@ def FullyConv(image, **kwargs):
     act = conv_to_fc(x)
     val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
         init_scale=np.sqrt(2)))
-    val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(3)))
-    val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(2), pad='SAME'))
+   #val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
+   #    init_scale=np.sqrt(3)))
+   #val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
+   #    init_scale=np.sqrt(2), pad='SAME'))
    #val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
    #    init_scale=np.sqrt(2)))
     val = conv_to_fc(x)
@@ -122,7 +122,7 @@ class FullyConvPolicy(ActorCriticPolicy):
     def __init__(self, *args, **kwargs):
         super(FullyConvPolicy, self).__init__(*args, **kwargs)
         with tf.variable_scope("model", reuse=kwargs['reuse']):
-            pi_latent, vf_latent = FullyConv2(self.processed_obs, **kwargs)
+            pi_latent, vf_latent = FullyConv(self.processed_obs, **kwargs)
             self._value_fn = linear(vf_latent, 'vf', 1)
             self._proba_distribution, self._policy, self.q_value = \
                 self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
@@ -172,7 +172,7 @@ def max_exp_idx(exp_name):
 
 
 def load_model(log_dir):
-    model_path = os.path.join(log_dir, 'latest_model.pkl')
+    model_path = os.path.join(log_dir, 'best_model.pkl')
     model = PPO2.load(model_path, tensorboard_log="./runs")
     return model
 
@@ -256,17 +256,17 @@ def make_env(env_name, representation, rank, log_dir, **kwargs):
     return _thunk
 
 
-game = 'binary'
+game = 'sokoban'
 representation = 'wide'
-experiment = 'FullyConv2'
+experiment = None
 n_cpu = 100
 steps = 1e8
 render = True
 logging = True
 kwargs = {
         'resume': False,
-        'change_percentage': 1,
-        'target_path': 105,
+       #'change_percentage': 0.2,
+       #'target_path': 48,
         }
 
 

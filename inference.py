@@ -41,13 +41,17 @@ def get_action(obs, env, model, action_type=True):
     return action
 
 
-def infer(game, representation, experiment, infer_kwargs, **kwargs):
+def infer(game, representation, experiment, max_trials, infer_kwargs, **kwargs):
+    '''
+     - max_trials: The number of trials per evaluation.
+     - infer_kwargs: Args to pass to the environment.
+    '''
     infer_kwargs = {
             **infer_kwargs,
             'inference': True,
             'render': True,
             }
-    max_trials = kwargs.get('max_trials')
+    max_trials = kwargs.get('max_trials', -1)
     n = kwargs.get('n', None)
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
@@ -128,6 +132,10 @@ infer_kwargs = {
         'render': True,
         }
 
+test_params = {
+        'change_percentage': [range(11)/10]
+        }
 
 if __name__ == '__main__':
-    infer(game, representation, experiment, infer_kwargs, **kwargs)
+#   infer(game, representation, experiment, infer_kwargs, **kwargs)
+    evaluate(game, representation, experiment, infer_kwargs, **kwargs)
