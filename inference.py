@@ -40,7 +40,7 @@ def get_action(obs, env, model, action_type=True):
     return action
 
 
-def infer(game, representation, experiment, max_trials, infer_kwargs, **kwargs):
+def infer(game, representation, experiment, infer_kwargs, **kwargs):
     '''
      - max_trials: The number of trials per evaluation.
      - infer_kwargs: Args to pass to the environment.
@@ -60,11 +60,6 @@ def infer(game, representation, experiment, max_trials, infer_kwargs, **kwargs):
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
     log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
     model = load_model(log_dir)
-    kwargs = {
-            **kwargs,
-            'change_percentage': 1,
-            'target_path': 98,
-            }
     env = DummyVecEnv([make_env(env_name, representation, 0, None, **infer_kwargs)])
     obs = env.reset()
     # Record final values of each trial
@@ -86,6 +81,7 @@ def infer(game, representation, experiment, max_trials, infer_kwargs, **kwargs):
             path_length.append(info[0]['path-length'])
             changes.append(info[0]['changes'])
             regions.append(info[0]['regions'])
+        print(info)
         if dones:
            #show_state(env, path_length, changes, regions, n_step)
             if 'binary' in env_name:
@@ -118,12 +114,10 @@ def evaluate(test_params, *args, **kwargs):
 # For locating trained model
 game = 'binary'
 representation = 'wide'
-experiment = 'FullyConv2'
+experiment = None
 kwargs = {
-        'max_trials': -1,
         'change_percentage': 1,
         'target_path': 105,
-        'render': True,
        #'n': 1, # rank of saved experiment
         }
 
@@ -131,15 +125,15 @@ kwargs = {
 infer_kwargs = {
        #'change_percentage': 1,
        #'target_path': 200,
-        'max_step': 1500,
-        'render': True,
+        'add_visits': False,
+        'max_step': 2000,
         }
 
 test_params = {
-        'change_percentage': [range(11)/10]
+        'change_percentage': [v*.1 for v in range(11)]
         }
 
 
 if __name__ == '__main__':
-#   infer(game, representation, experiment, infer_kwargs, **kwargs)
-    evaluate(game, representation, experiment, infer_kwargs, **kwargs)
+    infer(game, representation, experiment, infer_kwargs, **kwargs)
+#   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)

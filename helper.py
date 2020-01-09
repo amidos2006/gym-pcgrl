@@ -26,13 +26,19 @@ class RenderMonitor(Monitor):
         return Monitor.step(self, action)
 
 def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
+    max_step = kwargs.get('max_step', None)
+    inference = kwargs.get('inference', False)
+    render = kwargs.get('render', False)
     def _thunk():
         if representation == 'wide':
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
         else:
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
-        if log_dir != None and len(log_dir) > 0:
+        if max_step is not None:
+            env = wrappers.MaxStep(env, max_step)
+        if render or log_dir != None and len(log_dir) > 0:
+            # RenderMonitor must come last
             env = RenderMonitor(env, rank, log_dir, **kwargs)
         return env
     return _thunk
