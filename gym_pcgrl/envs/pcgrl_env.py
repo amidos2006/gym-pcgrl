@@ -28,6 +28,7 @@ class PcgrlEnv(gym.Env):
         self._prob = PROBLEMS[prob]()
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
+        self._start_stats = None
         self._iteration = 0
         self._changes = 0
         self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
@@ -66,6 +67,7 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+        self._start_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         observation = self._rep.get_observation()
@@ -137,9 +139,9 @@ class PcgrlEnv(gym.Env):
         # calculate the values
         observation = self._rep.get_observation()
         observation["heatmap"] = self._heatmap.copy()
-        reward = self._prob.get_reward(self._rep_stats, old_stats)
-        done = self._prob.get_episode_over(self._rep_stats,old_stats) or self._changes >= self._max_changes or self._iteration >= self._max_iterations
-        info = self._prob.get_debug_info(self._rep_stats,old_stats)
+        reward = self._prob.get_reward(self._rep_stats, old_stats, self._start_stats)
+        done = self._prob.get_episode_over(self._rep_stats,old_stats, self._start_stats) or self._changes >= self._max_changes or self._iteration >= self._max_iterations
+        info = self._prob.get_debug_info(self._rep_stats,old_stats, self._start_stats)
         info["iterations"] = self._iteration
         info["changes"] = self._changes
         info["max_iterations"] = self._max_iterations
