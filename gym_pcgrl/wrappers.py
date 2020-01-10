@@ -3,6 +3,7 @@ import gym_pcgrl
 
 import numpy as np
 import math
+import os
 
 import pdb
 
@@ -353,6 +354,7 @@ class Normalize(gym.Wrapper):
     def transform(self, obs):
         test = obs[self.name]
         obs[self.name] = (test - self.low).astype(np.float32) / (self.high - self.low).astype(np.float32)
+        obs[self.name] = np.mod(obs[self.name], 1)
         return obs
 
 """
