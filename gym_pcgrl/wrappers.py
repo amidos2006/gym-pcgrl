@@ -3,6 +3,7 @@ import gym_pcgrl
 
 import numpy as np
 import math
+import os
 
 import pdb
 
@@ -385,6 +386,7 @@ class Normalize(gym.Wrapper):
     def transform(self, obs):
         test = obs[self.name]
         obs[self.name] = (test - self.low).astype(np.float32) / (self.high - self.low).astype(np.float32)
+        obs[self.name] = np.mod(obs[self.name], 1)
         return obs
 
 """
@@ -525,6 +527,49 @@ class PosImage(gym.Wrapper):
 
         obs['pos'] = pos
         return obs
+
+class BootStrapping(gym.Wrapper):
+    def __init__(self, game, folder_loc, good_perct=0.1, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        self.pcgrl_env = get_pcgrl_env(self.env);
+        self.pcgrl_env.adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        assert 'map' in self.env.observation_space.spaces.keys(), 'This wrapper only works for views that have a map'
+        self.old_map = None
+        self.total_reward = 0
+        self.folder_loc = folder_loc
+        self.good_perct = good_perct
+        if not os.path.exists(self.folder_loc):
+            os.mkdirs(self.folder_loc)
+
+    def reset(self):
+        self.total_reward = 0
+        good_map = None
+        if self.pcgrl_env._rep._random.random() < self.good_perct:
+            files = [f for f in os.listdir(self.folder_loc) if "map" in f]
+            if len(files) > 0:
+                good_map = np.load(os.path.join(self.folder_loc, self.pcgrl_env._rep._random.choice(files)))
+        if good_map is not None:
+            self.pcgrl_env._rep._old_map = good_map
+            self.pcgrl_env._rep._random_start = False
+        obs = self.env.reset()
+        self.old_map = self.pcgrl_env._rep._map
+        self.pcgrl_env._rep._random_start = True
+        return obs
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        self.total_reward += reward
+        if done and self.total_reward > 0:
+            files = [f for f in os.listdir(self.folder_loc) if "map" in f]
+            np.save(os.path.join(self.folder_loc, "map_{}".format(len(files))), self.old_map)
+        else:
+            self.old_map = self.pcgrl_env._rep._map
+        return obs, reward, done, info
 
 """
 Similar to the Image Wrapper but the values in the image
