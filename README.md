@@ -100,13 +100,13 @@ def get_tile_types(self):
 def get_stats(self, map):
   ...
 
-def get_reward(self, new_stats, old_stats):
+def get_reward(self, new_stats, old_stats, start_stats):
   ...
 
-def get_episode_over(self, new_stats, old_stats):
+def get_episode_over(self, new_stats, old_stats, start_stats):
   ...
 
-def get_debug_info(self, new_stats, old_stats):
+def get_debug_info(self, new_stats, old_stats, start_stats):
   ...
 ```
 Also, you need to make sure that you setup the following parameters in the constructor:
