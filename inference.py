@@ -82,6 +82,9 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             changes.append(info[0]['changes'])
             regions.append(info[0]['regions'])
         print(info)
+        print(dir(model))
+        for p, v in model.get_parameters().items():
+            print(p, v.shape)
         if dones:
            #show_state(env, path_length, changes, regions, n_step)
             if 'binary' in env_name:
@@ -114,11 +117,11 @@ def evaluate(test_params, *args, **kwargs):
 # For locating trained model
 game = 'binary'
 representation = 'wide'
-experiment = None
+experiment = 'FullyConvFix_mapOnly'
 kwargs = {
-        'change_percentage': 1,
-        'target_path': 105,
-       #'n': 1, # rank of saved experiment
+       #'change_percentage': 1,
+       #'target_path': 105,
+        'n': 3, # rank of saved experiment
         }
 
 # For inference
@@ -126,7 +129,9 @@ infer_kwargs = {
        #'change_percentage': 1,
        #'target_path': 200,
         'add_visits': False,
-        'max_step': 2000,
+        'add_changes': False,
+        'add_heatmap': False,
+        'max_step': 3000,
         }
 
 test_params = {

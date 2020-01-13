@@ -1,13 +1,12 @@
 #pip install tensorflow==1.15
 #Install stable-baselines as described in the documentation
 
-from stable_baselines.common.policies import ActorCriticPolicy, FeedForwardPolicy
-from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
-from stable_baselines.a2c.utils import conv, linear, conv_to_fc
-from stable_baselines.results_plotter import load_results, ts2xy
-from stable_baselines import PPO2
-
+import model
+from model import FullyConvPolicy, CustomPolicy
 from helper import get_exp_name, max_exp_idx, load_model, make_env
+from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
+from stable_baselines import PPO2
+from stable_baselines.results_plotter import load_results, ts2xy
 
 import tensorflow as tf
 import numpy as np
@@ -48,94 +47,6 @@ def callback(_locals, _globals):
     n_steps += 1
     # Returning False will stop training early
     return True
-
-
-def Cnn(image, **kwargs):
-    activ = tf.nn.relu
-    layer_1 = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs)) # filter_size=3
-    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs)) #filter_size = 3
-    layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    layer_3 = conv_to_fc(layer_3)
-    return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
-
-
-def FullyConv(image, **kwargs):
-    activ = tf.nn.relu
-    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-   #return x
-    act = conv_to_fc(x)
-    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(2)))
-   #val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
-   #    init_scale=np.sqrt(3)))
-   #val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
-   #    init_scale=np.sqrt(2), pad='SAME'))
-   #val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
-   #    init_scale=np.sqrt(2)))
-    val = conv_to_fc(x)
-    return act, val
-
-
-def FullyConv2(image, **kwargs):
-    activ = tf.nn.relu
-    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c4', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c5', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-   #return x
-    act = conv_to_fc(x)
-    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(2)))
-    val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(3)))
-    val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(2), pad='SAME'))
-   #val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
-   #    init_scale=np.sqrt(2)))
-    val = conv_to_fc(x)
-    return act, val
-
-
-class FullyConvPolicy(ActorCriticPolicy):
-    def __init__(self, *args, **kwargs):
-        super(FullyConvPolicy, self).__init__(*args, **kwargs)
-        with tf.variable_scope("model", reuse=kwargs['reuse']):
-            pi_latent, vf_latent = FullyConv(self.processed_obs, **kwargs)
-            self._value_fn = linear(vf_latent, 'vf', 1)
-            self._proba_distribution, self._policy, self.q_value = \
-                self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
-        self._setup_init()
-
-    def step(self, obs, state=None, mask=None, deterministic=False):
-        if deterministic:
-            action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
-                                                   {self.obs_ph: obs})
-        else:
-            action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
-                                                   {self.obs_ph: obs})
-        return action, value, self.initial_state, neglogp
-
-    def proba_step(self, obs, state=None, mask=None):
-        return self.sess.run(self.policy_proba, {self.obs_ph: obs})
-
-    def value(self, obs, state=None, mask=None):
-        return self.sess.run(self.value_flat, {self.obs_ph: obs})
-
-
-class CustomPolicy(FeedForwardPolicy):
-    def __init__(self, *args, **kwargs):
-        super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn, feature_extraction="cnn")
 
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
@@ -183,16 +94,18 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 
 game = 'binary'
 representation = 'wide'
-experiment = None
-n_cpu = 50
+experiment = 'FullyConvFix_mapOnly'
+n_cpu = 100
 steps = 1e8
 render = True
 logging = True
 kwargs = {
         'resume': False,
-        'cropped_size': 28
+        'cropped_size': 28,
+        'add_visits': False,
+        'add_changes': False,
+        'add_heatmap': False,
         }
-
 
 
 if __name__ == '__main__':

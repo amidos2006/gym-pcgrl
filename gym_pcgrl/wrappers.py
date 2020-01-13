@@ -270,9 +270,9 @@ class ActionMap(gym.Wrapper):
         else:
             h, w = self.env.observation_space['map'].shape
             dim = self.env.observation_space['map'].high.max()
-        self.h = h
-        self.w = w
-        self.dim = self.env.get_num_tiles()
+        self.h = self.unwrapped.h = h
+        self.w = self.unwrapped.w = w
+        self.dim = self.unwrapped.dim = self.env.get_num_tiles()
        #self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
         self.action_space = gym.spaces.Discrete(h*w*self.dim)
 
@@ -306,6 +306,7 @@ can be stacked
 """
 class VisitedMap(gym.Wrapper):
     def __init__(self, game, **kwargs):
+        self.rep = kwargs.get('representation')
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -338,6 +339,9 @@ class VisitedMap(gym.Wrapper):
             if self._has_pos:
                 (x, y) = obs["pos"]
             else:
+                print(self.rep)
+                if 'wide' in self.rep:
+                    y, x, v = np.unravel_index(action, (self.unwrapped.h, self.unwrapped.w, self.unwrapped.dim))
                 (x, y) = (action[0], action[1])
             self._visits[y][x] += 1
         obs = self.transform(obs)
@@ -635,7 +639,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
             flat_indeces.append('changes')
         # Adding Visited Map
         if kwargs.get('add_visits', True):
-            env = VisitedMap(env)
+            env = VisitedMap(env, **kwargs)
             env = Cropped(env, crop_size, 0, 'visits')
             env = Normalize(env, 'visits')
             flat_indeces.append('visits')
