@@ -496,8 +496,13 @@ class PosImage(gym.Wrapper):
         obs['pos'] = pos
         return obs
 
+"""
+Add the ability to load nice levels that the system
+
+can be stacked
+"""
 class BootStrapping(gym.Wrapper):
-    def __init__(self, game, folder_loc, good_perct=0.1, **kwargs):
+    def __init__(self, game, folder_loc, good_perct=0.1, max_files=100, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -511,8 +516,11 @@ class BootStrapping(gym.Wrapper):
         self.total_reward = 0
         self.folder_loc = folder_loc
         self.good_perct = good_perct
+        self.max_files = max_files
         if not os.path.exists(self.folder_loc):
             os.mkdirs(self.folder_loc)
+        files = [f for f in os.listdir(self.folder_loc) if "map" in f]
+        self.current_index = len(files)
 
     def reset(self):
         self.total_reward = 0
@@ -533,8 +541,11 @@ class BootStrapping(gym.Wrapper):
         obs, reward, done, info = self.env.step(action)
         self.total_reward += reward
         if done and self.total_reward > 0:
-            files = [f for f in os.listdir(self.folder_loc) if "map" in f]
-            np.save(os.path.join(self.folder_loc, "map_{}".format(len(files))), self.old_map)
+            self.current_index += 1
+            if self.current_index > self.max_files:
+                self.current_index = 0
+                os.remove(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
+            np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index), self.old_map)
         else:
             self.old_map = self.pcgrl_env._rep._map
         return obs, reward, done, info
