@@ -517,7 +517,7 @@ class BootStrapping(gym.Wrapper):
         self.good_perct = good_perct
         self.max_files = max_files
         if not os.path.exists(self.folder_loc):
-            os.mkdirs(self.folder_loc)
+            os.makedirs(self.folder_loc)
         files = [f for f in os.listdir(self.folder_loc) if "map" in f]
         self.current_index = len(files)
 
