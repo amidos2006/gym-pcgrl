@@ -32,7 +32,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         else:
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
-        if log_dir != None and kwargs.get('bootstrap', False):
+        if log_dir != None and kwargs.get('add_bootstrap', False):
             env = wrappers.BootStrapping(env, os.path.join(log_dir,"bootstrap{}/".format(rank)))
         if log_dir != None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)

@@ -165,7 +165,11 @@ render = False
 logging = True
 kwargs = {
     'resume': False,
-    'cropped_size': 28
+    'cropped_size': 28,
+    'add_visits': False,
+    'add_changes': False,
+    'add_heatmap': False,
+    'add_bootstrap': False
 }
 
 if __name__ == '__main__':
