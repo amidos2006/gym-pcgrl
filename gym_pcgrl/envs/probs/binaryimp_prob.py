@@ -41,10 +41,11 @@ class BinaryImpProblem(BinaryProblem):
         start_stats (dict(string,any)): the first stats of the map
     """
     def reset(self, start_stats):
-        super().reset(start_stats)
         if self._random_probs:
             self._prob["empty"] = self._random.random()
             self._prob["solid"] = 1 - self._prob["empty"]
+        
+        super().reset(start_stats)
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached
