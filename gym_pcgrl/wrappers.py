@@ -540,11 +540,10 @@ class BootStrapping(gym.Wrapper):
         obs, reward, done, info = self.env.step(action)
         self.total_reward += reward
         if done and self.total_reward > 0:
+            np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
             self.current_index += 1
             if self.current_index > self.max_files:
-                self.current_index = 0
-                os.remove(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
-            np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
+                self.current_index -= self.max_files
         else:
             self.old_map = self.pcgrl_env._rep._map
         return obs, reward, done, info
