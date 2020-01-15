@@ -502,7 +502,7 @@ Add the ability to load nice levels that the system
 can be stacked
 """
 class BootStrapping(gym.Wrapper):
-    def __init__(self, game, folder_loc, good_perct=0.1, max_files=100, **kwargs):
+    def __init__(self, game, folder_loc, good_perct=0.3, max_files=100, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
