@@ -511,7 +511,6 @@ class BootStrapping(gym.Wrapper):
         self.pcgrl_env.adjust_param(**kwargs)
         gym.Wrapper.__init__(self, self.env)
 
-        assert 'map' in self.env.observation_space.spaces.keys(), 'This wrapper only works for views that have a map'
         self.old_map = None
         self.total_reward = 0
         self.folder_loc = folder_loc
