@@ -502,7 +502,7 @@ Add the ability to load nice levels that the system
 can be stacked
 """
 class BootStrapping(gym.Wrapper):
-    def __init__(self, game, folder_loc, max_files=100, **kwargs):
+    def __init__(self, game, folder_loc, max_files=100, tries_to_age=10, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -513,13 +513,18 @@ class BootStrapping(gym.Wrapper):
 
         self.old_map = None
         self.total_reward = 0
+        self.new_run = True
         self.folder_loc = folder_loc
         self.max_files = max_files
+        self.tries_to_age = tries_to_age
         if not os.path.exists(self.folder_loc):
             os.makedirs(self.folder_loc)
         self.current_index = 0
+        self.file_age = [0]*self.max_files
+        self.file_tries = [0]*self.max_files
 
     def reset(self):
+        self.new_run = True
         self.total_reward = 0
         files = [f for f in os.listdir(self.folder_loc) if "map" in f]
         if len(files) >= self.max_files:
@@ -541,11 +546,16 @@ class BootStrapping(gym.Wrapper):
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         self.total_reward += reward
-        if done:
+        if done and self.new_run:
+            self.new_run = False
             if self.total_reward > 0:
+                self.file_age[self.current_index] += 1
                 np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
             else:
-                if os.path.exists(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index))):
+                self.file_tries[self.current_index] += 1
+                if self.file_tries[self.current_index] / (self.file_age[self.current_index] + 1) > self.tries_to_age:
+                    self.file_tries[self.current_index] = 0
+                    self.file_age[self.current_index] = 0
                     os.remove(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
         self.old_map = self.pcgrl_env._rep._map
         return obs, reward, done, info
