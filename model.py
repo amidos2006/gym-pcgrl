@@ -152,7 +152,7 @@ class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType)
 
         :param n_cat: (int) the number of categories
         """
-        self.n_cat = n_cat
+       #self.n_cat = n_cat
 
     def probability_distribution_class(self):
         return CategoricalProbabilityDistribution

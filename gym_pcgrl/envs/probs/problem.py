@@ -91,7 +91,7 @@ class Problem:
         float: the current reward due to the change between the old map stats and the new map stats
     """
     def get_reward(self, new_stats, old_stats):
-        raise NotImplementedError('get_graphics is not implemented')
+        raise NotImplementedError('get_reward is not implemented')
 
     """
     Uses the stats to check if the problem ended (episode_over) which means reached

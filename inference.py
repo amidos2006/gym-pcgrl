@@ -120,7 +120,7 @@ experiment = 'FullyConvFix_mapOnly'
 kwargs = {
        #'change_percentage': 1,
        #'target_path': 105,
-        'n': 3, # rank of saved experiment
+        'n': 4, # rank of saved experiment
         }
 
 # For inference
