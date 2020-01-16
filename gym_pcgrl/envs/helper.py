@@ -92,6 +92,7 @@ def calc_num_regions(map, map_locations, passable_values):
             continue
     return region_index
 
+
 """
 Public function that runs dikjstra algorithm and return the map
 

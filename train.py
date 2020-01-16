@@ -92,7 +92,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 
-game = 'binary'
+game = 'binaryimp'
 representation = 'wide'
 experiment = 'FullyConvFix_mapOnly'
 n_cpu = 100
@@ -100,13 +100,13 @@ steps = 1e8
 render = True
 logging = True
 kwargs = {
-        'resume': False,
-        'cropped_size': 28,
-        'add_visits': False,
-        'add_changes': False,
-        'add_heatmap': False,
-        }
-
+    'resume': False,
+    'cropped_size': 28,
+    'add_visits': False,
+    'add_changes': False,
+    'add_heatmap': False,
+    'add_bootstrap': False
+}
 
 if __name__ == '__main__':
     main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs)

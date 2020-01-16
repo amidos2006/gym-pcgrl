@@ -176,12 +176,11 @@ class MDungeonProblem(Problem):
     Parameters:
         new_stats (dict(string,any)): the new stats after taking an action
         old_stats (dict(string,any)): the old stats before taking an action
-        start_stats (dict(string,any)): the first stats of the map
 
     Returns:
         float: the current reward due to the change between the old map stats and the new map stats
     """
-    def get_reward(self, new_stats, old_stats, start_stats):
+    def get_reward(self, new_stats, old_stats):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
             "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
@@ -212,12 +211,11 @@ class MDungeonProblem(Problem):
     Parameters:
         new_stats (dict(string,any)): the new stats after taking an action
         old_stats (dict(string,any)): the old stats before taking an action
-        start_stats (dict(string,any)): the first stats of the map
 
     Returns:
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
-    def get_episode_over(self, new_stats, old_stats, start_stats):
+    def get_episode_over(self, new_stats, old_stats):
         return new_stats["sol-length"] >= self._target_solution and\
                 new_stats["enemies"] > 0 and\
                 new_stats["col-enemies"] / max(1,new_stats["enemies"]) > self._target_col_enemies
@@ -228,13 +226,12 @@ class MDungeonProblem(Problem):
     Parameters:
         new_stats (dict(string,any)): the new stats after taking an action
         old_stats (dict(string,any)): the old stats before taking an action
-        start_stats (dict(string,any)): the first stats of the map
 
     Returns:
         dict(any,any): is a debug information that can be used to debug what is
         happening in the problem
     """
-    def get_debug_info(self, new_stats, old_stats, start_stats):
+    def get_debug_info(self, new_stats, old_stats):
         return {
             "player": new_stats["player"],
             "exit": new_stats["exit"],

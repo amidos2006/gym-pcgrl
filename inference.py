@@ -82,9 +82,8 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             changes.append(info[0]['changes'])
             regions.append(info[0]['regions'])
         print(info)
-        print(dir(model))
-        for p, v in model.get_parameters().items():
-            print(p, v.shape)
+       #for p, v in model.get_parameters().items():
+       #    print(p, v.shape)
         if dones:
            #show_state(env, path_length, changes, regions, n_step)
             if 'binary' in env_name:
@@ -115,7 +114,7 @@ def evaluate(test_params, *args, **kwargs):
 
 
 # For locating trained model
-game = 'binary'
+game = 'zelda'
 representation = 'wide'
 experiment = 'FullyConvFix_mapOnly'
 kwargs = {

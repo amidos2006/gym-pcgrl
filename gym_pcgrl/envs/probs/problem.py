@@ -1,3 +1,4 @@
+from gym.utils import seeding
 from PIL import Image
 
 """
@@ -19,6 +20,30 @@ class Problem:
         self._border_tile = tiles[0]
         self._tile_size=16
         self._graphics = None
+
+    """
+    Seeding the used random variable to get the same result. If the seed is None,
+    it will seed it with random start.
+
+    Parameters:
+        seed (int): the starting seed, if it is None a random seed number is used.
+
+    Returns:
+        int: the used seed (same as input if not None)
+    """
+    def seed(self, seed=None):
+        self._random, seed = seeding.np_random(seed)
+        return seed
+
+    """
+    Resets the problem to the initial state and save the start_stats from the starting map.
+    Also, it can be used to change values between different environment resets
+
+    Parameters:
+        start_stats (dict(string,any)): the first stats of the map
+    """
+    def reset(self, start_stats):
+        self._start_stats = start_stats
 
     """
     Get a list of all the different tile names
@@ -61,12 +86,11 @@ class Problem:
     Parameters:
         new_stats (dict(string,any)): the new stats after taking an action
         old_stats (dict(string,any)): the old stats before taking an action
-        start_stats (dict(string,any)): the first stats of the map
 
     Returns:
         float: the current reward due to the change between the old map stats and the new map stats
     """
-    def get_reward(self, new_stats, old_stats, start_stats):
+    def get_reward(self, new_stats, old_stats):
         raise NotImplementedError('get_graphics is not implemented')
 
     """
@@ -76,12 +100,11 @@ class Problem:
     Parameters:
         new_stats (dict(string,any)): the new stats after taking an action
         old_stats (dict(string,any)): the old stats before taking an action
-        start_stats (dict(string,any)): the first stats of the map
 
     Returns:
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
-    def get_episode_over(self, new_stats, old_stats, start_stats):
+    def get_episode_over(self, new_stats, old_stats):
         raise NotImplementedError('get_graphics is not implemented')
 
     """
@@ -90,13 +113,12 @@ class Problem:
     Parameters:
         new_stats (dict(string,any)): the new stats after taking an action
         old_stats (dict(string,any)): the old stats before taking an action
-        start_stats (dict(string,any)): the first stats of the map
 
     Returns:
         dict(any,any): is a debug information that can be used to debug what is
         happening in the problem
     """
-    def get_debug_info(self, new_stats, old_stats, start_stats):
+    def get_debug_info(self, new_stats, old_stats):
         raise NotImplementedError('get_debug_info is not implemented')
 
     """
