@@ -529,7 +529,7 @@ class BootStrapping(gym.Wrapper):
         files = [f for f in os.listdir(self.folder_loc) if "map" in f]
         if len(files) >= self.max_files:
             self.current_index = self.pcgrl_env._rep._random.randint(self.max_files)
-            good_map = np.load(os.path.join(self.folder_loc, "map{}.npy".format(self.current_index)))
+            good_map = np.load(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
             self.pcgrl_env._rep._old_map = good_map
             self.pcgrl_env._rep._random_start = False
         obs = self.env.reset()
