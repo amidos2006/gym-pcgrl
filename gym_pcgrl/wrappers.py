@@ -538,7 +538,7 @@ Add the ability to load nice levels that the system has generated previously.
 can be stacked
 """
 class BootStrapping(gym.Wrapper):
-    def __init__(self, game, folder_loc, good_perct=0.3, max_files=100, **kwargs):
+    def __init__(self, game, folder_loc, max_files=100, tries_to_age=10, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -549,39 +549,51 @@ class BootStrapping(gym.Wrapper):
 
         self.old_map = None
         self.total_reward = 0
+        self.new_run = True
         self.folder_loc = folder_loc
-        self.good_perct = good_perct
         self.max_files = max_files
+        self.tries_to_age = tries_to_age
         if not os.path.exists(self.folder_loc):
             os.makedirs(self.folder_loc)
-        files = [f for f in os.listdir(self.folder_loc) if "map" in f]
-        self.current_index = len(files)
+        self.current_index = 0
+        self.file_age = [0]*self.max_files
+        self.file_tries = [0]*self.max_files
 
     def reset(self):
+        self.new_run = True
         self.total_reward = 0
-        good_map = None
-        if self.pcgrl_env._rep._random.random() < self.good_perct:
-            files = [f for f in os.listdir(self.folder_loc) if "map" in f]
-            if len(files) > 0:
-                good_map = np.load(os.path.join(self.folder_loc, self.pcgrl_env._rep._random.choice(files)))
-        if good_map is not None:
+        files = [f for f in os.listdir(self.folder_loc) if "map" in f]
+        if len(files) >= self.max_files:
+            self.current_index = self.pcgrl_env._rep._random.randint(self.max_files)
+            good_map = np.load(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
             self.pcgrl_env._rep._old_map = good_map
             self.pcgrl_env._rep._random_start = False
         obs = self.env.reset()
         self.old_map = self.pcgrl_env._rep._map
         self.pcgrl_env._rep._random_start = True
+        if len(files) < self.max_files:
+            if os.path.exists(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index))):
+                self.current_index += 1
+                if self.current_index > self.max_files:
+                    self.current_index -= self.max_files
+            np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
         return obs
 
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         self.total_reward += reward
-        if done and self.total_reward > 0:
-            np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
-            self.current_index += 1
-            if self.current_index > self.max_files:
-                self.current_index -= self.max_files
-        else:
-            self.old_map = self.pcgrl_env._rep._map
+        if done and self.new_run:
+            self.new_run = False
+            if self.total_reward > 0:
+                self.file_age[self.current_index] += 1
+                np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
+            else:
+                self.file_tries[self.current_index] += 1
+                if self.file_tries[self.current_index] / (self.file_age[self.current_index] + 1) > self.tries_to_age:
+                    self.file_tries[self.current_index] = 0
+                    self.file_age[self.current_index] = 0
+                    os.remove(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
+        self.old_map = self.pcgrl_env._rep._map
         return obs, reward, done, info
 
 """
