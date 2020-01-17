@@ -597,7 +597,7 @@ class BootStrapping(gym.Wrapper):
         return obs, reward, done, info
 
 class EliteBootStrapping(gym.Wrapper):
-    def __init__(self, game, folder_loc, max_files=100, max_elite_files=25, tries_to_age=10, **kwargs):
+    def __init__(self, game, folder_loc, max_files=10, max_elite_files=5, tries_to_age=10, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -616,10 +616,12 @@ class EliteBootStrapping(gym.Wrapper):
         if not os.path.exists(self.folder_loc):
             os.makedirs(self.folder_loc)
         self.current_index = 0
+        self.current_elite_index = 0
         self.file_age = [0]*self.max_files
         self.file_tries = [0]*self.max_files
         self.yields = [0]*self.max_files
-        self.elite_yields = [0]*25
+        self.elite_yields = [0]*self.max_elite_files
+        self.load = False
         self.update_least_elite()
 
     def reset(self):
@@ -627,24 +629,27 @@ class EliteBootStrapping(gym.Wrapper):
         self.total_reward = 0
         rand_i = self.pcgrl_env._rep._random.random()
         self.elite = False
-        files = [f for f in os.listdir(self.folder_loc) if "map" in f and "elite" not in f]
+        self.load = False
+        files = [f for f in os.listdir(self.folder_loc) if "normi_map" in f]
         n_files = len(files)
         self.pcgrl_env._rep._random_start = False
-        map_name = "map_{}.npy".format(self.current_index)
+        map_name = "normi_map_{}.npy".format(self.current_index)
         if rand_i < 1/3:
             self.pcgrl_env._rep._random_start = True
         elif rand_i < 2/3:
             if n_files >= self.max_files:
                 self.current_index = self.pcgrl_env._rep._random.randint(n_files)
                 good_map = np.load(os.path.join(self.folder_loc, map_name))
+                self.load = True
                 self.pcgrl_env._rep._old_map = good_map
         else:
             elite_files = [f for f in os.listdir(self.folder_loc) if "elite_map" in f]
             n_elite_files = len(elite_files)
             if n_elite_files >= self.max_elite_files:
-                self.current_index = self.pcgrl_env._rep._random.randint(n_elite_files)
-                map_name = "elite_map_{}.npy".format(self.current_index)
+                self.current_elite_index = self.pcgrl_env._rep._random.randint(n_elite_files)
+                map_name = "elite_map_{}.npy".format(self.current_elite_index)
                 good_map = np.load(os.path.join(self.folder_loc, map_name))
+                self.load = True
                 self.pcgrl_env._rep._old_map = good_map
                 self.elite = True
         obs = self.env.reset()
@@ -652,13 +657,17 @@ class EliteBootStrapping(gym.Wrapper):
         self.pcgrl_env._rep._random_start = True
         if n_files < self.max_files:
             if os.path.exists(os.path.join(self.folder_loc, map_name)):
-                if self.current_index > self.max_files:
-                    self.current_index -= self.max_files
+                self.current_index += 1
+                if self.current_index == self.max_files:
+                    self.current_index = 0
             np.save(os.path.join(self.folder_loc, map_name), self.old_map)
             if n_files < self.max_elite_files:
-                map_name = "elite_map_{}.npy".format(self.current_index)
+                map_name = "elite_map_{}.npy".format(self.current_elite_index)
+                if os.path.exists(os.path.join(self.folder_loc, map_name)):
+                    self.current_elite_index += 1
+                    if self.current_elite_index == self.max_elite_files:
+                        self.current_elite_index = 0
                 np.save(os.path.join(self.folder_loc, map_name), self.old_map)
-            self.current_index += 1
 
         return obs
 
@@ -668,26 +677,37 @@ class EliteBootStrapping(gym.Wrapper):
         if done and self.new_run:
             self.new_run = False
             if self.total_reward > 0:
+               #print(len(self.file_age), self.current_index)
                 self.file_age[self.current_index] += 1
                 if self.elite:
-                    self.elite_yields[self.current_index] += self.total_reward
-                    if self.current_index == self.least_elite_i:
+                    self.elite_yields[self.current_elite_index] += self.total_reward
+                    if self.current_elite_index == self.least_elite_i:
                         self.update_least_elite()
                 else:
                     self.yields[self.current_index] += self.total_reward
-                    if self.yields[self.current_index] >= self.least_elite_yield:
+                    curr_yield = self.yields[self.current_index]
+                    if curr_yield >= self.least_elite_yield:
                         np.save(os.path.join(self.folder_loc, "elite_map_{}".format(self.least_elite_i)), self.old_map)
                         self.update_least_elite()
+                        self.elite_yields[self.least_elite_i] = self.yields[self.current_index]
+                        if self.load:
+                            self.remove_normi_map(self.current_index)
                     else:
-                        np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
+                        np.save(os.path.join(self.folder_loc, "normi_map_{}".format(self.current_index)), self.old_map)
             elif not self.elite:
+               #print(len(self.file_tries), self.current_index)
                 self.file_tries[self.current_index] += 1
                 if self.file_tries[self.current_index] / (self.file_age[self.current_index] + 1) > self.tries_to_age:
-                    self.file_tries[self.current_index] = 0
-                    self.file_age[self.current_index] = 0
-                    os.remove(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
+                    self.remove_normi_map(self.current_index)
         self.old_map = self.pcgrl_env._rep._map
         return obs, reward, done, info
+
+    def remove_normi_map(self, idx):
+        self.file_tries[idx] = 0
+       #print(len(self.file_age), idx)
+        self.file_age[idx] = 0
+        self.yields[idx] = 0
+        os.remove(os.path.join(self.folder_loc, "normi_map_{}.npy".format(idx)))
 
     def update_least_elite(self):
         self.least_elite_yield = min(self.elite_yields)

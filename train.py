@@ -94,8 +94,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 
 game = 'binary'
 representation = 'wide'
-experiment = 'bootstrap'
-n_cpu = 1
+experiment = 'eliteBoot'
+n_cpu = 100
 steps = 1e8
 render = True
 logging = True
