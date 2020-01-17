@@ -252,7 +252,7 @@ def analyze():
     for i in range(len(exp_names)):
         r_name = rep_names[i]
         e_name = exp_names[i]
-        m_name = get_exp_name(game, representation, experiment)
+        m_name = get_exp_name(p_name, representation, experiment)
         env_name = "{}-{}-v0".format(p_name, r_name)
         model = get_model(p_name, r_name, e_name)
         result[m_name] = {}
