@@ -2,6 +2,7 @@ from gym_pcgrl import wrappers
 
 from stable_baselines import PPO2
 from stable_baselines.bench import Monitor
+from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 
 import os
 import re
@@ -49,10 +50,10 @@ def make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs):
     if(n_cpu > 1):
         env_lst = []
         for i in range(n_cpu):
-            env_lst.append(make_env(env_name, representation, i, used_dir, **kwargs))
+            env_lst.append(make_env(env_name, representation, i, log_dir, **kwargs))
         env = SubprocVecEnv(env_lst)
     else:
-        env = DummyVecEnv([make_env(env_name, representation, 0, used_dir, **kwargs)])
+        env = DummyVecEnv([make_env(env_name, representation, 0, log_dir, **kwargs)])
     return env
 
 def get_exp_name(game, representation, experiment, **kwargs):
