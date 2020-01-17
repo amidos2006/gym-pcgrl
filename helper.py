@@ -38,7 +38,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         if max_step is not None:
             env = wrappers.MaxStep(env, max_step)
         if log_dir != None and kwargs.get('add_bootstrap', False):
-            env = wrappers.BootStrapping(env, os.path.join(log_dir,"bootstrap{}/".format(rank)))
+            env = wrappers.EliteBootStrapping(env, os.path.join(log_dir,"bootstrap{}/".format(rank)))
         # RenderMonitor must come last
         if render or log_dir != None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)

@@ -94,8 +94,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 
 game = 'binary'
 representation = 'wide'
-experiment = 'FullyConvFix_mapOnly_bootstrap'
-n_cpu = 100
+experiment = 'bootstrap'
+n_cpu = 1
 steps = 1e8
 render = True
 logging = True
