@@ -15,7 +15,7 @@ class BinaryProblem(Problem):
         super().__init__()
         self._width = 14
         self._height = 14
-        self._prob = {"empty": 0.7, "solid":0.3}
+        self._prob = {"empty": 0.5, "solid":0.5}
         self._border_tile = "solid"
 
         self._target_path = 20
@@ -67,7 +67,6 @@ class BinaryProblem(Problem):
     """
     def reset(self, start_stats):
         super().reset(start_stats)
-        
         if self._random_probs:
             self._prob["empty"] = self._random.random()
             self._prob["solid"] = 1 - self._prob["empty"]

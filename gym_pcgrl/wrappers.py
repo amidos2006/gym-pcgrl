@@ -502,7 +502,7 @@ Add the ability to load nice levels that the system
 can be stacked
 """
 class BootStrapping(gym.Wrapper):
-    def __init__(self, game, folder_loc, max_files=100, tries_to_age=10, **kwargs):
+    def __init__(self, game, folder_loc, max_files=20, tries_to_age=10, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -514,6 +514,7 @@ class BootStrapping(gym.Wrapper):
         self.old_map = None
         self.total_reward = 0
         self.new_run = True
+        self.random_run = False
         self.folder_loc = folder_loc
         self.max_files = max_files
         self.tries_to_age = tries_to_age
@@ -525,13 +526,17 @@ class BootStrapping(gym.Wrapper):
 
     def reset(self):
         self.new_run = True
+        self.random_run = False
         self.total_reward = 0
         files = [f for f in os.listdir(self.folder_loc) if "map" in f]
         if len(files) >= self.max_files:
-            self.current_index = self.pcgrl_env._rep._random.randint(self.max_files)
-            good_map = np.load(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
-            self.pcgrl_env._rep._old_map = good_map
-            self.pcgrl_env._rep._random_start = False
+            if self.pcgrl_env._rep._random.random() < 0.7:
+                self.random_run = True
+            else:
+                self.current_index = self.pcgrl_env._rep._random.randint(self.max_files)
+                good_map = np.load(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
+                self.pcgrl_env._rep._old_map = good_map
+                self.pcgrl_env._rep._random_start = False
         obs = self.env.reset()
         self.old_map = self.pcgrl_env._rep._map
         self.pcgrl_env._rep._random_start = True
@@ -546,9 +551,9 @@ class BootStrapping(gym.Wrapper):
     def step(self, action):
         obs, reward, done, info = self.env.step(action)
         self.total_reward += reward
-        if done and self.new_run:
+        if done and self.new_run and not self.random_run:
             self.new_run = False
-            if self.total_reward > 0:
+            if self.total_reward > max(self.tries_to_age - self.file_age[self.current_index], 0):
                 self.file_age[self.current_index] += 1
                 np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
             else:
