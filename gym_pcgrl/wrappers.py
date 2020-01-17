@@ -553,7 +553,7 @@ class BootStrapping(gym.Wrapper):
                 np.save(os.path.join(self.folder_loc, "map_{}".format(self.current_index)), self.old_map)
             else:
                 self.file_tries[self.current_index] += 1
-                if self.file_tries[self.current_index] / (self.file_age[self.current_index] + 1) > self.tries_to_age:
+                if self.file_tries[self.current_index] - self.file_age[self.current_index] > self.tries_to_age:
                     self.file_tries[self.current_index] = 0
                     self.file_age[self.current_index] = 0
                     os.remove(os.path.join(self.folder_loc, "map_{}.npy".format(self.current_index)))
