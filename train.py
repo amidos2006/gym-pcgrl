@@ -3,7 +3,7 @@
 
 import model
 from model import FullyConvPolicy, CustomPolicy
-from helper import get_exp_name, max_exp_idx, load_model, make_env
+from helper import get_exp_name, max_exp_idx, load_model, make_vec_envs
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from stable_baselines import PPO2
 from stable_baselines.results_plotter import load_results, ts2xy
@@ -75,13 +75,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     used_dir = log_dir
     if not logging:
         used_dir = None
-    if(n_cpu > 1):
-        env_lst = []
-        for i in range(n_cpu):
-            env_lst.append(make_env(env_name, representation, i, used_dir, **kwargs))
-        env = SubprocVecEnv(env_lst)
-    else:
-        env = DummyVecEnv([make_env(env_name, representation, 0, used_dir, **kwargs)])
+    env = make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs)
     if not resume or model is None:
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:

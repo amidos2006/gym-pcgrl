@@ -597,7 +597,7 @@ class BootStrapping(gym.Wrapper):
         return obs, reward, done, info
 
 class EliteBootStrapping(gym.Wrapper):
-    def __init__(self, game, folder_loc, max_files=10, max_elite_files=5, tries_to_age=10, **kwargs):
+    def __init__(self, game, folder_loc, max_files=100, max_elite_files=25, tries_to_age=10, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
         else:

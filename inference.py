@@ -1,5 +1,5 @@
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
-from helper import get_exp_name, max_exp_idx, load_model, make_env
+from helper import get_exp_name, max_exp_idx, load_model, make_envs
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -140,7 +140,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
     log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
     model = load_model(log_dir)
-    env = DummyVecEnv([make_env(env_name, representation, 0, None, **infer_kwargs)])
+    env = make_vec_envs(env_name, representation, None, n_cpu, **infer_kwargs)])
     obs = env.reset()
     # Record final values of each trial
     if 'binary' in env_name:
@@ -213,9 +213,9 @@ def plt_dict(p_dict, y_title, file_name):
 
 
 # For locating trained model
-game = 'binaryimp'
+game = 'binary'
 representation = 'wide'
-experiment = 'FullyConvFix_mapOnly_bootstrap'
+experiment = 'eliteBoot'
 kwargs = {
        #'change_percentage': 1,
        #'target_path': 105,
@@ -238,15 +238,20 @@ test_params = {
         }
 
 p_name = "binary"
-eval_name = "bigDense_epiLength"
+eval_name = "bootis"
 eval_name = "{}_{}".format(p_name, eval_name)
 eval_dir = os.path.join('evals', eval_name)
 sample_size = 100
 #exp_names = ["FullyConvFix_mapOnly_3", "Cnn_1"]
 overwrite = True # overwrite the last eval dir?
-exp_names = ['chng0.2_pth48_1',
-            'chng0.5_pth98_1',
-            'chng1_pth105_1']
+#exp_names = ['chng0.2_pth48_1',
+#            'chng0.5_pth98_1',
+#            'chng1_pth105_1']
+exp_names = [
+        'FullyConvFix_mapOnly_1',
+        'FullyConvFix_mapOnly_bootstrap_1',
+        'eliteBoot_1',
+        ]
 rep_names = ['wide' for i in exp_names]
 kwargs={
     'cropped_size': 28,
@@ -265,7 +270,7 @@ def analyze():
         for ch_perc in np.arange(0, 1.01, 0.1):
             print("Testing {} at change percentage of {}".format(m_name, ch_perc))
             kwargs['change_percentage'] = ch_perc
-            env = DummyVecEnv([make_env(env_name, r_name, 0, None, **infer_kwargs)])
+            env = make_vec_envs(env_name, r_name, None, n_cpu, **infer_kwargs)
             temp_result = sample_data(model, sample_size, env, lambdas[p_name])
             for name in temp_result:
                 if not(name in result[m_name]):
@@ -279,6 +284,6 @@ def analyze():
 
 
 if __name__ == '__main__':
-    infer(game, representation, experiment, infer_kwargs, **kwargs)
+#   infer(game, representation, experiment, infer_kwargs, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
-#   analyze()
+    analyze()
