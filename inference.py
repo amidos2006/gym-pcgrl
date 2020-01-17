@@ -2,6 +2,7 @@ from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 from helper import get_exp_name, max_exp_idx, load_model, make_env
 import matplotlib.pyplot as plt
 import numpy as np
+import os
 
 binary_lambdas = {
     'pathlength': lambda info: info['path-length'],
@@ -78,10 +79,7 @@ def sample_data(model, sample_size, env, lambdas):
 
 def get_model(game, representation, experiment, **kwargs):
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
-    n = max_exp_idx(exp_name)
-    if n == 0:
-        raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
-    log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
+    log_dir = 'runs/{}_{}'.format(exp_name, 'log')
     model = load_model(log_dir)
     return model
 
@@ -105,7 +103,7 @@ def show_state(env, l, c, r, step=0, name="", info=""):
    #fig.set_figwidth(15)
    #plt.tight_layout()
    #plt.show()
-    
+
     display.clear_output(wait=True)
     display.display(plt.gcf())
 
@@ -211,17 +209,17 @@ def plt_dict(p_dict, y_title, file_name):
     plt.xticks(np.array(np.arange(0.0,1.01,0.1)), rotation=90)
     plt.xlabel('change percentage')
     plt.ylabel(y_title)
-    plt.savefig(file_name + ".pdf")
+    plt.savefig(os.path.join(eval_dir, file_name + ".pdf"))
 
 
 # For locating trained model
-game = 'zelda'
+game = 'binaryimp'
 representation = 'wide'
-experiment = 'FullyConvFix_mapOnly'
+experiment = 'FullyConvFix_mapOnly_bootstrap'
 kwargs = {
        #'change_percentage': 1,
        #'target_path': 105,
-        'n': 4, # rank of saved experiment
+       #'n': 4, # rank of saved experiment
         }
 
 # For inference
@@ -231,7 +229,7 @@ infer_kwargs = {
         'add_visits': False,
         'add_changes': False,
         'add_heatmap': False,
-       #'max_step': 3000,
+        'max_step': 30000,
         'render': True
         }
 
@@ -240,19 +238,27 @@ test_params = {
         }
 
 p_name = "binary"
+eval_name = "bigDense_epiLength"
+eval_name = "{}_{}".format(p_name, eval_name)
+eval_dir = os.path.join('evals', eval_name)
 sample_size = 100
-rep_names = ["wide"]
-exp_names = ["FullyConvFix_mapOnly"]
+#exp_names = ["FullyConvFix_mapOnly_3", "Cnn_1"]
+overwrite = True # overwrite the last eval dir?
+exp_names = ['chng0.2_pth48_1',
+            'chng0.5_pth98_1',
+            'chng1_pth105_1']
+rep_names = ['wide' for i in exp_names]
 kwargs={
     'cropped_size': 28,
 }
 
 def analyze():
+    os.mkdir(eval_dir)
     result = {}
     for i in range(len(exp_names)):
         r_name = rep_names[i]
         e_name = exp_names[i]
-        m_name = get_exp_name(p_name, representation, experiment)
+        m_name = get_exp_name(p_name, r_name, e_name)
         env_name = "{}-{}-v0".format(p_name, r_name)
         model = get_model(p_name, r_name, e_name)
         result[m_name] = {}
@@ -266,12 +272,13 @@ def analyze():
                     result[m_name][name] = []
                 result[m_name][name].append(np.mean(temp_result[name]))
             env.close()
+            del(env)
     for n in lambdas[p_name]:
         plt_dict(get_data(result, n), n, n)
     plt_dict(get_data(result, 'diversity'), 'diversity', 'diversity')
 
 
 if __name__ == '__main__':
-#   infer(game, representation, experiment, infer_kwargs, **kwargs)
+    infer(game, representation, experiment, infer_kwargs, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
-    analyze()
+#   analyze()
