@@ -15,10 +15,11 @@ class BinaryProblem(Problem):
         super().__init__()
         self._width = 14
         self._height = 14
-        self._prob = {"empty": 0.7, "solid":0.3}
+        self._prob = {"empty": 0.5, "solid":0.5}
         self._border_tile = "solid"
 
-        self._target_path = 48
+        self._target_path = 20
+        self._random_probs = True
 
         self._rewards = {
             "regions": 5,
@@ -49,12 +50,26 @@ class BinaryProblem(Problem):
         super().adjust_param(**kwargs)
 
         self._target_path = kwargs.get('target_path', self._target_path)
+        self._random_probs = kwargs.get('random_probs', self._random_probs)
 
         rewards = kwargs.get('rewards')
         if rewards is not None:
             for t in rewards:
                 if t in self._rewards:
                     self._rewards[t] = rewards[t]
+
+    """
+    Resets the problem to the initial state and save the start_stats from the starting map.
+    Also, it can be used to change values between different environment resets
+
+    Parameters:
+        start_stats (dict(string,any)): the first stats of the map
+    """
+    def reset(self, start_stats):
+        super().reset(start_stats)
+        if self._random_probs:
+            self._prob["empty"] = self._random.random()
+            self._prob["solid"] = 1 - self._prob["empty"]
 
     """
     Get the current stats of the map
@@ -102,7 +117,7 @@ class BinaryProblem(Problem):
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
     def get_episode_over(self, new_stats, old_stats):
-        return new_stats["regions"] == 1 and new_stats["path-length"] >= self._target_path
+        return new_stats["regions"] == 1 and new_stats["path-length"] - self._start_stats["path-length"] >= self._target_path
 
     """
     Get any debug information need to be printed
@@ -118,7 +133,8 @@ class BinaryProblem(Problem):
     def get_debug_info(self, new_stats, old_stats):
         return {
             "regions": new_stats["regions"],
-            "path-length": new_stats["path-length"]
+            "path-length": new_stats["path-length"],
+            "path-imp": new_stats["path-length"] - self._start_stats["path-length"]
         }
 
     """
