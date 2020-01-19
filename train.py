@@ -3,7 +3,7 @@
 
 import model
 from model import FullyConvPolicy, CustomPolicy
-from helper import get_exp_name, max_exp_idx, load_model, make_vec_envs
+from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
 from stable_baselines import PPO2
 from stable_baselines.results_plotter import load_results, ts2xy
 
@@ -85,7 +85,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 
-game = 'binary'
+game = 'zelda'
 representation = 'wide'
 experiment = 'LongConv'
 n_cpu = 100

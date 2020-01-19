@@ -1,12 +1,13 @@
+import os
+import re
+import glob
 from gym_pcgrl import wrappers
 
+import stable_baselines
 from stable_baselines import PPO2
 from stable_baselines.bench import Monitor
 from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
 
-import os
-import re
-import glob
 
 """
 Wrapper for the environment to save data in .csv files.
@@ -89,6 +90,6 @@ def load_model(log_dir):
         if len(files) > 0:
             model_path = os.path.join(log_dir, f)
         else:
-            raise 'No models are saved'
+            raise Exception('No models are saved')
     model = PPO2.load(model_path)
     return model
