@@ -18,7 +18,7 @@ The framework, along with some initial reinforcement learning results, is covere
 3. If everything went fine, the PCGRL gym interface is ready to be used. Check the [following section](https://github.com/amidos2006/gym-pcgrl#usage) on how to use it.
 
 ## Usage
-The PCGRL GYM interface have multiple different environments where each environment consists of two parts a problem and a representation. All the environment follow the following name convention:
+The PCGRL GYM interface has multiple different environments, where each environment consists of two parts: a problem and a representation. All the environments follow the following name conventions:
 ```
 [problem_name]-[representation_name]-[version]
 ```

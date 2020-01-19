@@ -1,15 +1,13 @@
-from stable_baselines.common.vec_env import SubprocVecEnv, DummyVecEnv
-from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
-import matplotlib.pyplot as plt
-import numpy as np
-import os
-
+"""
+Run a trained agent for qualitative analysis.
+"""
+from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs, get_action
 
 def infer(game, representation, experiment, infer_kwargs, **kwargs):
-    '''
+    """
      - max_trials: The number of trials per evaluation.
      - infer_kwargs: Args to pass to the environment.
-    '''
+    """
     infer_kwargs = {
             **infer_kwargs,
             'inference': True,
@@ -34,15 +32,15 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
         changes = []
         regions = []
         infer_info = {
-                'path_length': [],
-                'changes': [],
-                'regions': [],
-                }
-    max_trials = max_trials
+            'path_length': [],
+            'changes': [],
+            'regions': [],
+            }
     n_trials = 0
     while n_trials != max_trials:
-        action = get_action(obs, env, model)
-        obs, rewards, dones, info = env.step(action)
+       #action = get_action(obs, env, model)
+        action, _ = model.predict(obs)
+        obs, _, dones, info = env.step(action)
         if 'binary' in env_name:
             path_length.append(info[0]['path-length'])
             changes.append(info[0]['changes'])
@@ -59,12 +57,8 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             n_trials += 1
     return infer_info
 
-
-
-
-
 # For locating trained model
-game = 'sokoban'
+game = 'binary'
 representation = 'wide'
 experiment = 'LongConv'
 kwargs = {

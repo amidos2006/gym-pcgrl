@@ -5,9 +5,8 @@ with a variable parameter.
 import os
 import shutil
 import numpy as np
-from utils import make_vec_envs
-from utils import get_exp_name, load_model
-
+from matplotlib import pyplot as plt
+from utils import make_vec_envs, get_exp_name, load_model
 
 binary_lambdas = {
     'pathlength': lambda info: info['path-length'],
@@ -62,49 +61,20 @@ def sample_data(model, sample_size, env, lambdas):
     lvls = []
     for name in lambdas:
         sample_info[name] = []
-    for i in range(sample_size):
+    for _ in range(sample_size):
         done = np.array([False])
         obs = env.reset()
-        if done.all():
+        while not done.all():
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
-            lvls.append(env.get_attr('pcgrl_env')[0]._rep.get_observation()['map'])
-            for name in lambdas:
-                sample_info[name].append(lambdas[name](info[0]))
+        lvls.append(env.get_attr('pcgrl_env')[0]._rep.get_observation()['map'])
+        for name in lambdas:
+            sample_info[name].append(lambdas[name](info[0]))
     sample_info['diversity'] = get_hamming_diversity(lvls)
+    sample_info['rewards'] = rewards
     return sample_info
 
-def analyze():
-    try:
-        os.mkdir(eval_dir)
-    except FileExistsError:
-        shutil.rmtree(eval_dir)
-        os.mkdir(eval_dir)
-    result = {}
-    for i in range(len(exp_names)):
-        r_name = rep_names[i]
-        e_name = exp_names[i]
-        m_name = get_exp_name(problem, r_name, e_name)
-        env_name = "{}-{}-v0".format(problem, r_name)
-        model = get_model(problem, r_name, e_name)
-        result[m_name] = {}
-        for ch_perc in np.arange(0, 1.01, 0.1):
-            print("Testing {} at change percentage of {}".format(m_name, ch_perc))
-            kwargs['change_percentage'] = ch_perc
-            env = make_vec_envs(env_name, r_name, None, n_cpu, **infer_kwargs)
-            temp_result = sample_data(model, sample_size, env, lambdas[problem])
-            for name in temp_result:
-                if not(name in result[m_name]):
-                    result[m_name][name] = []
-                result[m_name][name].append(np.mean(temp_result[name]))
-            env.close()
-            del(env)
-    for n in lambdas[problem]:
-        plt_dict(get_data(result, n), n, n)
-    plt_dict(get_data(result, 'diversity'), 'diversity', 'diversity')
-
 def get_hamming_diversity(lvls):
-
     hamming = []
     for i in range(len(lvls)):
         lvl1 = lvls[i]
@@ -117,60 +87,50 @@ def get_hamming_diversity(lvls):
         hamming.append(np.mean(lvl_hamming) / (lvls[0].shape[0] * lvls[0].shape[1]))
     return hamming
 
-def show_state(env, l, c, r, step=0, name="", info=""):
-    fig = plt.figure(10)
-    plt.clf()
-    plt.title("{} | Step: {} Path: {} Changes: {} Regions: {}".format(name, step, l[-1], c[-1], r[-1]))
-    ax1 = fig.add_subplot(1,4,1)
-    ax1 = plt.imshow(env.render(mode='rgb_array'))
-    plt.axis('off')
-   #ax2 = fig.add_subplot(1,4,2)
-   #ax2 = plt.plot(l)
-   #ax3 = fig.add_subplot(1,4,3)
-   #ax3 = plt.plot(c)
-   #ax4 = fig.add_subplot(1,4,4)
-   #ax4 = plt.plot(r)
-   #fig.set_figwidth(15)
-   #plt.tight_layout()
-   #plt.show()
-    display.clear_output(wait=True)
-    display.display(plt.gcf())
+#def show_state(env, l, c, r, step=0, name="", info=""):
+#    fig = plt.figure(10)
+#    plt.clf()
+#    plt.title("{} | Step: {} Path: {} Changes: {} Regions: {}".format(name, step, l[-1], c[-1], r[-1]))
+#    ax1 = fig.add_subplot(1,4,1)
+#    ax1 = plt.imshow(env.render(mode='rgb_array'))
+#    plt.axis('off')
+#   #ax2 = fig.add_subplot(1,4,2)
+#   #ax2 = plt.plot(l)
+#   #ax3 = fig.add_subplot(1,4,3)
+#   #ax3 = plt.plot(c)
+#   #ax4 = fig.add_subplot(1,4,4)
+#   #ax4 = plt.plot(r)
+#   #fig.set_figwidth(15)
+#   #plt.tight_layout()
+#   #plt.show()
+#    display.clear_output(wait=True)
+#    display.display(plt.gcf())
 
-def get_action(obs, env, model, action_type=True):
-    action = None
-    if action_type == 0:
-        action, _ = model.predict(obs)
-    elif action_type == 1:
-        action_prob = model.action_probability(obs)[0]
-        action = np.random.choice(a=list(range(len(action_prob))), size=1, p=action_prob)
-    else:
-        action = np.array([env.action_space.sample()])
-    return action
+#def evaluate(test_params, *args, **kwargs):
+#    '''
+#    - test_params: A dictionary mapping parameters of the environment to lists of values
+#                  to be tested. Must apply to the environment specified by args.
+#    '''
+#    eval_info = {}
+#    # set environment parameters
+#    for param, val in test_params.items():
+#        kwargs[param] = val
+#        infer_info = infer(*args, **kwargs)
+#        # get average of metrics over trials
+#        for k, v in infer_info.items():
+#            N = len(v)
+#            mean = sum(v) / N
+#            stdev = (sum([(mean - v_i) ** 2 for v_i in v]) / (N - 1)) ** .5
+#            eval_info[k] = (mean, stdev)
+#            print(eval_info)
 
-def evaluate(test_params, *args, **kwargs):
-    '''
-    - test_params: A dictionary mapping parameters of the environment to lists of values
-                  to be tested. Must apply to the environment specified by args.
-    '''
-    eval_info = {}
-    # set environment parameters
-    for param, val in test_params.items():
-        kwargs[param] = val
-        infer_info = infer(*args, **kwargs)
-        # get average of metrics over trials
-        for k, v in infer_info.items():
-            N = len(v)
-            mean = sum(v) / N
-            stdev = (sum([(mean - v_i) ** 2 for v_i in v]) / (N - 1)) ** .5
-            eval_info[k] = (mean, stdev)
-            print(eval_info)
 def get_data(results, name):
     output = {}
     for n in results:
         output[n] = results[n][name]
     return output
 
-def plt_dict(p_dict, y_title, file_name):
+def plt_dict(p_dict, y_title, eval_dir, file_name):
     plt.figure()
     names = []
     for name in p_dict:
@@ -183,35 +143,70 @@ def plt_dict(p_dict, y_title, file_name):
     plt.ylabel(y_title)
     plt.savefig(os.path.join(eval_dir, file_name + ".pdf"))
 
-# For inference
-infer_kwargs = {
-       #'change_percentage': 1,
+def analyze(problem, rep_names, exp_names, test_params, eval_name='test00', **kwargs):
+    '''
+    Record the final value of various environment parameters, over a certain number of trials,
+    while varying some constraint on the environment (i.e., percent of map changed or
+    number of steps).
+    '''
+    eval_name, n_cpu, sample_size = [kwargs.get(k) for k in \
+        ['eval_name', 'n_cpu', 'sample_size']]
+    eval_dir = "{}_{}".format(problem, eval_name)
+    eval_dir = os.path.join('evals', eval_dir)
+    try:
+        os.mkdir(eval_dir)
+    except FileExistsError:
+        shutil.rmtree(eval_dir)
+        os.mkdir(eval_dir)
+    sample_size
+    result = {}
+    for i, (e_name, r_name) in enumerate(zip(exp_names, rep_names)):
+        m_name = get_exp_name(problem, r_name, e_name)
+        env_name = "{}-{}-v0".format(problem, r_name)
+        model = get_model(problem, r_name, e_name)
+        result[m_name] = {}
+        for ch_perc in np.arange(0, 1.01, 0.1):
+            print("Testing {} at change percentage of {}".format(m_name, ch_perc))
+            kwargs['change_percentage'] = ch_perc
+            print(env_name, r_name, kwargs)
+            env = make_vec_envs(env_name, r_name, None, **kwargs)
+            temp_result = sample_data(model, sample_size, env, lambdas[problem])
+            for name in temp_result:
+                if not(name in result[m_name]):
+                    result[m_name][name] = []
+                result[m_name][name].append(np.mean(temp_result[name]))
+            print(temp_result)
+            env.close()
+            del(env)
+    for param in lambdas[problem]:
+        plt_dict(get_data(result, param), param, eval_dir, param)
+    plt_dict(get_data(result, 'diversity'), 'diversity', eval_dir, 'diversity')
+
+def main():
+    kwargs = {
+        #'change_percentage': 1,
         'target_path': 200,
         'add_visits': False,
         'add_changes': False,
         'add_heatmap': False,
-       #'max_step': 30000,
-        'render': True
+        #'max_step': 30000,
+        'eval_name': "with2",
+        'sample_size': 100,
+        'overwrite': True, # overwrite the last eval dir?
+        'render': True,
+        'cropped_size': 28,
+        'n_cpu': 1,
         }
-test_params = {
-        'change_percentage': [v*.1 for v in range(11)]
-        }
-
-problem = "binary"
-eval_name = "with2"
-eval_name = "{}_{}".format(problem, eval_name)
-eval_dir = os.path.join('evals', eval_name)
-sample_size = 100
-overwrite = True # overwrite the last eval dir?
-exp_names = [
+    problem = "binary"
+    exp_names = [
         'FullyConvFix_mapOnly_1',
         'LongConv_1'
         ]
-rep_names = ['wide' for i in exp_names]
-kwargs={
-    'cropped_size': 28,
-}
-n_cpu = 1
+    rep_names = ['wide' for i in exp_names]
+    test_params = {
+        'change_percentage': [v*.1 for v in range(11)]
+        }
+    return analyze(problem, rep_names, exp_names, test_params, **kwargs)
 
 if __name__ == '__main__':
-    analyze()
+    main()
