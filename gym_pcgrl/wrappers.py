@@ -16,6 +16,38 @@ get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) else get_pcgrl_e
 # for the guassian attention
 pdf = lambda x,mean,sigma: math.exp(-1/2 * math.pow((x-mean)/sigma,2))/math.exp(0)
 
+
+"""
+Wrapper that resets environment only after a certain number of steps.
+"""
+class MaxStep(gym.Wrapper):
+    def __init__(self, game, max_step):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+       #get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        self.max_step = max_step
+        self.n_step = 0
+        gym.Wrapper.__init__(self, self.env)
+
+    def step(self, action):
+         obs, reward, done, info = self.env.step(action)
+         self.n_step += 1
+         if self.n_step == self.max_step:
+             done = True
+         else:
+             done = False
+
+         return obs, reward, done, info
+
+    def reset(self):
+        obs = self.env.reset()
+        self.n_step = 0
+
+
 """
 Return a Box instead of dictionary by stacking different similar objects
 
@@ -238,9 +270,9 @@ class ActionMap(gym.Wrapper):
         else:
             h, w = self.env.observation_space['map'].shape
             dim = self.env.observation_space['map'].high.max()
-        self.h = h
-        self.w = w
-        self.dim = self.env.get_num_tiles()
+        self.h = self.unwrapped.h = h
+        self.w = self.unwrapped.w = w
+        self.dim = self.unwrapped.dim = self.env.get_num_tiles()
        #self.action_space = gym.spaces.Box(low=-np.inf, high=np.inf, shape=(h,w,dim))
         self.action_space = gym.spaces.Discrete(h*w*self.dim)
 
@@ -274,6 +306,7 @@ can be stacked
 """
 class VisitedMap(gym.Wrapper):
     def __init__(self, game, **kwargs):
+        self.rep = kwargs.get('representation')
         if isinstance(game, str):
             self.env = gym.make(game)
         else:
@@ -306,6 +339,9 @@ class VisitedMap(gym.Wrapper):
             if self._has_pos:
                 (x, y) = obs["pos"]
             else:
+                print(self.rep)
+                if 'wide' in self.rep:
+                    y, x, v = np.unravel_index(action, (self.unwrapped.h, self.unwrapped.w, self.unwrapped.dim))
                 (x, y) = (action[0], action[1])
             self._visits[y][x] += 1
         obs = self.transform(obs)
@@ -497,7 +533,7 @@ class PosImage(gym.Wrapper):
         return obs
 
 """
-Add the ability to load nice levels that the system
+Add the ability to load nice levels that the system has generated previously.
 
 can be stacked
 """
@@ -565,6 +601,128 @@ class BootStrapping(gym.Wrapper):
         self.old_map = self.pcgrl_env._rep._map
         return obs, reward, done, info
 
+class EliteBootStrapping(gym.Wrapper):
+    '''Bootstrapping, but also saves maps that have accumulated the most net score over multiple episodes.
+    1/3 chance to initialize random map, 1/3 chance to initialize non-elite saved map, 1/3 chance to load
+    elite saved map. After an episode, the map is saved if the agent experiences net positive reward, and
+    saved to the elite pool if the map has now accumulated more net reward than the lowest-ranked elite.
+    '''
+    def __init__(self, game, folder_loc, max_files=100, max_elite_files=25, tries_to_age=10, **kwargs):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+        self.pcgrl_env = get_pcgrl_env(self.env);
+        self.pcgrl_env.adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        self.old_map = None
+        self.total_reward = 0
+        self.new_run = True
+        self.folder_loc = folder_loc
+        self.max_files = max_files
+        self.max_elite_files = max_elite_files
+        self.tries_to_age = tries_to_age
+        if not os.path.exists(self.folder_loc):
+            os.makedirs(self.folder_loc)
+        self.current_index = 0
+        self.current_elite_index = 0
+        self.file_age = [0]*self.max_files
+        self.file_tries = [0]*self.max_files
+        self.yields = [0]*self.max_files
+        self.elite_yields = [0]*self.max_elite_files
+        self.load = False
+        self.update_least_elite()
+
+    def reset(self):
+        self.new_run = True
+        self.total_reward = 0
+        rand_i = self.pcgrl_env._rep._random.random()
+        self.elite = False
+        self.load = False
+        files = [f for f in os.listdir(self.folder_loc) if "normi_map" in f]
+        n_files = len(files)
+        self.pcgrl_env._rep._random_start = False
+        map_name = "normi_map_{}.npy".format(self.current_index)
+        if rand_i < 1/3:
+            self.pcgrl_env._rep._random_start = True
+        elif rand_i < 2/3:
+            if n_files >= self.max_files:
+                self.current_index = self.pcgrl_env._rep._random.randint(n_files)
+                good_map = np.load(os.path.join(self.folder_loc, map_name))
+                self.load = True
+                self.pcgrl_env._rep._old_map = good_map
+        else:
+            elite_files = [f for f in os.listdir(self.folder_loc) if "elite_map" in f]
+            n_elite_files = len(elite_files)
+            if n_elite_files >= self.max_elite_files:
+                self.current_elite_index = self.pcgrl_env._rep._random.randint(n_elite_files)
+                map_name = "elite_map_{}.npy".format(self.current_elite_index)
+                good_map = np.load(os.path.join(self.folder_loc, map_name))
+                self.load = True
+                self.pcgrl_env._rep._old_map = good_map
+                self.elite = True
+        obs = self.env.reset()
+        self.old_map = self.pcgrl_env._rep._map
+        self.pcgrl_env._rep._random_start = True
+        if n_files < self.max_files:
+            if os.path.exists(os.path.join(self.folder_loc, map_name)):
+                self.current_index += 1
+                if self.current_index == self.max_files:
+                    self.current_index = 0
+            np.save(os.path.join(self.folder_loc, map_name), self.old_map)
+            if n_files < self.max_elite_files:
+                map_name = "elite_map_{}.npy".format(self.current_elite_index)
+                if os.path.exists(os.path.join(self.folder_loc, map_name)):
+                    self.current_elite_index += 1
+                    if self.current_elite_index == self.max_elite_files:
+                        self.current_elite_index = 0
+                np.save(os.path.join(self.folder_loc, map_name), self.old_map)
+
+        return obs
+
+    def step(self, action):
+        obs, reward, done, info = self.env.step(action)
+        self.total_reward += reward
+        if done and self.new_run:
+            self.new_run = False
+            if self.total_reward > 0:
+               #print(len(self.file_age), self.current_index)
+                self.file_age[self.current_index] += 1
+                if self.elite:
+                    self.elite_yields[self.current_elite_index] += self.total_reward
+                    if self.current_elite_index == self.least_elite_i:
+                        self.update_least_elite()
+                else:
+                    self.yields[self.current_index] += self.total_reward
+                    curr_yield = self.yields[self.current_index]
+                    if curr_yield >= self.least_elite_yield:
+                        np.save(os.path.join(self.folder_loc, "elite_map_{}".format(self.least_elite_i)), self.old_map)
+                        self.update_least_elite()
+                        self.elite_yields[self.least_elite_i] = self.yields[self.current_index]
+                        if self.load:
+                            self.remove_normi_map(self.current_index)
+                    else:
+                        np.save(os.path.join(self.folder_loc, "normi_map_{}".format(self.current_index)), self.old_map)
+            elif not self.elite:
+               #print(len(self.file_tries), self.current_index)
+                self.file_tries[self.current_index] += 1
+                if self.file_tries[self.current_index] / (self.file_age[self.current_index] + 1) > self.tries_to_age:
+                    self.remove_normi_map(self.current_index)
+        self.old_map = self.pcgrl_env._rep._map
+        return obs, reward, done, info
+
+    def remove_normi_map(self, idx):
+        self.file_tries[idx] = 0
+       #print(len(self.file_age), idx)
+        self.file_age[idx] = 0
+        self.yields[idx] = 0
+        os.remove(os.path.join(self.folder_loc, "normi_map_{}.npy".format(idx)))
+
+    def update_least_elite(self):
+        self.least_elite_yield = min(self.elite_yields)
+        self.least_elite_i = self.elite_yields.index(self.least_elite_yield)
+
 """
 Similar to the Image Wrapper but the values in the image
 are sampled from gaussian distribution
@@ -615,26 +773,26 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
         # Indices for flatting
-        flat_indeces = ['map']
+        flat_indices = ['map']
         # Cropping the heatmap similar to the map
         if kwargs.get('add_heatmap', True):
             env = Cropped(env, crop_size, 0, 'heatmap')
             env = Normalize(env, 'heatmap')
-            flat_indeces.append('heatmap')
+            flat_indices.append('heatmap')
         # Adding changes to the channels
         if kwargs.get('add_changes', True):
             env = AddChanges(env, True)
             env = Cropped(env, crop_size, 0, 'changes')
             env = Normalize(env, 'changes')
-            flat_indeces.append('changes')
+            flat_indices.append('changes')
         # Adding Visited Map
         if kwargs.get('add_visits', True):
-            env = VisitedMap(env)
+            env = VisitedMap(env, **kwargs)
             env = Cropped(env, crop_size, 0, 'visits')
             env = Normalize(env, 'visits')
-            flat_indeces.append('visits')
+            flat_indices.append('visits')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, flat_indeces)
+        self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -645,7 +803,7 @@ class ImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Indices for flatting
-        flat_indeces = ['map']
+        flat_indices = ['map']
         env = self.pcgrl_env
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
@@ -653,19 +811,19 @@ class ImagePCGRLWrapper(gym.Wrapper):
         # Normalize the heatmap
         if kwargs.get('add_heatmap', True):
             env = Normalize(env, 'heatmap')
-            flat_indeces.append('heatmap')
+            flat_indices.append('heatmap')
         # Adding changes to the channels
         if kwargs.get('add_changes', True):
             env = AddChanges(env, True)
             env = Normalize(env, 'changes')
-            flat_indeces.append('changes')
+            flat_indices.append('changes')
         # Adding visited map
         if kwargs.get('add_visits', True):
             env = VisitedMap(env)
             env = Normalize(env, 'visits')
-            flat_indeces.append('visits')
+            flat_indices.append('visits')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, flat_indeces)
+        self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -677,7 +835,7 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
         # Indices for flatting
-        flat_indeces = ['map']
+        flat_indices = ['map']
         env = self.pcgrl_env
         # Add the action map wrapper
         env = ActionMap(env)
@@ -687,19 +845,19 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         # Normalize the heatmap
         if kwargs.get('add_heatmap', True):
             env = Normalize(env, 'heatmap')
-            flat_indeces.append('heatmap')
+            flat_indices.append('heatmap')
         # Adding changes to the channels
         if kwargs.get('add_changes', True):
             env = AddChanges(env, True)
             env = Normalize(env, 'changes')
-            flat_indeces.append('changes')
+            flat_indices.append('changes')
         # Adding visited map
         if kwargs.get('add_visits', True):
             env = VisitedMap(env)
             env = Normalize(env, 'visits')
-            flat_indeces.append('visits')
+            flat_indices.append('visits')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, flat_indeces)
+        self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -709,8 +867,8 @@ class PositionImagePCGRLWrapper(gym.Wrapper):
     def __init__(self, game, pos_size, guassian_std=0, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
-        # Indeces for flatting
-        flat_indeces = ['map']
+        # indices for flatting
+        flat_indices = ['map']
         env = self.pcgrl_env
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
@@ -718,26 +876,26 @@ class PositionImagePCGRLWrapper(gym.Wrapper):
         # Normalize the heatmap
         if kwargs.get('add_heatmap', True):
             env = Normalize(env, 'heatmap')
-            flat_indeces.append('heatmap')
+            flat_indices.append('heatmap')
         # Adding changes to the channels
         if kwargs.get('add_changes', True):
             env = AddChanges(env, True)
             env = Normalize(env, 'changes')
-            flat_indeces.append('changes')
+            flat_indices.append('changes')
         # Adding visited map
         if kwargs.get('add_visits', True):
             env = VisitedMap(env)
             env = Normalize(env, 'visits')
-            flat_indeces.append('visits')
+            flat_indices.append('visits')
         # Transform the pos to image
         if kwargs.get('add_pos', True):
             if guassian_std > 0:
                 env = PosImage(env, pos_size, guassian_std)
             else:
                 env = PosImage(env, pos_size)
-            flat_indeces.append('pos')
+            flat_indices.append('pos')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToImage(env, flat_indeces)
+        self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
 """
@@ -747,8 +905,8 @@ class FlatPCGRLWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
         self.pcgrl_env.adjust_param(**kwargs)
-        # Indeces for flatting
-        flat_indeces = ['map']
+        # indices for flatting
+        flat_indices = ['map']
         env = self.pcgrl_env
         # Transform to one hot encoding if not binary
         if 'binary' not in game:
@@ -756,22 +914,22 @@ class FlatPCGRLWrapper(gym.Wrapper):
         # Adding the normalized heatmap
         if kwargs.get('add_heatmap', True):
             env = Normalize(env, 'heatmap')
-            flat_indeces.append('heatmap')
+            flat_indices.append('heatmap')
         # Adding changes to the channels
         if kwargs.get('add_changes', True):
             env = AddChanges(env, False)
             env = Normalize(env, 'changes')
-            flat_indeces.append('changes')
+            flat_indices.append('changes')
         # Adding visited map
         if kwargs.get('add_visits', True):
             env = VisitedMap(env)
             env = Normalize(env, 'visits')
-            flat_indeces.append('visits')
+            flat_indices.append('visits')
         # Adding the normalized position
         if kwargs.get('add_pos', True):
             if 'pos' in self.pcgrl_env.observation_space.spaces.keys():
                 env = Normalize(env, 'pos')
-                flat_indeces.append('pos')
+                flat_indices.append('pos')
         # Final Wrapper has to be ToImage or ToFlat
-        self.env = ToFlat(env, flat_indeces)
+        self.env = ToFlat(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
