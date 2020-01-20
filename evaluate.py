@@ -51,12 +51,18 @@ lambdas = {
 }
 
 def get_model(game, representation, experiment, **kwargs):
+    '''
+    Args:
+        game: one of 'binary', 'sokoban', 'zelda', ...
+        representation: 'narrow', 'turtle', 'wide', ...
+        experiment: a name identifying the training run
+    '''
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     log_dir = 'runs/{}_{}'.format(exp_name, 'log')
     model = load_model(log_dir)
     return model
 
-def sample_data(model, sample_size, env, lambdas):
+def sample_data(model, env, sample_size, n_cpu, lambdas):
     sample_info = {}
     lvls = []
     for name in lambdas:
@@ -67,9 +73,9 @@ def sample_data(model, sample_size, env, lambdas):
         while not done.all():
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
-        lvls.append(env.get_attr('pcgrl_env')[0]._rep.get_observation()['map'])
+        lvls += [env.get_attr('pcgrl_env')[i]._rep.get_observation()['map'] for i in range(n_cpu)]
         for name in lambdas:
-            sample_info[name].append(lambdas[name](info[0]))
+            sample_info[name] += [lambdas[name](info[i]) for i in range(n_cpu)]
     sample_info['diversity'] = get_hamming_diversity(lvls)
     sample_info['rewards'] = rewards
     return sample_info
@@ -87,43 +93,6 @@ def get_hamming_diversity(lvls):
         hamming.append(np.mean(lvl_hamming) / (lvls[0].shape[0] * lvls[0].shape[1]))
     return hamming
 
-#def show_state(env, l, c, r, step=0, name="", info=""):
-#    fig = plt.figure(10)
-#    plt.clf()
-#    plt.title("{} | Step: {} Path: {} Changes: {} Regions: {}".format(name, step, l[-1], c[-1], r[-1]))
-#    ax1 = fig.add_subplot(1,4,1)
-#    ax1 = plt.imshow(env.render(mode='rgb_array'))
-#    plt.axis('off')
-#   #ax2 = fig.add_subplot(1,4,2)
-#   #ax2 = plt.plot(l)
-#   #ax3 = fig.add_subplot(1,4,3)
-#   #ax3 = plt.plot(c)
-#   #ax4 = fig.add_subplot(1,4,4)
-#   #ax4 = plt.plot(r)
-#   #fig.set_figwidth(15)
-#   #plt.tight_layout()
-#   #plt.show()
-#    display.clear_output(wait=True)
-#    display.display(plt.gcf())
-
-#def evaluate(test_params, *args, **kwargs):
-#    '''
-#    - test_params: A dictionary mapping parameters of the environment to lists of values
-#                  to be tested. Must apply to the environment specified by args.
-#    '''
-#    eval_info = {}
-#    # set environment parameters
-#    for param, val in test_params.items():
-#        kwargs[param] = val
-#        infer_info = infer(*args, **kwargs)
-#        # get average of metrics over trials
-#        for k, v in infer_info.items():
-#            N = len(v)
-#            mean = sum(v) / N
-#            stdev = (sum([(mean - v_i) ** 2 for v_i in v]) / (N - 1)) ** .5
-#            eval_info[k] = (mean, stdev)
-#            print(eval_info)
-
 def get_data(results, name):
     output = {}
     for n in results:
@@ -134,11 +103,11 @@ def plt_dict(p_dict, y_title, eval_dir, file_name):
     plt.figure()
     names = []
     for name in p_dict:
-        plt.plot(np.array(np.arange(0.0,1.01,0.1)),p_dict[name])
+        plt.plot(np.array(np.arange(0.0, 1.01, 0.1)), p_dict[name])
         names.append(name)
     plt.legend(names)
-    plt.xlim(0.0,1.0)
-    plt.xticks(np.array(np.arange(0.0,1.01,0.1)), rotation=90)
+    plt.xlim(0.0, 1.0)
+    plt.xticks(np.array(np.arange(0.0, 1.01, 0.1)), rotation=90)
     plt.xlabel('change percentage')
     plt.ylabel(y_title)
     plt.savefig(os.path.join(eval_dir, file_name + ".pdf"))
@@ -168,14 +137,12 @@ def analyze(problem, rep_names, exp_names, test_params, eval_name='test00', **kw
         for ch_perc in np.arange(0, 1.01, 0.1):
             print("Testing {} at change percentage of {}".format(m_name, ch_perc))
             kwargs['change_percentage'] = ch_perc
-            print(env_name, r_name, kwargs)
             env = make_vec_envs(env_name, r_name, None, **kwargs)
-            temp_result = sample_data(model, sample_size, env, lambdas[problem])
+            temp_result = sample_data(model, env, sample_size, n_cpu, lambdas[problem])
             for name in temp_result:
                 if not(name in result[m_name]):
                     result[m_name][name] = []
                 result[m_name][name].append(np.mean(temp_result[name]))
-            print(temp_result)
             env.close()
             del(env)
     for param in lambdas[problem]:
