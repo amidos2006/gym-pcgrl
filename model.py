@@ -57,7 +57,8 @@ class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType)
     def probability_distribution_class(self):
         return CategoricalProbabilityDistribution
 
-    def proba_distribution_from_latent(self, pi_latent_vector, vf_latent_vector, init_scale=1.0, init_bias=0.0):
+    def proba_distribution_from_latent(self, pi_latent_vector, vf_latent_vector, init_scale=1.0,
+                                       init_bias=0.0):
         pdparam = pi_latent_vector
         q_values = vf_latent_vector
         return self.proba_distribution_from_flat(pdparam), pdparam, q_values
@@ -70,7 +71,6 @@ class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType)
 
     def sample_dtype(self):
         return tf.int64
-
 
 class FullyConvPolicy(ActorCriticPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):

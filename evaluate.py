@@ -137,7 +137,7 @@ def analyze(problem, rep_names, exp_names, test_params, eval_name='test00', **kw
         for ch_perc in np.arange(0, 1.01, 0.1):
             print("Testing {} at change percentage of {}".format(m_name, ch_perc))
             kwargs['change_percentage'] = ch_perc
-            env = make_vec_envs(env_name, r_name, None, **kwargs)
+            env = make_vec_envs(env_name, r_name, None, n_cpu, **kwargs)
             temp_result = sample_data(model, env, sample_size, n_cpu, lambdas[problem])
             for name in temp_result:
                 if not(name in result[m_name]):

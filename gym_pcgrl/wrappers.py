@@ -602,6 +602,11 @@ class BootStrapping(gym.Wrapper):
         return obs, reward, done, info
 
 class EliteBootStrapping(gym.Wrapper):
+    '''Bootstrapping, but also saves maps that have accumulated the most net score over multiple episodes.
+    1/3 chance to initialize random map, 1/3 chance to initialize non-elite saved map, 1/3 chance to load
+    elite saved map. After an episode, the map is saved if the agent experiences net positive reward, and
+    saved to the elite pool if the map has now accumulated more net reward than the lowest-ranked elite.
+    '''
     def __init__(self, game, folder_loc, max_files=100, max_elite_files=25, tries_to_age=10, **kwargs):
         if isinstance(game, str):
             self.env = gym.make(game)
