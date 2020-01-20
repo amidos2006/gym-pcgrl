@@ -24,7 +24,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
     model = load_model(log_dir)
     # no log dir, 1 parallel environment
-    env = make_vec_envs(env_name, representation, None, 1, **infer_kwargs)
+    env = make_vec_envs(env_name, representation, None, **infer_kwargs)
     obs = env.reset()
     # Record final values of each trial
     if 'binary' in env_name:
@@ -75,10 +75,9 @@ infer_kwargs = {
         'add_changes': False,
         'add_heatmap': False,
         'max_step': 30000,
-        'render': True
+        'render': True,
+        'n_cpu': 1,
         }
-
-
 
 if __name__ == '__main__':
     infer(game, representation, experiment, infer_kwargs, **kwargs)
