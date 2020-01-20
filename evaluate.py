@@ -153,10 +153,6 @@ def main():
     kwargs = {
         #'change_percentage': 1,
         'target_path': 200,
-        'add_visits': False,
-        'add_changes': False,
-        'add_heatmap': False,
-        #'max_step': 30000,
         'eval_name': "with2",
         'sample_size': 100,
         'overwrite': True, # overwrite the last eval dir?

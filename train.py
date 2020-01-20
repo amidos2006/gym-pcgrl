@@ -85,7 +85,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
-game = 'zelda'
+game = 'binary'
 representation = 'narrow'
 experiment = None
 steps = 1e8
@@ -94,11 +94,7 @@ logging = True
 n_cpu = 50
 kwargs = {
     'resume': False,
-    'cropped_size': 28,
-    'add_visits': False,
-    'add_changes': False,
-    'add_heatmap': False,
-    'add_bootstrap': False
+    'cropped_size': 28
 }
 
 if __name__ == '__main__':

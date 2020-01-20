@@ -71,12 +71,9 @@ kwargs = {
 infer_kwargs = {
        #'change_percentage': 1,
        #'target_path': 200,
-        'add_visits': False,
-        'add_changes': False,
-        'add_heatmap': False,
-        'max_step': 30000,
-        'render': True,
-        }
+       'max_trials': 3000,
+        'render': True
+}
 
 if __name__ == '__main__':
     infer(game, representation, experiment, infer_kwargs, **kwargs)

@@ -51,11 +51,6 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         else:
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
-        if max_step is not None:
-            env = wrappers.MaxStep(env, max_step)
-        if log_dir is not None and kwargs.get('add_bootstrap', False):
-            env = wrappers.EliteBootStrapping(env,
-                                              os.path.join(log_dir, "bootstrap{}/".format(rank)))
         # RenderMonitor must come last
         if render or log_dir is not None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)
@@ -77,10 +72,6 @@ def make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs):
 
 def get_exp_name(game, representation, experiment, **kwargs):
     exp_name = '{}_{}'.format(game, representation)
-    change_percentage = kwargs.get('change_percentage', None)
-    path_length = kwargs.get('target_path', None)
-    if change_percentage is not None:
-        exp_name = '{}_chng{}_pth{}'.format(exp_name, change_percentage, path_length)
     if experiment is not None:
         exp_name = '{}_{}'.format(exp_name, experiment)
     return exp_name
