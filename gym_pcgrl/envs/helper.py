@@ -150,6 +150,26 @@ def calc_longest_path(map, map_locations, passable_values):
     return final_value
 
 """
+Get the vertical distance to certain type of tiles
+
+Parameters:
+    map (any[][]): the actual map
+    x (int): the x position of the start location
+    y (int): the y position of the start location
+    types (any[]): an array of types of tiles
+
+Returns:
+    int: the distance to certain types underneath a certain location
+"""
+def calc_dist_floor(map, x, y, types):
+    for dy in range(len(map)):
+        if y+dy >= len(map):
+            return dy-1
+        if map[y+dy][x] in types:
+            return dy-1
+    return len(map) - 1
+
+"""
 Calculate the number of tiles that have certain values in the map
 
 Returns:
