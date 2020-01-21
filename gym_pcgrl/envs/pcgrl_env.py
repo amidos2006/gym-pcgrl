@@ -105,8 +105,7 @@ class PcgrlEnv(gym.Env):
     """
     def adjust_param(self, **kwargs):
         if 'change_percentage' in kwargs:
-            epsilon = 1e-6
-            percentage = min(1-epsilon, max(epsilon, kwargs.get('change_percentage')))
+            percentage = min(1, max(0, kwargs.get('change_percentage')))
             self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
         self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._prob.adjust_param(**kwargs)
