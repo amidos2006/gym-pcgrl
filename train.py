@@ -79,7 +79,6 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:
         model.set_env(env)
-        raise Exception
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
