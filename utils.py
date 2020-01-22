@@ -98,7 +98,7 @@ def load_model(log_dir):
         files = [f for f in os.listdir(log_dir) if '.pkl' in f or '.zip' in f]
         if len(files) > 0:
             # selects the last file listed by os.listdir
-            model_path = os.path.join(log_dir, f)
+            model_path = os.path.join(log_dir, np.random.choice(files))
         else:
             raise Exception('No models are saved')
     model = PPO2.load(model_path)

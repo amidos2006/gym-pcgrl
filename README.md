@@ -148,7 +148,7 @@ You can run the code either using the Dockerfile using the following command lin
 ```
 docker image build -t pcgrl:latest . && docker run --runtime=nvidia pcgrl:latest
 ```
-Another way is to use [conda](https://www.anaconda.com/) by creating a virtual environment then activating it and installing all the dependencies for `train.py`:
+Another way is to use [Conda](https://www.anaconda.com/) by creating a virtual environment then activating it and installing all the dependencies for `train.py`:
 ```
 conda create --name pcgrl
 conda activate pcgrl
@@ -157,6 +157,13 @@ pip install stable-baselines
 pip install -e .
 python train.py
 ```
+
+A note when running Sokoban problem using Narrow or Turtle representation modify all the strides in the `Cnn` function in `model.py` to be `1`, while for the Wide representation comment `v2` layer in `FullyConv2` function. The reason for that is because Sokoban have very small input space so have too many convolutions or big strides will produce an error as the image will collapse to negative dimensions.
+
+## Running Trained Model
+First make sure you have all required modules (`GYM PCGRL`, `Tensorflow`, `Stable Baselines`) either using [Docker](https://www.docker.com/) or [Conda](https://www.anaconda.com/) to be able to run the trained models and use either `inference.ipynb` or `infer.py` to play around using the models.
+
+PS: All Sokoban Narrow and Turtle Models and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method that python 3.7. Make sure that you are using the correct python version. First of all, we appologize for any inconvenience and we are working on training new models using python 3.7 to replace these ones.
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at [https://github.com/amidos2006/gym-pcgrl](https://github.com/amidos2006/gym-pcgrl).

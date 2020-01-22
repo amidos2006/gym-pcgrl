@@ -2,7 +2,7 @@
 #Install stable-baselines as described in the documentation
 
 import model
-from model import FullyConvPolicy, CustomPolicy
+from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
 from stable_baselines import PPO2
 from stable_baselines.results_plotter import load_results, ts2xy
@@ -53,10 +53,19 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
     if representation == 'wide':
-        policy = FullyConvPolicy
+        policy = FullyConvPolicyBigMap
+        if game == "sokoban":
+            policy = FullyConvPolicySmallMap
     else:
-        policy = CustomPolicy
-
+        policy = CustomPolicyBigMap
+        if game == "sokoban":
+            policy = CustomPolicySmallMap
+    if game == "binary":
+        kwargs['cropped_size'] = 28
+    elif game == "zelda":
+        kwargs['cropped_size'] = 22
+    elif game == "sokoban":
+        kwargs['cropped_size'] = 10
     n = max_exp_idx(exp_name)
     global log_dir
     if not resume:
@@ -84,6 +93,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
+################################## MAIN ########################################
 game = 'binary'
 representation = 'narrow'
 experiment = None
@@ -92,8 +102,7 @@ render = False
 logging = True
 n_cpu = 50
 kwargs = {
-    'resume': False,
-    'cropped_size': 28
+    'resume': False
 }
 
 if __name__ == '__main__':
