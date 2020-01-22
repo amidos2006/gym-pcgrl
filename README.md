@@ -1,4 +1,15 @@
-# PCGRL OpenAI GYM Interface
+<p align="center">
+	<img height="200px" src="logo.png"/>
+</p>
+
+<h1 align="center">
+	PCGRL OpenAI GYM Interface
+</h1>
+
+<p align="center">
+  <b>Current Framework Version: 0.4.0</b>
+</p>
+
 An [OpenAI GYM](https://gym.openai.com/) environment for Procedural Content Generation via Reinforcement Learning (PCGRL).
 
 The framework, along with some initial reinforcement learning results, is covered in the paper [Procedural Content Generation via Reinforcement Learning](). This paper should be cited if code from this project is used in any way:
