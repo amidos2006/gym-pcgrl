@@ -122,7 +122,7 @@ Also, you need to make sure that you setup the following parameters in the const
 
 Feel free to override any other function if you need a behavior different from the normal behavior. For example: In all our problems, we want our system to not load the graphics unless it is going to render it. We override `render()` function so we can initialize `self._graphics` at the beginning of the `render()` instead of the constructor.
 
-After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.probs.PROBLEMS` dictionary that can be found in [__init__.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/probs/__init__.py) the key name is used as the problem name for the environment and the value is to refer to the main class that it need to construct for that problem.
+After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.probs.PROBLEMS` dictionary that can be found in [\_\_init\_\_.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/probs/__init__.py) the key name is used as the problem name for the environment and the value is to refer to the main class that it need to construct for that problem.
 
 ## Create your own representation
 Create the new representation class in the `gym_pcgrl.envs.reps` and extends `Representation` class from `gym_pcgrl.envs.reps.representation`. This class has to implement the following functions.
@@ -147,7 +147,7 @@ def update(self, action):
 ```
 Feel free to override any other function if you need a behavior different from the normal behavior. For example: in the `narrow` representation, we wanted to show the location where the agent should change on the rendered image. We override the `render()` function to draw a red square around the correct tile.
 
-After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.reps.REPRESENTATIONS` dictionary that can be found in [__init__.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/reps/__init__.py) the key name is used as the representation name for the environment and the value is to refer to the main class that it need to construct for that representation.
+After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.reps.REPRESENTATIONS` dictionary that can be found in [\_\_init\_\_.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/reps/__init__.py) the key name is used as the representation name for the environment and the value is to refer to the main class that it need to construct for that representation.
 
 ## Running train.py
 [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) uses stable baseline PPO2 algorithm for training. You can configure [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) to train for different problems or different representation by changing the game and representation parameters in the file to a different problem and/or representation.
