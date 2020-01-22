@@ -158,12 +158,12 @@ pip install -e .
 python train.py
 ```
 
-A note when running Sokoban problem using Narrow or Turtle representation modify all the strides in the `Cnn` function in `model.py` to be `1`, while for the Wide representation comment `v2` layer in `FullyConv2` function. The reason for that is because Sokoban have very small input space so have too many convolutions or big strides will produce an error as the image will collapse to negative dimensions.
+PS: The training process will create a folder named `runs/` where two folders will appear one for tensorboard logs and the other for the saved models. The training is always saving the best model so far and the last model.
 
 ## Running Trained Model
-First make sure you have all required modules (`GYM PCGRL`, `Tensorflow`, `Stable Baselines`) either using [Docker](https://www.docker.com/) or [Conda](https://www.anaconda.com/) to be able to run the trained models and use either `inference.ipynb` or `infer.py` to play around using the models.
+First make sure you have all required modules (`GYM PCGRL`, `Tensorflow`, `Stable Baselines`) are installed either using [Docker](https://www.docker.com/) or [Conda](https://www.anaconda.com/). To run the models either run `inference.ipynb` for a [jupyter notebook](https://jupyter.org/) or `inference.py` for normal python environment. If you are using [jupyter notebook](https://jupyter.org/) make sure to choose the correct kernel before running anything.
 
-PS: All Sokoban Narrow and Turtle Models and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method than python 3.6 and 3.7. Make sure that you are using the correct python version. First of all, we appologize for any inconvenience and we are working on training new models using python 3.7 to replace these ones. If you get unknown opcode, it is because of that problem try to change the python version. We didn't know about that issue until later, sorry again for any inconvenience.
+PS: All the models for Sokoban Narrow and Turtle and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method than python 3.6 and 3.7. When try to load them in python 3.6 or 3.7, you will get an unknown op code error so make sure that you are using the correct python version. We apologize for this mess and we are working on training new models using python 3.7 to replace these ones. Remember if you get unknown opcode, it is because of the serialization method. We didn't know about that issue until later, sorry again for any inconvenience.
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at [https://github.com/amidos2006/gym-pcgrl](https://github.com/amidos2006/gym-pcgrl).
