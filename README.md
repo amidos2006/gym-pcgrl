@@ -54,13 +54,6 @@ Beside the OpenAI GYM traditional functions. Our interface supports additional f
 - `get_border_tile()`: This function get the tile index to be used for padding a certain problem. It is used by certain wrappers.
 - `adjust_param(**kwargs)`: This function that helps adjust the problem and/or representation parameters such as modifying `width` and `height` of the generated map.
 
-## Dockerfile
-
-Run:
-```
-docker image build -t pcgrl:latest . && docker run --runtime=nvidia pcgrl:latest
-```
-
 ## Supported Problems
 Problems are the current games that we want to apply PCGRL towards them. The following table lists all the supported problems in the interface:
 
@@ -145,6 +138,25 @@ def update(self, action):
 Feel free to override any other function if you need a behavior different from the normal behavior. For example: in the `narrow` representation, we wanted to show the location where the agent should change on the rendered image. We override the `render()` function to draw a red square around the correct tile.
 
 After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.reps.REPRESENTATIONS` dictionary that can be found in [__init__.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/reps/__init__.py) the key name is used as the representation name for the environment and the value is to refer to the main class that it need to construct for that representation.
+
+## Running train.py
+`train.py` uses `utils.py` and `model.py` to train a stable baseline PPO2 algorithm. You can configure `train.py` to train for different problems or different representation by changing the game and representation parameters in the file to a different problem and/or representation.
+
+To read more about the experiments and the different wrappers, check our paper (PCGRL: Procedural Content Generation via Reinforcement Learning)[].
+
+You can run the code either using the Dockerfile using the following command line after installing [Docker](https://www.docker.com/):
+```
+docker image build -t pcgrl:latest . && docker run --runtime=nvidia pcgrl:latest
+```
+Another way is to use [conda](https://www.anaconda.com/) by creating a virtual environment then activating it and installing all the dependencies for `train.py`:
+```
+conda create --name pcgrl
+conda activate pcgrl
+pip install tensorflow==1.15
+pip install stable-baselines
+pip install -e .
+python train.py
+```
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at [https://github.com/amidos2006/gym-pcgrl](https://github.com/amidos2006/gym-pcgrl).
