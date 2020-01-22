@@ -163,7 +163,7 @@ A note when running Sokoban problem using Narrow or Turtle representation modify
 ## Running Trained Model
 First make sure you have all required modules (`GYM PCGRL`, `Tensorflow`, `Stable Baselines`) either using [Docker](https://www.docker.com/) or [Conda](https://www.anaconda.com/) to be able to run the trained models and use either `inference.ipynb` or `infer.py` to play around using the models.
 
-PS: All Sokoban Narrow and Turtle Models and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method that python 3.7. Make sure that you are using the correct python version. First of all, we appologize for any inconvenience and we are working on training new models using python 3.7 to replace these ones.
+PS: All Sokoban Narrow and Turtle Models and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method than python 3.6 and 3.7. Make sure that you are using the correct python version. First of all, we appologize for any inconvenience and we are working on training new models using python 3.7 to replace these ones. If you get unknown opcode, it is because of that problem try to change the python version. We didn't know about that issue until later, sorry again for any inconvenience.
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at [https://github.com/amidos2006/gym-pcgrl](https://github.com/amidos2006/gym-pcgrl).

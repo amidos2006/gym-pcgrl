@@ -2,11 +2,10 @@
 Run a trained agent and get generated maps
 """
 import model
-from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
 from stable_baselines import PPO2
 
 import time
-from utils import get_exp_name, max_exp_idx, make_vec_envs, get_action
+from utils import make_vec_envs
 
 def infer(game, representation, model_path, **kwargs):
     """
@@ -15,10 +14,13 @@ def infer(game, representation, model_path, **kwargs):
     """
     env_name = '{}-{}-v0'.format(game, representation)
     if game == "binary":
+        model.FullyConvPolicy = model.FullyConvPolicyBigMap
         kwargs['cropped_size'] = 28
     elif game == "zelda":
+        model.FullyConvPolicy = model.FullyConvPolicyBigMap
         kwargs['cropped_size'] = 22
     elif game == "sokoban":
+        model.FullyConvPolicy = model.FullyConvPolicySmallMap
         kwargs['cropped_size'] = 10
     kwargs['render'] = True
 
@@ -37,6 +39,7 @@ def infer(game, representation, model_path, **kwargs):
                 break
         time.sleep(0.2)
 
+################################## MAIN ########################################
 game = 'binary'
 representation = 'narrow'
 model_path = 'models/{}/{}/model_1.pkl'.format(game, representation)

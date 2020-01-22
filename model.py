@@ -105,7 +105,7 @@ class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType)
 
 class FullyConvPolicyBigMap(ActorCriticPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
-        super(FullyConvPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
+        super(FullyConvPolicyBigMap, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
         n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
         self._pdtype = NoDenseCategoricalProbabilityDistributionType(ac_space.n)
         with tf.variable_scope("model", reuse=kwargs['reuse']):
@@ -132,7 +132,7 @@ class FullyConvPolicyBigMap(ActorCriticPolicy):
 
 class FullyConvPolicySmallMap(ActorCriticPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
-        super(FullyConvPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
+        super(FullyConvPolicySmallMap, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
         n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
         self._pdtype = NoDenseCategoricalProbabilityDistributionType(ac_space.n)
         with tf.variable_scope("model", reuse=kwargs['reuse']):
@@ -159,8 +159,8 @@ class FullyConvPolicySmallMap(ActorCriticPolicy):
 
 class CustomPolicyBigMap(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
-        super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn2, feature_extraction="cnn")
+        super(CustomPolicyBigMap, self).__init__(*args, **kwargs, cnn_extractor=Cnn2, feature_extraction="cnn")
 
 class CustomPolicySmallMap(FeedForwardPolicy):
     def __init__(self, *args, **kwargs):
-        super(CustomPolicy, self).__init__(*args, **kwargs, cnn_extractor=Cnn1, feature_extraction="cnn")
+        super(CustomPolicySmallMap, self).__init__(*args, **kwargs, cnn_extractor=Cnn1, feature_extraction="cnn")
