@@ -150,7 +150,7 @@ Feel free to override any other function if you need a behavior different from t
 After implementing your own class, you need to add the name and the class in `gym_pcgrl.envs.reps.REPRESENTATIONS` dictionary that can be found in [__init__.py](https://github.com/amidos2006/gym-pcgrl/blob/master/gym_pcgrl/envs/reps/__init__.py) the key name is used as the representation name for the environment and the value is to refer to the main class that it need to construct for that representation.
 
 ## Running train.py
-`train.py` uses `utils.py` and `model.py` to train a stable baseline PPO2 algorithm. You can configure `train.py` to train for different problems or different representation by changing the game and representation parameters in the file to a different problem and/or representation.
+[train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) uses stable baseline PPO2 algorithm for training. You can configure [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) to train for different problems or different representation by changing the game and representation parameters in the file to a different problem and/or representation.
 
 To read more about the experiments and the different wrappers, check our paper [PCGRL: Procedural Content Generation via Reinforcement Learning]().
 
@@ -158,7 +158,7 @@ You can run the code either using the Dockerfile using the following command lin
 ```
 docker image build -t pcgrl:latest . && docker run --runtime=nvidia pcgrl:latest
 ```
-Another way is to use [Conda](https://www.anaconda.com/) by creating a virtual environment then activating it and installing all the dependencies for `train.py`:
+Another way is to use [Conda](https://www.anaconda.com/) by creating a virtual environment then activating it and installing all the dependencies for [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py):
 ```
 conda create --name pcgrl
 conda activate pcgrl
@@ -171,7 +171,7 @@ python train.py
 PS: The training process will create a folder named `runs/` where two folders will appear one for tensorboard logs and the other for the saved models. The training is always saving the best model so far and the last model.
 
 ## Running Trained Model
-First make sure you have all required modules (`GYM PCGRL`, `Tensorflow`, `Stable Baselines`) are installed either using [Docker](https://www.docker.com/) or [Conda](https://www.anaconda.com/). To run the models either run `inference.ipynb` for a [jupyter notebook](https://jupyter.org/) or `inference.py` for normal python environment. If you are using [jupyter notebook](https://jupyter.org/) make sure to choose the correct kernel before running anything.
+First make sure you have all required modules ([GYM PCGRL](https://github.com/amidos2006/gym-pcgrl), [Tensorflow](https://www.tensorflow.org/), and [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/)) are installed either using [Docker](https://www.docker.com/) or [Conda](https://www.anaconda.com/). To run the models either run [inference.ipynb](https://github.com/amidos2006/gym-pcgrl/blob/master/inference.ipynb) for a [jupyter notebook](https://jupyter.org/) or [inference.py](https://github.com/amidos2006/gym-pcgrl/blob/master/inference.py) for normal python environment. If you are using [jupyter notebook](https://jupyter.org/) make sure to choose the correct kernel before running anything.
 
 PS: All the models for Sokoban Narrow and Turtle and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method than python 3.6 and 3.7. When try to load them in python 3.6 or 3.7, you will get an unknown op code error so make sure that you are using the correct python version. We apologize for this mess and we are working on training new models using python 3.7 to replace these ones. Remember if you get unknown opcode, it is because of the serialization method. We didn't know about that issue until later, sorry again for any inconvenience.
 
