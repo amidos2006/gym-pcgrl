@@ -164,7 +164,9 @@ conda create --name pcgrl
 conda activate pcgrl
 pip install tensorflow==1.15
 pip install stable-baselines
+cd gym_pcgrl
 pip install -e .
+cd ..
 python train.py
 ```
 
