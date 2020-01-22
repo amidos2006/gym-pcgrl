@@ -43,7 +43,6 @@ def infer(game, representation, model_path, **kwargs):
 game = 'binary'
 representation = 'narrow'
 model_path = 'models/{}/{}/model_1.pkl'.format(game, representation)
-# For inference
 kwargs = {
     'change_percentage': 0.4,
     'trials': 1,
