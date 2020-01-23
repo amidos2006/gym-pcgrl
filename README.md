@@ -169,11 +169,24 @@ pip install -e .
 cd ..
 python train.py
 ```
+Lastly, you can just install directly without using any virtual environment:
+```sh
+pip install tensorflow==1.15
+pip install stable-baselines
+cd gym_pcgrl
+pip install -e .
+cd ..
+python train.py
+```
 
 PS: The training process will create a folder named `runs/` where two folders will appear one for tensorboard logs and the other for the saved models. The training is always saving the best model so far and the last model.
 
 ## Running Trained Model
-First make sure you have all required modules ([GYM PCGRL](https://github.com/amidos2006/gym-pcgrl), [Tensorflow](https://www.tensorflow.org/), and [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/)) are installed either using [Docker](https://www.docker.com/) or [Conda](https://www.anaconda.com/). To run the models either run [inference.ipynb](https://github.com/amidos2006/gym-pcgrl/blob/master/inference.ipynb) for a [jupyter notebook](https://jupyter.org/) or [inference.py](https://github.com/amidos2006/gym-pcgrl/blob/master/inference.py) for normal python environment. If you are using [jupyter notebook](https://jupyter.org/) make sure to choose the correct kernel before running anything.
+First make sure you have all required modules ([GYM PCGRL](https://github.com/amidos2006/gym-pcgrl), [Tensorflow](https://www.tensorflow.org/), and [Stable Baselines](https://stable-baselines.readthedocs.io/en/master/)) are installed either using [Docker](https://www.docker.com/), [Conda](https://www.anaconda.com/), or Pip directly. The code to run is similar to the above code for training just change [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) to [inference.py](https://github.com/amidos2006/gym-pcgrl/blob/master/inference.py).
+
+In the case, that you want to use [jupyter notebook](https://jupyter.org/), please check [inference.ipynb](https://github.com/amidos2006/gym-pcgrl/blob/master/inference.ipynb). Please, make sure to choose the correct kernel (especially if you are using [Conda](https://www.anaconda.com/) virtual environments) before running anything.
+
+Here are some cool GIFs when running these models:
 
 PS: All the models for Sokoban Narrow and Turtle and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method than python 3.6 and 3.7. When try to load them in python 3.6 or 3.7, you will get an unknown op code error so make sure that you are using the correct python version. We apologize for this mess and we are working on training new models using python 3.7 to replace these ones. Remember if you get unknown opcode, it is because of the serialization method. We didn't know about that issue until later, sorry again for any inconvenience.
 
