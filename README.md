@@ -12,7 +12,7 @@
 
 An [OpenAI GYM](https://gym.openai.com/) environment for Procedural Content Generation via Reinforcement Learning (PCGRL).
 
-The framework, along with some initial reinforcement learning results, is covered in the paper [PCGRL: Procedural Content Generation via Reinforcement Learning](). This paper should be cited if code from this project is used in any way:
+The framework, along with some initial reinforcement learning results, is covered in the paper [PCGRL: Procedural Content Generation via Reinforcement Learning](https://arxiv.org/abs/2001.09212). This paper should be cited if code from this project is used in any way:
 ```
 @inproceedings{khalifa2020pcgrl,
   title={PCGRL: Procedural Content Generation via Reinforcement Learning},
@@ -152,7 +152,7 @@ After implementing your own class, you need to add the name and the class in `gy
 ## Running train.py
 [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) uses stable baseline PPO2 algorithm for training. You can configure [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py) to train for different problems or different representation by changing the game and representation parameters in the file to a different problem and/or representation.
 
-To read more about the experiments and the different wrappers, check our paper [PCGRL: Procedural Content Generation via Reinforcement Learning]().
+To read more about the experiments and the different wrappers, check our paper [PCGRL: Procedural Content Generation via Reinforcement Learning](https://arxiv.org/abs/2001.09212).
 
 You can run the code either using the Dockerfile using the following command line after installing [Docker](https://www.docker.com/):
 ```sh
