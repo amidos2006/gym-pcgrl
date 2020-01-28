@@ -13,12 +13,22 @@
 An [OpenAI GYM](https://gym.openai.com/) environment for Procedural Content Generation via Reinforcement Learning (PCGRL).
 
 The framework, along with some initial reinforcement learning results, is covered in the paper [PCGRL: Procedural Content Generation via Reinforcement Learning](https://arxiv.org/abs/2001.09212). This paper should be cited if code from this project is used in any way:
-```
+<!-- ```
 @inproceedings{khalifa2020pcgrl,
   title={PCGRL: Procedural Content Generation via Reinforcement Learning},
   author={Khalifa, Ahmed and Bontrager, Philip and Earle, Sam and Togelius, Julian},
   booktitle={IJCAI},
   year={2020}
+}
+``` -->
+```
+@misc{khalifa2020pcgrl,
+    title={PCGRL: Procedural Content Generation via Reinforcement Learning},
+    author={Ahmed Khalifa and Philip Bontrager and Sam Earle and Julian Togelius},
+    year={2020},
+    eprint={2001.09212},
+    archivePrefix={arXiv},
+    primaryClass={cs.LG}
 }
 ```
 
