@@ -66,7 +66,7 @@ def make_vec_envs(env_name, representation, log_dir, **kwargs):
     '''
     Prepare a vectorized environment using a list of 'make_env' functions.
     '''
-    n_cpu = kwargs.pop('n_cpu')
+    n_cpu = kwargs.pop('n_cpu', 1)
     if n_cpu > 1:
         env_lst = []
         for i in range(n_cpu):

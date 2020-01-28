@@ -49,6 +49,7 @@ def callback(_locals, _globals):
 
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
+    kwargs['n_cpu'] = n_cpu
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
@@ -74,7 +75,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     used_dir = log_dir
     if not logging:
         used_dir = None
-    env = make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs)
+    env = make_vec_envs(env_name, representation, log_dir, **kwargs)
     if not resume or model is None:
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:
@@ -85,7 +86,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
-game = 'zelda'
+game = 'sokoban'
 representation = 'wide'
 experiment = 'LongConv'
 n_cpu = 100
