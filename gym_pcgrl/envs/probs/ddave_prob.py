@@ -30,6 +30,7 @@ class DDaveProblem(Problem):
 
         self._rewards = {
             "player": 3,
+            "dist-floor": 2,
             "exit": 3,
             "diamonds": 1,
             "key": 3,
@@ -149,6 +150,7 @@ class DDaveProblem(Problem):
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
             "player": calc_certain_tile(map_locations, ["player"]),
+            "dist-floor": 0,
             "exit": calc_certain_tile(map_locations, ["exit"]),
             "diamonds": calc_certain_tile(map_locations, ["diamond"]),
             "key": calc_certain_tile(map_locations, ["key"]),
@@ -159,7 +161,8 @@ class DDaveProblem(Problem):
             "dist-win": self._width * self._height,
             "sol-length": 0
         }
-        if map_stats["player"] == 1 and map_stats["exit"] == 1 and map_stats["key"] == 1 and map_stats["regions"] == 1:
+        if map_stats["player"] == 1:
+            if map_stats["exit"] == 1 and map_stats["key"] == 1 and map_stats["regions"] == 1:
                 map_stats["dist-win"], map_stats["sol-length"], play_stats = self._run_game(map)
                 map_stats["num-jumps"] = play_stats["num_jumps"]
                 map_stats["col-diamonds"] = play_stats["col_diamonds"]
@@ -181,6 +184,7 @@ class DDaveProblem(Problem):
             "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
             "exit": get_range_reward(new_stats["exit"], old_stats["exit"], 1, 1),
             "diamonds": get_range_reward(new_stats["diamonds"], old_stats["diamonds"], -np.inf, self._max_diamonds),
+            "dist-floor": get_range_reward(new_stats["dist-floor"], old_stats["dist-floor"], 0, 0),
             "key": get_range_reward(new_stats["key"], old_stats["key"], 1, 1),
             "spikes": get_range_reward(new_stats["spikes"], old_stats["spikes"], self._min_spikes, np.inf),
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
@@ -190,6 +194,7 @@ class DDaveProblem(Problem):
         }
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
+            rewards["dist-floor"] * self._rewards["dist-floor"] +\
             rewards["exit"] * self._rewards["exit"] +\
             rewards["spikes"] * self._rewards["spikes"] +\
             rewards["diamonds"] * self._rewards["diamonds"] +\
