@@ -48,6 +48,7 @@ def FullyConv1(image, n_tools, **kwargs):
     val = conv_to_fc(val)
     return act, val
 
+
 def FullyConv2(image, n_tools, **kwargs):
     activ = tf.nn.relu
     x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
@@ -71,10 +72,86 @@ def FullyConv2(image, n_tools, **kwargs):
         init_scale=np.sqrt(2)))
     val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
         init_scale=np.sqrt(3)))
+   #val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
+   #    init_scale=np.sqrt(2)))
     val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
         init_scale=np.sqrt(2)))
     val = conv_to_fc(val)
     return act, val
+
+
+def ValShrink(val, **kwargs):
+    activ = tf.nn.relu
+    val = activ(conv(val, 'v1', n_filters=64, filter_size=3, stride=2,
+        init_scale=np.sqrt(2)))
+    val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
+        init_scale=np.sqrt(3)))
+   #val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
+   #    init_scale=np.sqrt(2)))
+    val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
+        init_scale=np.sqrt(2)))
+    val = conv_to_fc(val)
+    return val
+
+
+def FractalNet(image, n_tools, n_recs, blocks=[64], **kwargs):
+    '''
+     - blocks: a list, ordered from network in to out, of each block's n_chan
+    '''
+    x = layers.Conv2D(blocks[0], 1, 1, activation='relu')(image) # embedding
+    for n_chan in blocks:
+        x = FractalBlock(x, n_recs, n_chan, **kwargs)
+    act = layers.Conv2D(n_tools, 1, 1, activation='relu')(x)
+    act = conv_to_fc(act)
+    val = layers.Conv2D(1, 1, 1, activation='relu')(x)
+    val = conv_to_fc(val)
+    return act, val
+
+
+def FractalBlock(image, n_recs, n_chan, **kwargs):
+    x = layers.Conv2D(n_chan, 1, 1, activation='relu')(image) # embed
+    child = None
+    for i in range(n_recs):
+        child = SubFractal(child, n_chan, **kwargs)
+    x = tf.expand_dims(x, 0)
+    x = child(x)
+    x = tf.squeeze(x, 0)
+    return x
+
+
+class SubFractal(tf.Module):
+    def __init__(self, child, n_chan, **kwargs):
+        '''
+            -child: a SubFractal or None, if base case
+        '''
+        self.child = child
+        self.skip = AtomicNode(n_chan)
+
+
+    def __call__(self, x, join=True):
+        '''
+        - join: is this subfractal responsible for joining the accumulated outputs?
+        '''
+        x = self.skip(x)
+        if self.child:
+            x_body = self.child(self.child(x, join=True), join=False)
+            x = tf.concat((x, x_body), 0)
+        if join:
+            x = tf.math.reduce_mean(x, 0, keepdims=True)
+        return x
+
+
+class AtomicNode(tf.Module):
+    def __init__(self, n_chan):
+        self.c1 = layers.Conv2D(n_chan, 3, 1, padding='same', activation='relu')
+
+    def __call__(self, x):
+        print(x.shape)
+        x = tf.squeeze(x, 0)
+        x = self.c1(x)
+        x = tf.expand_dims(x, 0)
+        return x
+
 
 class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType):
     def __init__(self, n_cat):
@@ -103,9 +180,9 @@ class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType)
     def sample_dtype(self):
         return tf.int64
 
-class FullyConvPolicyBigMap(ActorCriticPolicy):
+class FullyConvPolicy(ActorCriticPolicy):
     def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
-        super(FullyConvPolicyBigMap, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
+        super(FullyConvPolicy, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
         n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
         self._pdtype = NoDenseCategoricalProbabilityDistributionType(ac_space.n)
         with tf.variable_scope("model", reuse=kwargs['reuse']):

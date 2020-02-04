@@ -51,6 +51,11 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         else:
             crop_size = kwargs.get('cropped_size', 28)
             env = wrappers.CroppedImagePCGRLWrapper(env_name, crop_size, **kwargs)
+        if max_step is not None:
+            env = wrappers.MaxStep(env, max_step)
+        if log_dir is not None and kwargs.get('add_bootstrap', False):
+            env = wrappers.EliteBootStrapping(env,
+                                              os.path.join(log_dir, "bootstrap{}/".format(rank)))
         # RenderMonitor must come last
         if render or log_dir is not None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)

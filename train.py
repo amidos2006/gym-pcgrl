@@ -4,7 +4,8 @@
 import model
 from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
-from stable_baselines import PPO2
+#from stable_baselines import PPO2
+from policy import PPO2
 from stable_baselines.results_plotter import load_results, ts2xy
 
 import tensorflow as tf

@@ -11,6 +11,36 @@ get_action = lambda a: a.item() if hasattr(a, "item") else a
 get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) else get_pcgrl_env(env.env)
 
 """
+Wrapper that resets environment only after a certain number of steps.
+"""
+class MaxStep(gym.Wrapper):
+    def __init__(self, game, max_step):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+       #get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        self.max_step = max_step
+        self.n_step = 0
+        gym.Wrapper.__init__(self, self.env)
+
+    def step(self, action):
+         obs, reward, done, info = self.env.step(action)
+         self.n_step += 1
+         if self.n_step == self.max_step:
+             done = True
+         else:
+             done = False
+
+         return obs, reward, done, info
+
+    def reset(self):
+        obs = self.env.reset()
+        self.n_step = 0
+
+"""
 Return a Box instead of dictionary by stacking different similar objects
 
 Can be stacked as Last Layer
