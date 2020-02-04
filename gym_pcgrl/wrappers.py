@@ -1,14 +1,44 @@
-import gym
-import gym_pcgrl
-
-import numpy as np
 import math
 import os
+
+import gym
+import numpy as np
 
 # clean the input action
 get_action = lambda a: a.item() if hasattr(a, "item") else a
 # unwrap all the environments and get the PcgrlEnv
 get_pcgrl_env = lambda env: env if "PcgrlEnv" in str(type(env)) else get_pcgrl_env(env.env)
+
+class MaxStep(gym.Wrapper):
+    """
+    Wrapper that resets environment only after a certain number of steps.
+    """
+    def __init__(self, game, max_step):
+        if isinstance(game, str):
+            self.env = gym.make(game)
+        else:
+            self.env = game
+       #get_pcgrl_env(self.env).adjust_param(**kwargs)
+        gym.Wrapper.__init__(self, self.env)
+
+        self.max_step = max_step
+        self.n_step = 0
+        gym.Wrapper.__init__(self, self.env)
+
+    def step(self, action):
+         obs, reward, done, info = self.env.step(action)
+         self.n_step += 1
+
+         if self.n_step == self.max_step:
+             done = True
+         else:
+             done = False
+
+         return obs, reward, done, info
+
+    def reset(self):
+        obs = self.env.reset()
+        self.n_step = 0
 
 """
 Return a Box instead of dictionary by stacking different similar objects
@@ -26,13 +56,16 @@ class ToImage(gym.Wrapper):
         self.shape = None
         depth=0
         max_value = 0
+
         for n in names:
             assert n in self.env.observation_space.spaces.keys(), 'This wrapper only works if your observation_space is spaces.Dict with the input names.'
+
             if self.shape == None:
                 self.shape = self.env.observation_space[n].shape
             new_shape = self.env.observation_space[n].shape
             depth += 1 if len(new_shape) <= 2 else new_shape[2]
             assert self.shape[0] == new_shape[0] and self.shape[1] == new_shape[1], 'This wrapper only works when all objects have same width and height'
+
             if self.env.observation_space[n].high.max() > max_value:
                 max_value = self.env.observation_space[n].high.max()
         self.names = names
@@ -43,20 +76,24 @@ class ToImage(gym.Wrapper):
         action = get_action(action)
         obs, reward, done, info = self.env.step(action)
         obs = self.transform(obs)
+
         return obs, reward, done, info
 
     def reset(self):
         obs = self.env.reset()
         obs = self.transform(obs)
+
         return obs
 
     def transform(self, obs):
         final = np.empty([])
+
         for n in self.names:
             if len(final.shape) == 0:
                 final = obs[n].reshape(self.shape[0], self.shape[1], -1)
             else:
                 final = np.append(final, obs[n].reshape(self.shape[0], self.shape[1], -1), axis=2)
+
         return final
 
 """
@@ -77,11 +114,13 @@ class OneHotEncoding(gym.Wrapper):
         self.name = name
 
         self.observation_space = gym.spaces.Dict({})
+
         for (k,s) in self.env.observation_space.spaces.items():
             self.observation_space.spaces[k] = s
         new_shape = []
         shape = self.env.observation_space[self.name].shape
         self.dim = self.observation_space[self.name].high.max() - self.observation_space[self.name].low.min() + 1
+
         for v in shape:
             new_shape.append(v)
         new_shape.append(self.dim)
@@ -91,16 +130,19 @@ class OneHotEncoding(gym.Wrapper):
         action = get_action(action)
         obs, reward, done, info = self.env.step(action)
         obs = self.transform(obs)
+
         return obs, reward, done, info
 
     def reset(self):
         obs = self.env.reset()
         obs = self.transform(obs)
+
         return obs
 
     def transform(self, obs):
         old = obs[self.name]
         obs[self.name] = np.eye(self.dim)[old]
+
         return obs
 
 """
@@ -121,6 +163,7 @@ class ActionMap(gym.Wrapper):
         self.old_obs = None
         self.one_hot = len(self.env.observation_space['map'].shape) > 2
         w, h, dim = 0, 0, 0
+
         if self.one_hot:
             h, w, dim = self.env.observation_space['map'].shape
         else:
@@ -134,23 +177,28 @@ class ActionMap(gym.Wrapper):
 
     def reset(self):
         self.old_obs = self.env.reset()
+
         return self.old_obs
 
     def step(self, action):
        #y, x, v = np.unravel_index(np.argmax(action), action.shape)
         y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
+
         if 'pos' in self.old_obs:
             o_x, o_y = self.old_obs['pos']
+
             if o_x == x and o_y == y:
                 obs, reward, done, info = self.env.step(v)
             else:
                 o_v = self.old_obs['map'][o_y][o_x]
+
                 if self.one_hot:
                     o_v = o_v.argmax()
                 obs, reward, done, info = self.env.step(o_v)
         else:
             obs, reward, done, info = self.env.step([x, y, v])
         self.old_obs = obs
+
         return obs, reward, done, info
 
 """
@@ -178,6 +226,7 @@ class Cropped(gym.Wrapper):
         self.pad_value = pad_value
 
         self.observation_space = gym.spaces.Dict({})
+
         for (k,s) in self.env.observation_space.spaces.items():
             self.observation_space.spaces[k] = s
         high_value = self.observation_space[self.name].high.max()
@@ -187,11 +236,13 @@ class Cropped(gym.Wrapper):
         action = get_action(action)
         obs, reward, done, info = self.env.step(action)
         obs = self.transform(obs)
+
         return obs, reward, done, info
 
     def reset(self):
         obs = self.env.reset()
         obs = self.transform(obs)
+
         return obs
 
     def transform(self, obs):
@@ -219,6 +270,7 @@ class CroppedImagePCGRLWrapper(gym.Wrapper):
         # Cropping the map to the correct crop_size
         env = Cropped(self.pcgrl_env, crop_size, self.pcgrl_env.get_border_tile(), 'map')
         # Transform to one hot encoding if not binary
+
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
         # Indices for flatting
@@ -241,6 +293,7 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         # Add the action map wrapper
         env = ActionMap(env)
         # Transform to one hot encoding if not binary
+
         if 'binary' not in game:
             env = OneHotEncoding(env, 'map')
         # Final Wrapper has to be ToImage or ToFlat
