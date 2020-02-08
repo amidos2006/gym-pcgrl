@@ -126,7 +126,7 @@ class ZeldaProblem(Problem):
         rewards = {
             "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
             "key": get_range_reward(new_stats["key"], old_stats["key"], 1, 1),
-            "door": get_range_reward(new_stats["door"], old_stats["door"], 1, 1),
+            "door": get_range_reward(new_stats["door"], old_stats["door"], 1, 10),
             "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], 2, self._max_enemies),
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
             "nearest-enemy": get_range_reward(new_stats["nearest-enemy"], old_stats["nearest-enemy"], self._target_enemy_dist, np.inf),
