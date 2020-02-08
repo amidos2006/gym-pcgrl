@@ -16,10 +16,14 @@ class PlayPcgrlEnv(PcgrlEnv):
         self.trg_agent = 0
         # whose turn it is
         self.active_agent = 0
-        self.player_actions = [(1, 0), (0, 1), (-1, 0), (0, 0), (0, -1)]
+        self.player_actions = [(1, 0),
+                (0, 1), (-1, 0),
+               #(0, 0),
+                (0, -1)]
         self.player_action_space = Discrete(len(self.player_actions))
         self.player_rew = 0
         self.next_rep_map = None
+        self.player_coords = None
 
     def get_player_action_space(self):
         return self.player_action_space
@@ -78,13 +82,17 @@ class PlayPcgrlEnv(PcgrlEnv):
         return
 
     def play(self, move):
+        if self._prob.player_coords is None:
+            self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+            if self._prob.player_coords is None:
+                self._prob.player_coords = 3, 3
+        assert self._prob.player_coords is not None
         x, y = self._prob.player_coords
         tile_types = self._prob.get_tile_types()
         player_chan = self._rep._map[y, x]
        #assert tile_types[player_chan] == 'player'
         dx, dy = move[0], move[1]
         x_t, y_t = x + dx, y + dy
-
         if x_t >= self._prob._width or y_t >= self._prob._width or x_t < 0 or y_t < 0:
             # check for out of bounds
             pass

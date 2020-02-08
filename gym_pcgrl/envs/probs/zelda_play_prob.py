@@ -12,7 +12,7 @@ class ZeldaPlayProblem(ZeldaProblem):
         self.playable = False
         self.active_agent = 0
         # applies only to player turns
-        self.player_coords = (0, 0)
+        self.player_coords = None
         self.play_rew = 0
 
     def get_stats(self, map):
@@ -30,8 +30,8 @@ class ZeldaPlayProblem(ZeldaProblem):
 
         if map_stats["player"] > 0 and map_stats["key"] > 0:#and map_stats["regions"] == 1 and map_stats["key"] >= 1:
             self.playable = True
-        else:
-            self.playable = False
+       #else:
+       #    self.playable = False
         if len(players) > 0:
             self.player_coords = players[0]
 
@@ -40,7 +40,7 @@ class ZeldaPlayProblem(ZeldaProblem):
     def reset(self, rep_stats):
         super().reset(rep_stats)
         self.play_rew = 0
-        self.playable = False
+       #self.playable = False
 
 
     def get_reward(self, new_stats, old_stats):
@@ -49,26 +49,6 @@ class ZeldaPlayProblem(ZeldaProblem):
             return self.get_designer_reward(new_stats, old_stats)
         return self.play_rew
 
-       #if map_stats["player"] == 1 and map_stats["regions"] == 1:
-       #    p_x,p_y = map_locations["player"][0]
-       #    enemies = []
-       #    enemies.extend(map_locations["spider"])
-       #    enemies.extend(map_locations["bat"])
-       #    enemies.extend(map_locations["scorpion"])
-       #    if len(enemies) > 0:
-       #        dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "player", "bat", "spider", "scorpion"])
-       #        min_dist = self._width * self._height
-       #        for e_x,e_y in enemies:
-       #            if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
-       #                min_dist = dikjstra[e_y][e_x]
-       #        map_stats["nearest-enemy"] = min_dist
-       #    if map_stats["key"] == 1 and map_stats["door"] == 1:
-       #        k_x,k_y = map_locations["key"][0]
-       #        d_x,d_y = map_locations["door"][0]
-       #        dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
-       #        map_stats["path-length"] += dikjstra[k_y][k_x]
-       #        dikjstra,_ = run_dikjstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
-       #        map_stats["path-length"] += dikjstra[d_y][d_x]
 
 
     def get_designer_reward(self, new_stats, old_stats):
