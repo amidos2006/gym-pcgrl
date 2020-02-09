@@ -56,17 +56,17 @@ class ZeldaPlayProblem(ZeldaProblem):
         rewards = {
             "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
             "key": get_range_reward(new_stats["key"], old_stats["key"], 1, 64),
-       #    "door": get_range_reward(new_stats["door"], old_stats["door"], 1, 1),
-       #    "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], 2, self._max_enemies),
-       #    "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
-       #    "nearest-enemy": get_range_reward(new_stats["nearest-enemy"], old_stats["nearest-enemy"], self._target_enemy_dist, np.inf),
-       #    "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
+            "door": get_range_reward(new_stats["door"], old_stats["door"], 1, 1),
+            "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], 2, self._max_enemies),
+            "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
+           #"nearest-enemy": get_range_reward(new_stats["nearest-enemy"], old_stats["nearest-enemy"], self._target_enemy_dist, np.inf),
+           #"path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
         }
         #calculate the total reward
         return rewards["player"] * self._rewards["player"] +\
-            rewards["key"] * self._rewards["key"]#+\
-           #rewards["door"] * self._rewards["door"] +\
-           #rewards["enemies"] * self._rewards["enemies"] +\
-           #rewards["regions"] * self._rewards["regions"] +\
+            rewards["key"] * self._rewards["key"] +\
+            rewards["door"] * self._rewards["door"] +\
+            rewards["enemies"] * self._rewards["enemies"] +\
+            rewards["regions"] * self._rewards["regions"]#+\
            #rewards["nearest-enemy"] * self._rewards["nearest-enemy"] +\
            #rewards["path-length"] * self._rewards["path-length"]

@@ -28,52 +28,39 @@ class PlayPcgrlEnv(PcgrlEnv):
     def get_player_action_space(self):
         return self.player_action_space
 
-    def step(self, action):
-       #print(self.active_agent)
-        if self.active_agent == 0:
-            obs, rew, done, info = super().step(action)
-        elif self.active_agent == 1:
+    def reset(self):
+        obs = super().reset()
+        if True:
            #print('player coords: {}'.format(self._prob.player_coords))
             if self.next_rep_map is not None:
                 self._rep._map = self.next_rep_map
                 self._next_rep_map = None
                 # for player coords
                 self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
-           #self.
-            action = np.ravel_multi_index(action, (self.h, self.w, self.dim))
+                obs = self._rep.get_observation()
+        return obs
+
+    def step(self, action):
+       #print(self.active_agent)
+        if self.active_agent == 0:
+            obs, rew, done, info = super().step(action)
+          #self.
+           #action = np.ravel_multi_index(action, (self.h, self.w, self.dim))
+        elif self.active_agent == 1:
+            action = action[-1]
             move = self.player_actions[action]
             obs, rew, done, info = self.play(move)
         if self._prob.playable:
             info['trg_agent'] = self.trg_agent
             info['playable_map'] = self._rep._map
             # won't be overwritten by reset
-            self._next_rep_map = self._rep._map
+           #self._next_rep_map = self._rep._map
 
         return obs, rew, done, info
 
-   #def set_map(self, map):
-   #    self.next_rep_map = map
-       #self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
-       #self.
-       #self._prob.reset(self._rep_stats)
-
-
-    def reset(self):
-        self.player_rew = 0
-        if self.active_agent == 0 and self._prob.playable: #and self._prob.playable:
-            self.trg_agent = 1
-            self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
-            self._heatmap = np.zeros((self._prob._height, self._prob._width))
-
-            observation = self._rep.get_observation()
-            observation["heatmap"] = self._heatmap.copy()
-
-            return observation
-        else:
-            self.trg_agent = 0
-            self._prob.trg_agent = 0
-
-            return super().reset()
+    def set_map(self, map):
+       #self.next_rep_map = map
+        self.next_rep_map = self._rep._map
 
     def set_active_agent(self, n_agent):
         self.active_agent = n_agent
@@ -102,9 +89,9 @@ class PlayPcgrlEnv(PcgrlEnv):
 
             if trg_chan == 1:
                 pass
-            elif trg_chan == 3:
-                self._prob.play_rew += 1
-            if trg_chan in [0, 3]:
+            elif trg_chan == 3 and self._prob.play_rew == 0:
+                self._prob.play_rew = 1
+            if trg_chan != 1:
                 self._rep.update([x, y, 0])
                 self._rep.update([x_t, y_t, 2])
                 self._prob.player_coords = x_t, y_t

@@ -23,6 +23,7 @@ class MaxStep(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
 
         self.max_step = max_step
+        self.unwrapped.max_step = max_step
         self.n_step = 0
         gym.Wrapper.__init__(self, self.env)
 
