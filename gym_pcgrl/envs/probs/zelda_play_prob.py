@@ -45,8 +45,8 @@ class ZeldaPlayProblem(ZeldaProblem):
 
     def get_reward(self, new_stats, old_stats):
         if self.active_agent == 0:
-           #return 0
-            return self.get_designer_reward(new_stats, old_stats)
+            return 0
+           #return self.get_designer_reward(new_stats, old_stats)
         return self.play_rew
 
 

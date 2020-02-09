@@ -21,6 +21,7 @@ class PlayPcgrlEnv(PcgrlEnv):
                #(0, 0),
                 (0, -1)]
         self.player_action_space = Discrete(len(self.player_actions))
+        self.won = False
         self.player_rew = 0
         self.next_rep_map = None
         self.player_coords = None
@@ -29,15 +30,14 @@ class PlayPcgrlEnv(PcgrlEnv):
         return self.player_action_space
 
     def reset(self):
+        self.won = False
         obs = super().reset()
-        if True:
-           #print('player coords: {}'.format(self._prob.player_coords))
-            if self.next_rep_map is not None:
-                self._rep._map = self.next_rep_map
-                self._next_rep_map = None
-                # for player coords
-                self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
-                obs = self._rep.get_observation()
+        if self.next_rep_map is not None:
+            self._rep._map = self.next_rep_map
+            self._next_rep_map = None
+            # for player coords
+            self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+            obs = self._rep.get_observation()
         return obs
 
     def step(self, action):
@@ -89,8 +89,11 @@ class PlayPcgrlEnv(PcgrlEnv):
 
             if trg_chan == 1:
                 pass
-            elif trg_chan == 3 and self._prob.play_rew == 0:
-                self._prob.play_rew = 1
+            elif trg_chan == 3 and not self.won:
+                self._prob.play_rew = self.max_step - self._iteration
+                self.won = True
+            else:
+                self._prob.play_rew = 0
             if trg_chan != 1:
                 self._rep.update([x, y, 0])
                 self._rep.update([x_t, y_t, 2])
