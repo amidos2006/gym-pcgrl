@@ -26,13 +26,20 @@ class PlayPcgrlEnv(PcgrlEnv):
         self.next_rep_map = None
         self.player_coords = None
 
+    def set_max_step(self, max_step):
+        self._prob.max_step = max_step
+
     def get_player_action_space(self):
         return self.player_action_space
 
     def reset(self):
         self.won = False
         obs = super().reset()
+        # FIXME: active agent is supposed to be 1 (player) for this reset?
         if self.next_rep_map is not None:
+           #print()
+           #print(self.active_agent)
+           #print('USING LAST MAP')
             self._rep._map = self.next_rep_map
             self._next_rep_map = None
             # for player coords
@@ -60,7 +67,12 @@ class PlayPcgrlEnv(PcgrlEnv):
 
     def set_map(self, map):
        #self.next_rep_map = map
-        self.next_rep_map = self._rep._map
+       #if self.active_agent == 0:
+       #    return
+        if map is None:
+            self.next_rep_map = None
+        else:
+            self.next_rep_map = self._rep._map
 
     def set_active_agent(self, n_agent):
         self.active_agent = n_agent
@@ -69,14 +81,14 @@ class PlayPcgrlEnv(PcgrlEnv):
         return
 
     def play(self, move):
-        if self._prob.player_coords is None:
+        if self._prob.player.coords is None:
             self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
-            if self._prob.player_coords is None:
-                self._prob.player_coords = 3, 3
-        assert self._prob.player_coords is not None
-        x, y = self._prob.player_coords
-        tile_types = self._prob.get_tile_types()
-        player_chan = self._rep._map[y, x]
+            if self._prob.player.coords is None:
+                self._prob.player.coords = 3, 3
+        assert self._prob.player.coords is not None
+        x, y = self._prob.player.coords
+        player_chan = 2
+       #player_chan = self._rep._map[y, x]
        #assert tile_types[player_chan] == 'player'
         dx, dy = move[0], move[1]
         x_t, y_t = x + dx, y + dy
@@ -85,19 +97,11 @@ class PlayPcgrlEnv(PcgrlEnv):
             pass
         else:
             trg_chan = self._rep._map[y_t, x_t]
-            # impassable tiles
-
-            if trg_chan == 1:
-                pass
-            elif trg_chan == 3 and not self.won:
-                self._prob.play_rew = self.max_step - self._iteration
-                self.won = True
-            else:
-                self._prob.play_rew = 0
-            if trg_chan != 1:
+            passable = self._prob.move_player(trg_chan)
+            if passable:
                 self._rep.update([x, y, 0])
-                self._rep.update([x_t, y_t, 2])
-                self._prob.player_coords = x_t, y_t
+                self._rep.update([x_t, y_t, player_chan])
+                self._prob.player.coords = x_t, y_t
         obs = self._rep.get_observation()
         rew = self._prob.get_reward(None, None)
         done = False
