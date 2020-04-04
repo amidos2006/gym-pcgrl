@@ -24,10 +24,7 @@ class PlayPcgrlEnv(PcgrlEnv):
         self.won = False
         self.player_rew = 0
         self.next_rep_map = None
-        self.player_coords = None
 
-    def set_max_step(self, max_step):
-        self._prob.max_step = max_step
 
     def get_player_action_space(self):
         return self.player_action_space
@@ -56,12 +53,14 @@ class PlayPcgrlEnv(PcgrlEnv):
         elif self.active_agent == 1:
             action = action[-1]
             move = self.player_actions[action]
-            obs, rew, done, info = self.play(move)
+            obs, rew, _, info = self.play(move)
         if self._prob.playable:
             info['trg_agent'] = self.trg_agent
             info['playable_map'] = self._rep._map
             # won't be overwritten by reset
            #self._next_rep_map = self._rep._map
+        if done:
+            info['won':]
 
         return obs, rew, done, info
 
@@ -72,7 +71,8 @@ class PlayPcgrlEnv(PcgrlEnv):
         if map is None:
             self.next_rep_map = None
         else:
-            self.next_rep_map = self._rep._map
+           #self.next_rep_map = self._rep._map
+            self.next_rep_map = map
 
     def set_active_agent(self, n_agent):
         self.active_agent = n_agent

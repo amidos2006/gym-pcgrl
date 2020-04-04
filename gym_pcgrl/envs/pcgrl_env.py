@@ -26,6 +26,7 @@ class PcgrlEnv(gym.Env):
     """
     def __init__(self, prob="binary", rep="narrow"):
         self._prob = PROBLEMS[prob]()
+        self.MAP_X = self._prob.MAP_X
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self._iteration = 0
@@ -41,6 +42,9 @@ class PcgrlEnv(gym.Env):
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
 
+    def set_max_step(self, max_step):
+        self._prob.max_step = max_step
+
     """
     Seeding the used random variable to get the same result. If the seed is None,
     it will seed it with random start.
@@ -55,6 +59,9 @@ class PcgrlEnv(gym.Env):
         seed = self._rep.seed(seed)
         self._prob.seed(seed)
         return [seed]
+
+    def get_spaces(self):
+        return self.observation_space.spaces, self.action_space
 
     """
     Resets the environment to the start state
@@ -127,6 +134,7 @@ class PcgrlEnv(gym.Env):
         dictionary: debug information that might be useful to understand what's happening
     """
     def step(self, action):
+       #print('action in pcgrl_env: {}'.format(action))
         self._iteration += 1
         #save copy of the old stats to calculate the reward
         old_stats = self._rep_stats

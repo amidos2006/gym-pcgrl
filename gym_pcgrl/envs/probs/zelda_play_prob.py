@@ -36,7 +36,7 @@ class ZeldaPlayProblem(ZeldaProblem):
     ''' A version of zelda in which a player may control Link and play the game.'''
     def __init__(self, max_step=None):
         super().__init__()
-        self._width = 8
+        self._width = self.MAP_X = 8
         self._height = 8
         self.playable = False
         self.active_agent = 0
