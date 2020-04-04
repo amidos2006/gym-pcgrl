@@ -1,4 +1,4 @@
-#gym_city_glue branch
+# gym_city_glue branch
 
 This branch is intended only to run using the training environment from the relevant [gym-city](https://github.com/smearle/gym-city) branch.
 
