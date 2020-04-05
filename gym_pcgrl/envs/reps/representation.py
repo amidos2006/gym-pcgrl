@@ -108,7 +108,7 @@ class Representation:
     Parameters:
         lvl_image (img): the current level_image without modifications
         tile_size (int): the size of tiles in pixels used in the lvl_image
-        border_size (int): an offeset in tiles if the borders are not part of the level
+        border_size ((int,int)): an offeset in tiles if the borders are not part of the level
 
     Returns:
         img: the modified level image

@@ -2,7 +2,7 @@ from PIL import Image
 import os
 import numpy as np
 from gym_pcgrl.envs.probs.problem import Problem
-from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, calc_num_regions
+from gym_pcgrl.envs.helper import get_range_reward, get_tile_locations, calc_certain_tile, calc_num_regions, get_floor_dist
 from gym_pcgrl.envs.probs.ddave.engine import State,BFSAgent,AStarAgent
 
 """
@@ -150,7 +150,7 @@ class DDaveProblem(Problem):
         map_locations = get_tile_locations(map, self.get_tile_types())
         map_stats = {
             "player": calc_certain_tile(map_locations, ["player"]),
-            "dist-floor": 0,
+            "dist-floor": get_floor_dist(map, ["player"], ["solid"]),
             "exit": calc_certain_tile(map_locations, ["exit"]),
             "diamonds": calc_certain_tile(map_locations, ["diamond"]),
             "key": calc_certain_tile(map_locations, ["key"]),
