@@ -165,9 +165,9 @@ After implementing your own class, you need to add the name and the class in `gy
 
 To read more about the experiments and the different wrappers, check our paper [PCGRL: Procedural Content Generation via Reinforcement Learning](https://arxiv.org/abs/2001.09212).
 
-You can run the code either using the Dockerfile using the following command line after installing [Docker](https://www.docker.com/):
+You can run the code either using the Dockerfile using the following command line after installing [Docker](https://www.docker.com/) and [Nvidia Docker](https://github.com/NVIDIA/nvidia-docker):
 ```sh
-docker image build -t pcgrl:latest . && docker run --runtime=nvidia pcgrl:latest
+docker image build -t pcgrl:latest . && docker run --gpus all pcgrl:latest
 ```
 Another way is to use [Conda](https://www.anaconda.com/) by creating a virtual environment then activating it and installing all the dependencies for [train.py](https://github.com/amidos2006/gym-pcgrl/blob/master/train.py):
 ```sh
