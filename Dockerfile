@@ -9,4 +9,4 @@ COPY setup.py README.md ./
 RUN pip3 install stable_baselines
 RUN pip3 install -e .
 COPY . ./
-CMD ["python3", "run.py"]
+CMD ["python3", "train.py"]
