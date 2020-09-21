@@ -24,20 +24,31 @@ class PlayPcgrlEnv(PcgrlEnv):
         self.won = False
         self.player_rew = 0
         self.next_rep_map = None
+        self.width = 16
 
+    def get_spaces(self):
+        # player and agent have the same observation
+        space_list = super().get_spaces, self.player_action_space
+        return space_list
+
+    def configure(self, map_width=16, **kwargs):
+       #self.width = map_width
+        return None
 
     def get_player_action_space(self):
         return self.player_action_space
 
     def reset(self):
-        self.won = False
+        print('resetting play pcgrl')
         obs = super().reset()
+        self.won = False
         # FIXME: active agent is supposed to be 1 (player) for this reset?
-        if self.next_rep_map is not None:
+        if self.next_rep_map is not None and self.next_rep_map[0] is not None and self.active_agent == 0:
            #print()
            #print(self.active_agent)
-           #print('USING LAST MAP')
-            self._rep._map = self.next_rep_map
+            print('USING LAST MAP')
+            print('last map', self._rep._map, 'next map', self.next_rep_map[0])
+            self._rep._map = self.next_rep_map[0]
             self._next_rep_map = None
             # for player coords
             self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
@@ -53,14 +64,14 @@ class PlayPcgrlEnv(PcgrlEnv):
         elif self.active_agent == 1:
             action = action[-1]
             move = self.player_actions[action]
-            obs, rew, _, info = self.play(move)
+            obs, rew, done, info = self.play(move)
         if self._prob.playable:
             info['trg_agent'] = self.trg_agent
             info['playable_map'] = self._rep._map
             # won't be overwritten by reset
            #self._next_rep_map = self._rep._map
         if done:
-            info['won':]
+            info['won'] = self.won
 
         return obs, rew, done, info
 
@@ -73,6 +84,7 @@ class PlayPcgrlEnv(PcgrlEnv):
         else:
            #self.next_rep_map = self._rep._map
             self.next_rep_map = map
+            print('setting map', map)
 
     def set_active_agent(self, n_agent):
         self.active_agent = n_agent
@@ -106,5 +118,6 @@ class PlayPcgrlEnv(PcgrlEnv):
         rew = self._prob.get_reward(None, None)
         done = False
         info = {}
+        info['won'] = self.won
 
         return obs, rew, done, info

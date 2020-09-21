@@ -34,7 +34,7 @@ class Player():
 class ZeldaPlayProblem(ZeldaProblem):
 
     ''' A version of zelda in which a player may control Link and play the game.'''
-    def __init__(self, max_step=None):
+    def __init__(self, max_step=200):
         super().__init__()
         self._width = self.MAP_X = 8
         self._height = 8
@@ -43,6 +43,7 @@ class ZeldaPlayProblem(ZeldaProblem):
         # applies only to player turns
         self.player = Player()
         self.win_time = 0
+        self.max_step = max_step
         # one key and one door
 
 
