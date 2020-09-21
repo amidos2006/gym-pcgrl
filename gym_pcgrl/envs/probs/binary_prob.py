@@ -13,16 +13,26 @@ class BinaryProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 14
-        self._height = 14
+        self._width = 16
+        self._height = 16
         self._prob = {"empty": 0.5, "solid":0.5}
         self._border_tile = "solid"
 
-        self._target_path = 20
+        self._target_path = np.inf
         self._random_probs = True
+        # for use with ParamRew
+        self.metric_trgs = {
+                'regions': 1, 
+                'path-length': 100
+                }
+        self.param_bounds = {'regions': (0, self._width * self._height // (3 * 3)),
+                'path-length': (0, 100)}
+        self.weights = {'regions': 1,
+                'path-length': 1,
+                }
 
         self._rewards = {
-            "regions": 5,
+            "regions": 0,
             "path-length": 1
         }
 
@@ -99,7 +109,7 @@ class BinaryProblem(Problem):
         #longer path is rewarded and less number of regions is rewarded
         rewards = {
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
-            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], np.inf, np.inf)
+            "path-length": get_range_reward(new_stats["path-length"],old_stats["path-length"], 125, 125)
         }
         #calculate the total reward
         return rewards["regions"] * self._rewards["regions"] +\

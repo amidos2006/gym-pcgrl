@@ -5,6 +5,7 @@ import numpy as np
 import gym
 from gym import spaces
 import PIL
+import collections
 
 """
 The PCGRL GYM Environment
@@ -26,11 +27,16 @@ class PcgrlEnv(gym.Env):
     """
     def __init__(self, prob="binary", rep="narrow"):
         self._prob = PROBLEMS[prob]()
-        self.MAP_X = self._prob.MAP_X
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
+        self.metrics = {}
+        print('problem metrics trgs: {}'.format(self._prob.metric_trgs))
+        for k in self._prob.metric_trgs:
+            self.metrics[k] = None
+        print('env metrics: {}'.format(self.metrics))
         self._iteration = 0
         self._changes = 0
+        self.width = self._prob._width
         self._max_changes = max(int(0.2 * self._prob._width * self._prob._height), 1)
         self._max_iterations = self._max_changes * self._prob._width * self._prob._height
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
@@ -42,8 +48,32 @@ class PcgrlEnv(gym.Env):
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
 
-    def set_max_step(self, max_step):
+        # For use with gym-city ParamRew wrapper, for dynamically shifting reward targets
+        
+        self.metric_trgs = collections.OrderedDict(self._prob.metric_trgs)
+        self.weights = self._prob.weights
+        self.param_bounds = self._prob.param_bounds
+
+    def configure(self, map_width, max_step=300):
+        self._prob._width = map_width
+        self._prob._height = map_width
+        self.width = map_width
         self._prob.max_step = max_step
+
+
+    def get_param_bounds(self):
+        return self.param_bounds
+
+    def set_param_bounds(self, bounds):
+        #TODO
+        return len(bounds)
+
+    def set_params(self, trgs):
+        for k, v in trgs.items():
+            self.metric_trgs[k] = v
+
+    def display_metric_trgs(self):
+        pass
 
     """
     Seeding the used random variable to get the same result. If the seed is None,
@@ -58,6 +88,7 @@ class PcgrlEnv(gym.Env):
     def seed(self, seed=None):
         seed = self._rep.seed(seed)
         self._prob.seed(seed)
+
         return [seed]
 
     def get_spaces(self):
@@ -75,11 +106,13 @@ class PcgrlEnv(gym.Env):
         self._iteration = 0
         self._rep.reset(self._prob._width, self._prob._height, get_int_prob(self._prob._prob, self._prob.get_tile_types()))
         self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+        self.metrics = self._rep_stats
         self._prob.reset(self._rep_stats)
         self._heatmap = np.zeros((self._prob._height, self._prob._width))
 
         observation = self._rep.get_observation()
         observation["heatmap"] = self._heatmap.copy()
+
         return observation
 
     """
@@ -140,14 +173,19 @@ class PcgrlEnv(gym.Env):
         old_stats = self._rep_stats
         # update the current state to the new state based on the taken action
         change, x, y = self._rep.update(action)
+
         if change > 0:
             self._changes += change
             self._heatmap[y][x] += 1.0
             self._rep_stats = self._prob.get_stats(get_string_map(self._rep._map, self._prob.get_tile_types()))
+            self.metrics = self._rep_stats
         # calculate the values
         observation = self._rep.get_observation()
         observation["heatmap"] = self._heatmap.copy()
-        reward = self._prob.get_reward(self._rep_stats, old_stats)
+        # FIXME: we should skip this calculation when using the ParamRew wrapper. Should have this toggled
+        # automatically.
+        reward = None
+       #reward = self._prob.get_reward(self._rep_stats, old_stats)
         done = self._prob.get_episode_over(self._rep_stats,old_stats) or self._changes >= self._max_changes or self._iteration >= self._max_iterations
         info = self._prob.get_debug_info(self._rep_stats,old_stats)
         info["iterations"] = self._iteration
@@ -155,6 +193,7 @@ class PcgrlEnv(gym.Env):
         info["max_iterations"] = self._max_iterations
         info["max_changes"] = self._max_changes
         #return the values
+
         return observation, reward, done, info
 
     """
@@ -170,15 +209,19 @@ class PcgrlEnv(gym.Env):
         tile_size=16
         img = self._prob.render(get_string_map(self._rep._map, self._prob.get_tile_types()))
         img = self._rep.render(img, self._prob._tile_size, self._prob._border_size).convert("RGB")
+
         if mode == 'rgb_array':
             return img
         elif mode == 'human':
             from gym.envs.classic_control import rendering
+
             if self.viewer is None:
                 self.viewer = rendering.SimpleImageViewer()
+
             if not hasattr(img, 'shape'):
                 img = np.array(img)
             self.viewer.imshow(img)
+
             return self.viewer.isopen
 
     """
