@@ -174,7 +174,7 @@ Another way is to use [Conda](https://www.anaconda.com/) by creating a virtual e
 conda create --name pcgrl
 conda activate pcgrl
 pip install tensorflow==1.15
-pip install stable-baselines
+pip install stable-baselines==2.9.0
 cd gym_pcgrl
 pip install -e .
 cd ..
@@ -183,7 +183,7 @@ python train.py
 Lastly, you can just install directly without using any virtual environment:
 ```sh
 pip install tensorflow==1.15
-pip install stable-baselines
+pip install stable-baselines==2.9.0
 cd gym_pcgrl
 pip install -e .
 cd ..
@@ -203,7 +203,7 @@ Here is a cool GIF when running these models:
 	<img height="400px" src="allgames.gif"/>
 </p>
 
-PS: All the models for Sokoban Narrow and Turtle and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method than python 3.6 and 3.7. When try to load them in python 3.6 or 3.7, you will get an unknown op code error so make sure that you are using the correct python version. We apologize for this mess and we are working on training new models using python 3.7 to replace these ones. Remember if you get unknown opcode, it is because of the serialization method. We didn't know about that issue until later, sorry again for any inconvenience.
+PS: All the models for Sokoban Narrow, Sokoban Turtle, and the third model of Zelda Turtle has been saved using python 3.5 which have a different serialization method than python 3.6 and 3.7. When try to load them in python 3.6 or 3.7, you will get an unknown op code error so make sure that you are using the correct python version. We apologize for this mess and we are working on training new models using python 3.7 to replace these ones. Remember if you get unknown opcode, it is because of the serialization method. We didn't know about that issue until later, sorry again for any inconvenience. One last note, Python 3.6 can't load Binary Narrow and Zelda Narrow so make sure to use python 3.7 for all the models except the one that needs python 3.5.
 
 ## Contributing
 Bug reports and pull requests are welcome on GitHub at [https://github.com/amidos2006/gym-pcgrl](https://github.com/amidos2006/gym-pcgrl).
