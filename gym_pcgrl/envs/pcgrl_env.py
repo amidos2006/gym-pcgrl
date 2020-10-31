@@ -25,7 +25,7 @@ class PcgrlEnv(gym.Env):
         rep (string): the current representation. This name has to be defined in REPRESENTATIONS
         constant in gym_pcgrl.envs.reps.__init__.py
     """
-    def __init__(self, prob="binary", rep="narrow"):
+    def __init__(self, prob="binary", rep="narrow", **kwargs):
         self._prob = PROBLEMS[prob]()
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None

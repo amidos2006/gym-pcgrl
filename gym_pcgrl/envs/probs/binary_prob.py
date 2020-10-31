@@ -32,8 +32,8 @@ class BinaryProblem(Problem):
                 }
 
         self._rewards = {
-            "regions": 0,
-            "path-length": 1
+            "regions": 1,
+            "path-length": 100
         }
 
     """
