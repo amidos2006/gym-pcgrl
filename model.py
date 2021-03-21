@@ -3,7 +3,7 @@ import tensorflow as tf
 from tensorflow.keras import layers
 from gym import spaces
 import numpy as np
-from stable_baselines3.common.policies import ActorCriticPolicy, MlpExtractor
+from stable_baselines3.common.policies import ActorCriticPolicy, MlpExtractor, ActorCriticCnnPolicy
 from stable_baselines3.common.distributions import CategoricalDistribution, Distribution
 import torch
 #from stable_baselines3.a2c.utils import conv, linear, conv_to_fc
@@ -11,79 +11,93 @@ conv = torch.nn.Conv2d
 linear = torch.nn.Linear
 conv_to_fc = torch.nn.Flatten
 
-def Cnn1(image, **kwargs):
-    activ = tf.nn.relu
-    layer_1 = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    layer_3 = conv_to_fc(layer_3)
+#def Cnn1(image, **kwargs):
+#    activ = tf.nn.relu
+#    layer_1 = activ(conv(image, 32, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
+#    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
+#    layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
+#    layer_3 = conv_to_fc(layer_3)
+#
+#    return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
 
-    return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
+class Cnn2(torch.nn.Module):
+    def __init__(self, observation_space, **kwargs):
+        super().__init__()
 
-def Cnn2(image, **kwargs):
-    activ = tf.nn.relu
-    layer_1 = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs))
-    layer_2 = activ(conv(layer_1, 'c2', n_filters=64, filter_size=3, stride=2, init_scale=np.sqrt(2), **kwargs))
-    layer_3 = activ(conv(layer_2, 'c3', n_filters=64, filter_size=3, stride=1, init_scale=np.sqrt(2), **kwargs))
-    layer_3 = conv_to_fc(layer_3)
+        n_chan = observation_space.shape[2]
+        self.features_dim = 512
+        self.c1 = (conv(in_channels=n_chan, out_channels=32, kernel_size=3, stride=2, **kwargs))
+        self.c2 = (conv(32, 64, kernel_size=3, stride=2, **kwargs))
+        self.c3 = (conv(64, 64, kernel_size=3, stride=1, **kwargs))
+        self.flatten = conv_to_fc()
+        self.l1 = linear(1024, 512)
 
-    return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
+    def forward(self, image):
+        image = image.permute(0, 3, 1, 2)
+        activ = torch.nn.functional.relu
+        x = activ(self.c1(image))
+        x = activ(self.c2(x))
+        x = activ(self.c3(x))
+        x = self.flatten(x)
+        x = activ(self.l1(x))
 
-def FullyConv1(image, n_tools, **kwargs):
-    activ = tf.nn.relu
-    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c4', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c5', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c6', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c7', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c8', n_filters=n_tools, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    act = conv_to_fc(x)
-    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(2)))
-    val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
-        init_scale=np.sqrt(2)))
-    val = conv_to_fc(val)
+        return x
 
-    return act, val
-
-def FullyConv2(image, n_tools, **kwargs):
-    activ = tf.nn.relu
-    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c4', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c5', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c6', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c7', n_filters=64, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    x = activ(conv(x, 'c8', n_filters=n_tools, filter_size=3, stride=1,
-        pad='SAME', init_scale=np.sqrt(2)))
-    act = conv_to_fc(x)
-    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(2)))
-    val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(3)))
-    val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
-        init_scale=np.sqrt(2)))
-    val = conv_to_fc(val)
-
-    return act, val
+#def FullyConv1(image, n_tools, **kwargs):
+#    activ = tf.nn.relu
+#    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c4', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c5', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c6', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c7', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c8', n_filters=n_tools, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    act = conv_to_fc(x)
+#    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
+#        init_scale=np.sqrt(2)))
+#    val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
+#        init_scale=np.sqrt(2)))
+#    val = conv_to_fc(val)
+#
+#    return act, val
+#
+#def FullyConv2(image, n_tools, **kwargs):
+#    activ = tf.nn.relu
+#    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c4', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c5', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c6', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c7', n_filters=64, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    x = activ(conv(x, 'c8', n_filters=n_tools, filter_size=3, stride=1,
+#        pad='SAME', init_scale=np.sqrt(2)))
+#    act = conv_to_fc(x)
+#    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
+#        init_scale=np.sqrt(2)))
+#    val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
+#        init_scale=np.sqrt(3)))
+#    val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
+#        init_scale=np.sqrt(2)))
+#    val = conv_to_fc(val)
+#
+#    return act, val
 
 #class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType):
 #    def __init__(self, n_cat):
@@ -169,10 +183,10 @@ def FullyConv2(image, n_tools, **kwargs):
 #    def value(self, obs, state=None, mask=None):
 #        return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
-class CustomPolicyBigMap(FeedForwardPolicy):
+class CustomPolicyBigMap(ActorCriticCnnPolicy):
     def __init__(self, *args, **kwargs):
-        super(CustomPolicyBigMap, self).__init__(*args, **kwargs, cnn_extractor=Cnn2, feature_extraction="cnn")
+        super(CustomPolicyBigMap, self).__init__(*args, **kwargs, features_extractor_class=Cnn2)#, feature_extraction="cnn")
 
-class CustomPolicySmallMap(FeedForwardPolicy):
-    def __init__(self, *args, **kwargs):
-        super(CustomPolicySmallMap, self).__init__(*args, **kwargs, cnn_extractor=Cnn1, feature_extraction="cnn")
+#class CustomPolicySmallMap(ActorCriticCnnPolicy):
+#    def __init__(self, *args, **kwargs):
+#        super(CustomPolicySmallMap, self).__init__(*args, **kwargs, features_extractor_class=Cnn1)#, feature_extraction="cnn")

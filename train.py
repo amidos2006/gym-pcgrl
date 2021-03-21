@@ -2,11 +2,11 @@
 #Install stable-baselines as described in the documentation
 
 import model
-#from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
-from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
+from stable_baselines3.common.policies import ActorCriticCnnPolicy
+from model import CustomPolicyBigMap
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
-from stable_baselines3 import PPO2
-from stable_baselines3.results_plotter import load_results, ts2xy
+from stable_baselines3 import PPO
+from stable_baselines3.common.results_plotter import load_results, ts2xy
 
 import tensorflow as tf
 import numpy as np
@@ -18,7 +18,7 @@ best_mean_reward, n_steps = -np.inf, 0
 
 def callback(_locals, _globals):
     """
-    Callback called at each step (for DQN an others) or after n steps (see ACER or PPO2)
+    Callback called at each step (for DQN an others) or after n steps (see ACER or PPO)
     :param _locals: (dict)
     :param _globals: (dict)
     """
@@ -59,9 +59,12 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 #       if game == "sokoban":
 #           policy = FullyConvPolicySmallMap
     else:
+#       policy = ActorCriticCnnPolicy
         policy = CustomPolicyBigMap
         if game == "sokoban":
-            policy = CustomPolicySmallMap
+            T()
+#           policy = CustomPolicySmallMap
+#           policy = CustomPolicySmallMap
     if game == "binary":
         kwargs['cropped_size'] = 28
     elif game == "zelda":
@@ -87,7 +90,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         used_dir = None
     env = make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs)
     if not resume or model is None:
-        model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
+        model = PPO(policy, env, verbose=1, tensorboard_log="./runs")
     else:
         model.set_env(env)
     if not logging:

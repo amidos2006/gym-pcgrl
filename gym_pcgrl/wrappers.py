@@ -450,6 +450,9 @@ class ParamRew(gym.Wrapper):
 
         return reward
 
+import gi 
+gi.require_version("Gtk", "3.0")
+from gi.repository import Gtk, GLib
 
 #FIXME: sometimes the mere existence of this class will break a multi-env micropolis run
 class ParamRewWindow(Gtk.Window):
