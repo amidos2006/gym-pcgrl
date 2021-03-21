@@ -2,10 +2,11 @@
 #Install stable-baselines as described in the documentation
 
 import model
+#from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
 from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBigMap, CustomPolicySmallMap
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
-from stable_baselines import PPO2
-from stable_baselines.results_plotter import load_results, ts2xy
+from stable_baselines3 import PPO2
+from stable_baselines3.results_plotter import load_results, ts2xy
 
 import tensorflow as tf
 import numpy as np
@@ -53,9 +54,10 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
     if representation == 'wide':
-        policy = FullyConvPolicyBigMap
-        if game == "sokoban":
-            policy = FullyConvPolicySmallMap
+        T()
+#       policy = FullyConvPolicyBigMap
+#       if game == "sokoban":
+#           policy = FullyConvPolicySmallMap
     else:
         policy = CustomPolicyBigMap
         if game == "sokoban":
