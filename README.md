@@ -1,6 +1,29 @@
-# gym_city_glue branch
+# conditional branch
 
-This branch is intended only to run using the training environment from the relevant [gym-city](https://github.com/smearle/gym-city) branch.
+This is an experimental branch in which we attempt to control the character of the generated levels by providing the generator-agent with conditional inputs corresponding to target features (e.g. number of enemies, number of connected regions, longest shortest path, etc.). The agent's ability to approach these targets is its reward. We sample these targets from perlin noise throughout each episode so that the agent will learn to respond to human guidance in real time.
+
+## Installation
+
+Install [GTK3](https://www.gtk.org/docs/installations/) (this is for displaying the window for controlling conditional variables).
+
+Set up a virtual environment with [anaconda](https://docs.anaconda.com/anaconda/install/):
+```
+conda create --name cpcgrl python==3.8
+conda activate cpcgrl
+conda install pytorch torchvision torchaudio cudatoolkit=10.2 -c pytorch
+python -m pip install -r requirements.txt
+```
+
+(this involves installing pytorch as per their [start page](https://pytorch.org/get-started/locally/)).
+
+Then train an agent with 
+```
+python train.py
+```
+and run inference on it with
+```
+python infer.py
+```
 
 # master branch Readme
 
