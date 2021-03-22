@@ -77,7 +77,7 @@ class ParamRew(gym.Wrapper):
         scalars = super().getState()
        #trg_weights = [v for k, v in self.weights.items()]
        #scalars += trg_weights
-        print(scalars)
+        print('scalars: ', scalars)
         raise Exception
         return scalars
 
@@ -113,6 +113,7 @@ class ParamRew(gym.Wrapper):
        #    i += 1
 
 
+       #print('set trgs {}'.format(self.metric_trgs))
         self.display_metric_trgs()
 
     def reset(self):
@@ -347,13 +348,14 @@ class NoiseyTargets(gym.Wrapper):
         self.noise = OpenSimplex()
         # Do not reset n_step
         self.n_step = 0
+        self.X, self.Y = np.random.random(2) * 10000
     
     def step(self, a):
         cond_bounds = self.cond_bounds
         trgs = {} 
         i = 0
         for k in self.env.usable_metrics:
-            trgs[k] = self.noise.noise2d(x=self.n_step/400, y=i*100)
+            trgs[k] = self.noise.noise2d(x=self.X + self.n_step/400, y=self.Y + i*100)
             i += 1
 
         i = 0

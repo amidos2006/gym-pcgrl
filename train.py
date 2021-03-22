@@ -79,10 +79,6 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     if not resume:
         n = n + 1
     log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
-    if not resume:
-        os.mkdir(log_dir)
-    else:
-        model = load_model(log_dir)
     kwargs = {
         **kwargs,
         'render_rank': 0,
@@ -92,6 +88,11 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     if not logging:
         used_dir = None
     kwargs.update({'render': render})
+    if not resume:
+        os.mkdir(log_dir)
+    else:
+        model = load_model(log_dir)
+
     env = make_vec_envs(env_name, representation, log_dir, **kwargs)
     if not resume or model is None:
         model = PPO(policy, env, verbose=1, tensorboard_log="./runs")
@@ -119,7 +120,7 @@ representation = 'turtle'
 steps = 1e8
 render = False
 logging = True
-n_cpu = 30
+n_cpu = 50
 resume = False
 #################
 
