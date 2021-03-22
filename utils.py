@@ -46,6 +46,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
     '''
     max_step = kwargs.get('max_step', None)
     render = kwargs.get('render', False)
+    conditional = kwargs.get('conditional', False)
     def _thunk():
         if representation == 'wide':
             env = wrappers.ActionMapImagePCGRLWrapper(env_name, **kwargs)
@@ -55,6 +56,10 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         # RenderMonitor must come last
         if render or log_dir is not None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)
+        if conditional:
+            env = wrappers.ParamRew(env, cond_metrics=kwargs.pop('cond_metrics'), **kwargs)
+            env.configure(**kwargs)
+            env = wrappers.NoiseyTargets(env, **kwargs)
         return env
     return _thunk
 

@@ -98,6 +98,12 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
+cond_metrics = {
+        'binary': ['regions'],
+        'zelda': ['num_enemies'],
+        'sokoban': ['num_boxes'],
+        }
+
 ################################## MAIN ########################################
 game = 'binary'
 representation = 'narrow'
@@ -105,9 +111,11 @@ experiment = None
 steps = 1e8
 render = False
 logging = True
-n_cpu = 50
+n_cpu = 1
 kwargs = {
-    'resume': False
+    'conditional': True,
+    'cond_metrics': cond_metrics[game],
+    'resume': False,
 }
 
 if __name__ == '__main__':

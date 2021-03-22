@@ -1,3 +1,4 @@
+from pdb import set_trace as T
 import os
 import numpy as np
 from PIL import Image
@@ -25,6 +26,17 @@ class BinaryProblem(Problem):
             "regions": 5,
             "path-length": 1
         }
+
+        # conditional inputs/targets
+        self.cond_trgs = {
+                'regions': 1,
+                'path-length': 100,
+                }
+        # boundaries for conditional inputs/targets
+        self.cond_bounds = {
+                'regions': (0, self._width * self._height // (3 * 3)),
+                'path-length': (0, 100),
+                }
 
     """
     Get a list of all the different tile names
