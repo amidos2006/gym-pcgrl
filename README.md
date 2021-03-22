@@ -1,3 +1,9 @@
+# gym_city_glue branch
+
+This branch is intended only to run using the training environment from the relevant [gym-city](https://github.com/smearle/gym-city) branch.
+
+# master branch Readme
+
 <p align="center">
 	<img height="300px" src="logo.png"/>
 </p>

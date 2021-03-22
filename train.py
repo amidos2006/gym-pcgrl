@@ -1,11 +1,13 @@
 #pip install tensorflow==1.15
 #Install stable-baselines as described in the documentation
+from pdb import set_trace as T
 
 import model
 from stable_baselines3.common.policies import ActorCriticCnnPolicy
 from model import CustomPolicyBigMap
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
 from stable_baselines3 import PPO
+#from policy import PPO2
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 
 import tensorflow as tf
@@ -24,7 +26,7 @@ def callback(_locals, _globals):
     """
     global n_steps, best_mean_reward
     # Print stats every 1000 calls
-    if (n_steps + 1) % 10 == 0:
+    if (n_steps + 1) % 1000 == 0:
         x, y = ts2xy(load_results(log_dir), 'timesteps')
         if len(x) > 100:
            #pdb.set_trace()
@@ -37,12 +39,12 @@ def callback(_locals, _globals):
                 best_mean_reward = mean_reward
                 # Example for saving best model
                 print("Saving new best model")
-                _locals['self'].save(os.path.join(log_dir, 'best_model.pkl'))
+                _locals['self'].save(os.path.join(log_dir, 'best_model.zip'))
             else:
                 print("Saving latest model")
-                _locals['self'].save(os.path.join(log_dir, 'latest_model.pkl'))
+                _locals['self'].save(os.path.join(log_dir, 'latest_model.zip'))
         else:
-            print('{} monitor entries'.format(len(x)))
+#           print('{} monitor entries'.format(len(x)))
             pass
     n_steps += 1
     # Returning False will stop training early
@@ -50,13 +52,14 @@ def callback(_locals, _globals):
 
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
+    kwargs['n_cpu'] = n_cpu
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
     if representation == 'wide':
-        T()
-#       policy = FullyConvPolicyBigMap
-#       if game == "sokoban":
+        policy = FullyConvPolicyBigMap
+        if game == "sokoban":
+            T()
 #           policy = FullyConvPolicySmallMap
     else:
 #       policy = ActorCriticCnnPolicy
@@ -88,7 +91,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     used_dir = log_dir
     if not logging:
         used_dir = None
-    env = make_vec_envs(env_name, representation, log_dir, n_cpu, **kwargs)
+    kwargs.update({'render': render})
+    env = make_vec_envs(env_name, representation, log_dir, **kwargs)
     if not resume or model is None:
         model = PPO(policy, env, verbose=1, tensorboard_log="./runs")
     else:
@@ -106,12 +110,12 @@ cond_metrics = {
 
 ################################## MAIN ########################################
 game = 'binary'
-representation = 'narrow'
-experiment = None
+representation = 'turtle'
+experiment = 'conditional_scratch'
 steps = 1e8
 render = False
 logging = True
-n_cpu = 1
+n_cpu = 12
 kwargs = {
     'conditional': True,
     'cond_metrics': cond_metrics[game],

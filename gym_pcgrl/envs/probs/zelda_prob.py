@@ -16,8 +16,8 @@ class ZeldaProblem(Problem):
     """
     def __init__(self):
         super().__init__()
-        self._width = 11
-        self._height = 7
+        self._width = self.MAP_X = 16
+        self._height = 16
         self._prob = {"empty": 0.58, "solid":0.3, "player":0.02, "key": 0.02, "door": 0.02, "bat": 0.02, "scorpion": 0.02, "spider": 0.02}
         self._border_tile = "solid"
 
@@ -126,7 +126,7 @@ class ZeldaProblem(Problem):
         rewards = {
             "player": get_range_reward(new_stats["player"], old_stats["player"], 1, 1),
             "key": get_range_reward(new_stats["key"], old_stats["key"], 1, 1),
-            "door": get_range_reward(new_stats["door"], old_stats["door"], 1, 1),
+            "door": get_range_reward(new_stats["door"], old_stats["door"], 1, 10),
             "enemies": get_range_reward(new_stats["enemies"], old_stats["enemies"], 2, self._max_enemies),
             "regions": get_range_reward(new_stats["regions"], old_stats["regions"], 1, 1),
             "nearest-enemy": get_range_reward(new_stats["nearest-enemy"], old_stats["nearest-enemy"], self._target_enemy_dist, np.inf),
