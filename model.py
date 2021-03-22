@@ -1,15 +1,16 @@
 from pdb import set_trace as T
-import tensorflow as tf
-from tensorflow.keras import layers
 from gym import spaces
 import numpy as np
 from stable_baselines3.common.policies import ActorCriticPolicy, MlpExtractor, ActorCriticCnnPolicy
 from stable_baselines3.common.distributions import CategoricalDistribution, Distribution
 import torch
-#from stable_baselines3.a2c.utils import conv, linear, conv_to_fc
+
 conv = torch.nn.Conv2d
 linear = torch.nn.Linear
 conv_to_fc = torch.nn.Flatten
+
+#TODO: Finish porting models to pytorch
+#TODO: Experiment with different architectures, self-attention..?
 
 #def Cnn1(image, **kwargs):
 #    activ = tf.nn.relu
@@ -183,6 +184,10 @@ class Cnn2(torch.nn.Module):
 #    def value(self, obs, state=None, mask=None):
 #        return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
+################################################################################
+#   Boilerplate policy classes
+################################################################################
+
 class CustomPolicyBigMap(ActorCriticCnnPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicyBigMap, self).__init__(*args, **kwargs, features_extractor_class=Cnn2)#, feature_extraction="cnn")
@@ -190,78 +195,3 @@ class CustomPolicyBigMap(ActorCriticCnnPolicy):
 #class CustomPolicySmallMap(ActorCriticCnnPolicy):
 #    def __init__(self, *args, **kwargs):
 #        super(CustomPolicySmallMap, self).__init__(*args, **kwargs, features_extractor_class=Cnn1)#, feature_extraction="cnn")
-
-
-def ValShrink(val, **kwargs):
-    activ = tf.nn.relu
-    val = activ(conv(val, 'v1', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(2)))
-    val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
-        init_scale=np.sqrt(3)))
-   #val = activ(conv(val, 'v3', n_filters=64, filter_size=3, stride=2,
-   #    init_scale=np.sqrt(2)))
-    val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
-        init_scale=np.sqrt(2)))
-    val = conv_to_fc(val)
-    return val
-
-
-def FractalNet(image, n_tools, n_recs, blocks=[64], **kwargs):
-    '''
-     - blocks: a list, ordered from network in to out, of each block's n_chan
-    '''
-    x = layers.Conv2D(blocks[0], 1, 1, activation='relu')(image) # embedding
-    for n_chan in blocks:
-        x = FractalBlock(x, n_recs, n_chan, **kwargs)
-    act = layers.Conv2D(n_tools, 1, 1, activation='relu')(x)
-    act = conv_to_fc(act)
-    val = layers.Conv2D(1, 1, 1, activation='relu')(x)
-    val = conv_to_fc(val)
-    return act, val
-
-
-def FractalBlock(image, n_recs, n_chan, **kwargs):
-    x = layers.Conv2D(n_chan, 1, 1, activation='relu')(image) # embed
-    child = None
-    for i in range(n_recs):
-        child = SubFractal(child, n_chan, **kwargs)
-    x = tf.expand_dims(x, 0)
-    x = child(x)
-    x = tf.squeeze(x, 0)
-    return x
-
-
-class SubFractal(tf.Module):
-    def __init__(self, child, n_chan, **kwargs):
-        '''
-            -child: a SubFractal or None, if base case
-        '''
-        self.child = child
-        self.skip = AtomicNode(n_chan)
-
-
-    def __call__(self, x, join=True):
-        '''
-        - join: is this subfractal responsible for joining the accumulated outputs?
-        '''
-        x = self.skip(x)
-        if self.child:
-            x_body = self.child(self.child(x, join=True), join=False)
-            x = tf.concat((x, x_body), 0)
-        if join:
-            x = tf.math.reduce_mean(x, 0, keepdims=True)
-        return x
-
-
-class AtomicNode(tf.Module):
-    def __init__(self, n_chan):
-        self.c1 = layers.Conv2D(n_chan, 3, 1, padding='same', activation='relu')
-
-    def __call__(self, x):
-        print(x.shape)
-        x = tf.squeeze(x, 0)
-        x = self.c1(x)
-        x = tf.expand_dims(x, 0)
-        return x
-
-
