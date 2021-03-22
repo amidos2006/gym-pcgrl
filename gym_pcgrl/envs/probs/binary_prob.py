@@ -23,10 +23,10 @@ class BinaryProblem(Problem):
         self._random_probs = True
         # for use with ParamRew
         self.metric_trgs = {
-                'regions': 1, 
-                'path-length': 100
+                'regions': 5, 
+                'path-length': 1,
                 }
-        self.param_bounds = {'regions': (0, self._width * self._height // (3 * 3)),
+        self.param_bounds = {'regions': (0, self._width * self._height // 2),
                 'path-length': (0, 100)}
         self.weights = {'regions': 1,
                 'path-length': 1,

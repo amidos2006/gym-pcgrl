@@ -102,24 +102,38 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
-cond_metrics = {
-        'binary': ['regions'],
+prob_cond_metrics = {
+#       'binary': ['regions'],
+        'binary': ['path-length'],
         'zelda': ['num_enemies'],
         'sokoban': ['num_boxes'],
         }
 
 ################################## MAIN ########################################
+
+### User settings
+conditional = True
 game = 'binary'
+experiment = 'conditional'
 representation = 'turtle'
-experiment = 'conditional_scratch'
 steps = 1e8
 render = False
 logging = True
-n_cpu = 12
+n_cpu = 30
+resume = False
+#################
+
+if conditional:
+    max_step = 500
+    cond_metrics = prob_cond_metrics[game]
+    experiment = '_'.join([experiment] + cond_metrics)
+else:
+    max_step = None
 kwargs = {
-    'conditional': True,
-    'cond_metrics': cond_metrics[game],
-    'resume': False,
+    'conditional': conditional,
+    'cond_metrics': cond_metrics,
+    'resume': resume,
+    'max_step': max_step,
 }
 
 if __name__ == '__main__':

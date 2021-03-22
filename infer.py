@@ -33,8 +33,8 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
     model = load_model(log_dir)
     # no log dir, 1 parallel environment
-    n_cpu = infer_kwargs.get('n_cpu', 12)
-    env = make_vec_envs(env_name, representation, None, n_cpu, **infer_kwargs)
+    n_cpu = infer_kwargs.get('n_cpu')
+    env = make_vec_envs(env_name, representation, None, **infer_kwargs)
     obs = env.reset()
     # Record final values of each trial
     if 'binary' in env_name:
@@ -98,8 +98,9 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             n_trials += 1
     return infer_info
 
-cond_metrics = {
-        'binary': ['regions'],
+prob_cond_metrics = {
+#       'binary': ['regions'],
+        'binary': ['path-length'],
         'zelda': ['num_enemies'],
         'sokoban': ['num_boxes'],
         }
@@ -107,24 +108,33 @@ cond_metrics = {
 # For locating trained model
 game = 'binary'
 representation = 'turtle'
-experiment = 'conditional_scratch'
+experiment = 'conditional'
+conditional = True
 kwargs = {
        #'change_percentage': 1,
        #'target_path': 105,
        #'n': 4, # rank of saved experiment (by default, n is max possible)
         }
 
+if conditional:
+    max_step = 500
+    cond_metrics = prob_cond_metrics[game]
+    experiment = '_'.join([experiment] + cond_metrics)
+else:
+    max_step = None
+
 # For inference
 infer_kwargs = {
        #'change_percentage': 1,
        #'target_path': 200,
         'conditional': True,
-        'cond_metrics': cond_metrics[game],
+        'cond_metrics': cond_metrics,
         'add_visits': False,
         'add_changes': False,
         'add_heatmap': False,
-        'max_step': 10000,
-        'render': True
+        'max_step': max_step,
+        'render': True,
+        'n_cpu': 1,
         }
 
 if __name__ == '__main__':

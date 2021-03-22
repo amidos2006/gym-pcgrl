@@ -105,7 +105,7 @@ class Problem:
         boolean: True if the level reached satisfying quality based on the stats and False otherwise
     """
     def get_episode_over(self, new_stats, old_stats):
-        raise NotImplementedError('get_graphics is not implemented')
+        raise NotImplementedError('get_episode_over is not implemented')
 
     """
     Get any debug information need to be printed
