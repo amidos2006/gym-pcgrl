@@ -104,8 +104,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 prob_cond_metrics = {
-#       'binary': ['regions'],
-        'binary': ['path-length'],
+        'binary': ['regions'],
+#       'binary': ['path-length'],
         'zelda': ['num_enemies'],
         'sokoban': ['num_boxes'],
         }
