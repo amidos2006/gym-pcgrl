@@ -27,10 +27,12 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     if n is None:
-        n = max_exp_idx(exp_name)
+#       n = max_exp_idx(exp_name)
+        n = EXPERIMENT_ID
     if n == 0:
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
-    log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
+#   log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
+    log_dir = 'hpc_runs/runs/{}_{}_{}'.format(exp_name, n, 'log')
     model = load_model(log_dir)
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
@@ -99,13 +101,15 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     return infer_info
 
 prob_cond_metrics = {
-#       'binary': ['regions'],
-        'binary': ['path-length'],
+        'binary': ['regions'],
+#       'binary': ['path-length'],
         'zelda': ['num_enemies'],
         'sokoban': ['num_boxes'],
         }
 
 # For locating trained model
+global EXPERIMENT_ID
+EXPERIMENT_ID = 1
 game = 'binary'
 representation = 'turtle'
 experiment = 'conditional'

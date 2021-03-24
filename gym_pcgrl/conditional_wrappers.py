@@ -11,7 +11,7 @@ class ParamRew(gym.Wrapper):
     def __init__(self, env, cond_metrics, rand_params=False, **kwargs):
 
         self.render_gui = kwargs.get('render')
-        # Whether to always select random parameters, to stabilize learning multiple objectives 
+        # Whether to always select random parameters, to stabilize learning multiple objectives
         # (i.e. prevent overfitting to some subset of objectives)
 #       self.rand_params = rand_params
         self.env = env
@@ -42,6 +42,7 @@ class ParamRew(gym.Wrapper):
         for k in self.usable_metrics:
             v = self.metrics[k]
             self.weights[k] = self.unwrapped.weights[k]
+
         for k in self.usable_metrics:
             self.cond_bounds['{}_weight'.format(k)] = (0, 1)
         self.width = self.unwrapped.width
@@ -61,6 +62,7 @@ class ParamRew(gym.Wrapper):
         high = np.vstack((metrics_high, high))
         self.observation_space = gym.spaces.Box(low=low, high=high)
         self.next_trgs = None
+
         if self.render_gui and True:
             screen_width = 200
             screen_height = 100 * self.num_params
@@ -79,6 +81,7 @@ class ParamRew(gym.Wrapper):
        #scalars += trg_weights
         print('scalars: ', scalars)
         raise Exception
+
         return scalars
 
     def set_trgs(self, trgs):
@@ -124,14 +127,17 @@ class ParamRew(gym.Wrapper):
         self.metrics = self.unwrapped.metrics
         self.last_metrics = copy.deepcopy(self.metrics)
         self.n_step = 0
+
         return ob
 
     def observe_metric_trgs(self, obs):
         metrics_ob = np.zeros((self.metrics_shape))
         i = 0
+
         for k in self.usable_metrics:
             trg = self.metric_trgs[k]
             metric = self.metrics[k]
+
             if not metric:
                 #FIXME: a problem after reset in pcgrl envs
 #               print(k, metric, self.metrics)
@@ -143,6 +149,7 @@ class ParamRew(gym.Wrapper):
 #       print('param rew obs shape ', obs.shape)
 #       print('metric trgs shape ', metrics_ob.shape)
         obs = np.vstack((metrics_ob, obs))
+
         return obs
 
 
@@ -156,8 +163,10 @@ class ParamRew(gym.Wrapper):
         rew = self.get_reward()
         self.last_metrics = copy.deepcopy(self.metrics)
         self.n_step += 1
+
         if not self.auto_reset:
             done = False
+
         return ob, rew, done, info
 
     def get_cond_trgs(self):
@@ -207,7 +216,7 @@ class ParamRew(gym.Wrapper):
 
         return reward
 
-import gi 
+import gi
 gi.require_version("Gtk", "3.0")
 from gi.repository import Gtk, GLib
 
@@ -215,17 +224,17 @@ from gi.repository import Gtk, GLib
 class ParamRewWindow(Gtk.Window):
     def __init__(self, env, metrics, metric_trgs, metric_bounds):
         self.env = env
-        import gi 
+        import gi
         gi.require_version("Gtk", "3.0")
         from gi.repository import Gtk, GLib
         Gtk.Window.__init__(self, title="Metrics")
         self.set_border_width(10)
 
         hbox = Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL, spacing=6)
-        
+
         reset_button = Gtk.Button("reset")
         reset_button.connect('clicked', lambda item: self.env.reset())
-        hbox.pack_start(reset_button, False, False, 0) 
+        hbox.pack_start(reset_button, False, False, 0)
 
         auto_reset_button = Gtk.CheckButton("auto reset")
         auto_reset_button.connect('clicked', lambda item: self.env.enable_auto_reset(item))
@@ -239,6 +248,7 @@ class ParamRewWindow(Gtk.Window):
         prog_bars = {}
         scales = {}
         prog_labels = {}
+
         for k in metrics:
             if k not in self.env.usable_metrics:
                 continue
@@ -246,6 +256,7 @@ class ParamRewWindow(Gtk.Window):
             label = Gtk.Label()
             label.set_text(k)
             vbox.pack_start(label, True, True, 0)
+
             if metric is None:
                 metric = 0
             ad = Gtk.Adjustment(metric, metric_bounds[k][0], metric_bounds[k][1],
@@ -269,7 +280,7 @@ class ParamRewWindow(Gtk.Window):
            #frac = metrics[k]
            #metric_prog.set_fraction(frac)
 
-      
+
        #self.timeout_id = GLib.timeout_add(50, self.on_timeout, None)
        #self.activity_mode = False
         self.prog_bars = prog_bars
@@ -280,6 +291,7 @@ class ParamRewWindow(Gtk.Window):
 
     def step(self):
         self.display_metrics()
+
         while Gtk.events_pending():
             Gtk.main_iteration()
 
@@ -302,6 +314,7 @@ class ParamRewWindow(Gtk.Window):
 
     def on_show_text_toggled(self, button):
         show_text = button.get_active()
+
         if show_text:
             text = "some text"
         else:
@@ -311,6 +324,7 @@ class ParamRewWindow(Gtk.Window):
 
     def on_activity_mode_toggled(self, button):
         self.activity_mode = button.get_active()
+
         if self.activity_mode:
             self.progressbar.pulse()
         else:
@@ -324,6 +338,7 @@ class ParamRewWindow(Gtk.Window):
         """
         Update value on the progress bar
         """
+
         if self.activity_mode:
             self.progressbar.pulse()
         else:
@@ -336,29 +351,33 @@ class ParamRewWindow(Gtk.Window):
 
         # As this is a timeout function, return True so that it
         # continues to get called
+
         return True
 
 
-class NoiseyTargets(gym.Wrapper):
+# TODO: What the fuck is this actually doing and why does it kind of work?
+class PerlinNoiseyTargets(gym.Wrapper):
     '''A bunch of simplex noise instances modulate target metrics.'''
     def __init__(self, env, **kwargs):
-        super(NoiseyTargets, self).__init__(env)
+        super(PerlinNoiseyTargets, self).__init__(env)
         self.cond_bounds = self.env.unwrapped.cond_bounds
         self.num_params = self.num_params
         self.noise = OpenSimplex()
-        # Do not reset n_step
+        # Do not reset n_step so that we keep moving through the perlin noise and do not repeat our course
         self.n_step = 0
         self.X, self.Y = np.random.random(2) * 10000
-    
+
     def step(self, a):
         cond_bounds = self.cond_bounds
-        trgs = {} 
+        trgs = {}
         i = 0
+
         for k in self.env.usable_metrics:
             trgs[k] = self.noise.noise2d(x=self.X + self.n_step/400, y=self.Y + i*100)
             i += 1
 
         i = 0
+
         for k in self.env.usable_metrics:
             (ub, lb) = cond_bounds[k]
             trgs[k] = ((trgs[k] + 1) / 2 * (ub - lb)) + lb
@@ -366,9 +385,28 @@ class NoiseyTargets(gym.Wrapper):
         self.env.set_trgs(trgs)
         out = self.env.step(a)
         self.n_step += 1
+
         return out
 
     def reset(self):
 #       self.noise = OpenSimplex()
         return self.env.reset()
-       
+
+class UniformNoiseyTargets(gym.Wrapper):
+    '''A bunch of simplex noise instances modulate target metrics.'''
+    def __init__(self, env, **kwargs):
+        super(UniformNoiseyTargets, self).__init__(env)
+        self.cond_bounds = self.env.unwrapped.cond_bounds
+        self.num_params = self.num_params
+
+    def set_rand_trgs(self):
+        trgs = {}
+        for k in self.env.usable_metrics:
+            (ub, lb) = self.cond_bounds[k]
+            trgs[k] = np.random.random() * (ub - lb) + ub
+        self.env.set_trgs(trgs)
+
+    def reset(self):
+        self.set_rand_trgs()
+        return self.env.reset()
+

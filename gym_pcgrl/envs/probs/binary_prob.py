@@ -26,8 +26,6 @@ class BinaryProblem(Problem):
                 'regions': 5, 
                 'path-length': 1,
                 }
-        self.param_bounds = {'regions': (0, self._width * self._height // 2),
-                'path-length': (0, 100)}
         self.weights = {'regions': 1,
                 'path-length': 1,
                 }
@@ -45,8 +43,23 @@ class BinaryProblem(Problem):
                 }
         # boundaries for conditional inputs/targets
         self.cond_bounds = {
-                'regions': (0, self._width * self._height // (3 * 3)),
-                'path-length': (0, 100),
+                'regions': (0, self._width * np.ceil(self._height / 2)),  # Upper bound: checkerboard
+
+                                                                                          #     10101010
+                                                                                          #     01010101
+                                                                                          #     10101010
+                                                                                          #     01010101
+                                                                                          #     10101010
+                                                                                            
+                #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
+                # and "snake" along that one
+                'path-length': (0, np.ceil(self._width / 2) + self._height),  # Upper bound: zig-zag
+
+                                                                                            #   11111111
+                                                                                            #   00000001
+                                                                                            #   11111111
+                                                                                            #   10000000
+                                                                                            #   11111111
                 }
 
     """

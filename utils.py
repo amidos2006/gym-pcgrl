@@ -62,7 +62,7 @@ def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
         if conditional:
             env = conditional_wrappers.ParamRew(env, cond_metrics=kwargs.pop('cond_metrics'), **kwargs)
             env.configure(**kwargs)
-            env = conditional_wrappers.NoiseyTargets(env, **kwargs)
+            env = conditional_wrappers.UniformNoiseyTargets(env, **kwargs)
         if render or log_dir is not None and len(log_dir) > 0:
             env = RenderMonitor(env, rank, log_dir, **kwargs)
         return env

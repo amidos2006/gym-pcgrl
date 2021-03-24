@@ -42,6 +42,7 @@ class MaxStep(gym.Wrapper):
     def reset(self):
         obs = self.env.reset()
         self.n_step = 0
+
         return obs
 
 """
@@ -303,5 +304,3 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
-
-
