@@ -22,7 +22,6 @@ class ParamRew(gym.Wrapper):
         self.auto_reset = True
         self.weights = {}
 
-    def configure(self, **kwargs):
 #       self.unwrapped.configure(**kwargs)
         self.metrics = self.unwrapped.metrics
         # NB: self.metrics needs to be an OrderedDict
@@ -51,16 +50,20 @@ class ParamRew(gym.Wrapper):
         print('conditional wrapper, original observation space', self.observation_space)
         self.action_space = self.env.action_space
         orig_obs_shape = self.observation_space.shape
-        obs_shape = orig_obs_shape[0] + 2 * len(self.usable_metrics), orig_obs_shape[1], orig_obs_shape[2]
+        #TODO: adapt to (c, w, h) vs (w, h, c)
+        obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + 2 * len(self.usable_metrics) 
         low = self.observation_space.low
         high = self.observation_space.high
-        metrics_shape = (2 * len(self.usable_metrics), obs_shape[1], obs_shape[2])
+        metrics_shape = (obs_shape[0], obs_shape[1], 2 * len(self.usable_metrics))
         self.metrics_shape = metrics_shape
         metrics_low = np.full(metrics_shape, fill_value=0)
         metrics_high = np.full(metrics_shape, fill_value=1)
-        low = np.vstack((metrics_low, low))
-        high = np.vstack((metrics_high, high))
+        low = np.concatenate((metrics_low, low), axis=2)
+        high = np.concatenate((metrics_high, high), axis=2)
         self.observation_space = gym.spaces.Box(low=low, high=high)
+        # Yikes lol (this is to appease SB3)
+        self.unwrapped.observation_space = self.observation_space
+        print('conditional observation space: {}'.format(self.observation_space))
         self.next_trgs = None
 
         if self.render_gui and True:
@@ -70,6 +73,11 @@ class ParamRew(gym.Wrapper):
            #win.connect("destroy", Gtk.main_quit)
             win.show_all()
             self.win = win
+
+    def configure(self, **kwargs):
+        pass
+
+
 
     def enable_auto_reset(self, button):
         self.auto_reset = button.get_active()
@@ -116,7 +124,7 @@ class ParamRew(gym.Wrapper):
        #    i += 1
 
 
-       #print('set trgs {}'.format(self.metric_trgs))
+#       print('set trgs {}'.format(self.metric_trgs))
         self.display_metric_trgs()
 
     def reset(self):
@@ -143,12 +151,12 @@ class ParamRew(gym.Wrapper):
 #               print(k, metric, self.metrics)
 #               assert self.n_step < 20
                 metric = 0
-            metrics_ob[i*2, :, :] = trg / self.param_ranges[k]
-            metrics_ob[i*2+1, :, :] = metric / self.param_ranges[k]
+            metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
+            metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1
 #       print('param rew obs shape ', obs.shape)
 #       print('metric trgs shape ', metrics_ob.shape)
-        obs = np.vstack((metrics_ob, obs))
+        obs = np.concatenate((metrics_ob, obs), axis=2)
 
         return obs
 
@@ -402,8 +410,8 @@ class UniformNoiseyTargets(gym.Wrapper):
     def set_rand_trgs(self):
         trgs = {}
         for k in self.env.usable_metrics:
-            (ub, lb) = self.cond_bounds[k]
-            trgs[k] = np.random.random() * (ub - lb) + ub
+            (lb, ub) = self.cond_bounds[k]
+            trgs[k] = np.random.random() * (ub - lb) + lb
         self.env.set_trgs(trgs)
 
     def reset(self):

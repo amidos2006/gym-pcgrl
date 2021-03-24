@@ -5,7 +5,8 @@ from pdb import set_trace as T
 import model
 from stable_baselines3.common.policies import ActorCriticCnnPolicy
 from model import CustomPolicyBigMap
-from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
+from utils import get_exp_name, max_exp_idx, load_model
+from envs import make_vec_envs
 from stable_baselines3 import PPO
 #from policy import PPO2
 from stable_baselines3.common.results_plotter import load_results, ts2xy
@@ -26,8 +27,10 @@ def callback(_locals, _globals):
     """
     global n_steps, best_mean_reward
     # Print stats every 1000 calls
+
     if (n_steps + 1) % 1000 == 0:
         x, y = ts2xy(load_results(log_dir), 'timesteps')
+
         if len(x) > 100:
            #pdb.set_trace()
             mean_reward = np.mean(y[-100:])
@@ -35,6 +38,7 @@ def callback(_locals, _globals):
             print("Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(best_mean_reward, mean_reward))
 
             # New best model, we save the agent here
+
             if mean_reward > best_mean_reward:
                 best_mean_reward = mean_reward
                 # Example for saving best model
@@ -48,6 +52,7 @@ def callback(_locals, _globals):
             pass
     n_steps += 1
     # Returning False will stop training early
+
     return True
 
 
@@ -56,14 +61,17 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
+
     if representation == 'wide':
         policy = FullyConvPolicyBigMap
+
         if game == "sokoban":
             T()
 #           policy = FullyConvPolicySmallMap
     else:
 #       policy = ActorCriticCnnPolicy
         policy = CustomPolicyBigMap
+
         if game == "sokoban":
             T()
 #           policy = CustomPolicySmallMap
@@ -76,6 +84,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         kwargs['cropped_size'] = 10
     n = max_exp_idx(exp_name)
     global log_dir
+
     if not resume:
         n = n + 1
     log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
@@ -85,48 +94,54 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         'render': render,
     }
     used_dir = log_dir
+
     if not logging:
         used_dir = None
     kwargs.update({'render': render})
+
     if not resume:
         os.mkdir(log_dir)
     else:
         model = load_model(log_dir)
 
-    env = make_vec_envs(env_name, representation, log_dir, **kwargs)
+    try:
+        env = make_vec_envs(env_name, representation, log_dir, **kwargs)
+    except Exception as e:
+        # if this is a new experiment, clean up the logging directory if we fail to start up
+        if not resume:
+            os.rmdir(log_dir)
+        raise e
+
     if not resume or model is None:
         model = PPO(policy, env, verbose=1, tensorboard_log="./runs")
     else:
         model.set_env(env)
+
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
-prob_cond_metrics = {
-        'binary': ['regions'],
-#       'binary': ['path-length'],
-        'zelda': ['num_enemies'],
-        'sokoban': ['num_boxes'],
-        }
+from arguments import get_args
+opts = get_args()
 
 ################################## MAIN ########################################
 
 ### User settings
 conditional = True
-game = 'binary'
+game = opts.problem
 experiment = 'conditional'
-representation = 'turtle'
+representation = opts.representation
 steps = 1e8
 render = False
 logging = True
-n_cpu = 50
-resume = False
+n_cpu = 12
+resume = opts.resume
 #################
 
 if conditional:
     max_step = 500
-    cond_metrics = prob_cond_metrics[game]
+    cond_metrics = opts.conditionals
     experiment = '_'.join([experiment] + cond_metrics)
 else:
     max_step = None

@@ -3,7 +3,8 @@ Run a trained agent for qualitative analysis.
 """
 import numpy as np
 import cv2
-from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs, get_action
+from utils import get_exp_name, max_exp_idx, load_model, get_action
+from envs import make_vec_envs
 
 
 font                   = cv2.FONT_HERSHEY_SIMPLEX
@@ -27,12 +28,12 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     if n is None:
-#       n = max_exp_idx(exp_name)
-        n = EXPERIMENT_ID
+        n = max_exp_idx(exp_name)
+#       n = EXPERIMENT_ID
     if n == 0:
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
-#   log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
-    log_dir = 'hpc_runs/runs/{}_{}_{}'.format(exp_name, n, 'log')
+    log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
+#   log_dir = 'hpc_runs/runs/{}_{}_{}'.format(exp_name, n, 'log')
     model = load_model(log_dir)
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
@@ -107,11 +108,15 @@ prob_cond_metrics = {
         'sokoban': ['num_boxes'],
         }
 
+
+from arguments import get_args
+opts = get_args()
+
 # For locating trained model
 global EXPERIMENT_ID
 EXPERIMENT_ID = 1
-game = 'binary'
-representation = 'turtle'
+game = opts.problem
+representation = opts.representation
 experiment = 'conditional'
 conditional = True
 kwargs = {
@@ -122,7 +127,7 @@ kwargs = {
 
 if conditional:
     max_step = 500
-    cond_metrics = prob_cond_metrics[game]
+    cond_metrics = opts.conditionals
     experiment = '_'.join([experiment] + cond_metrics)
 else:
     max_step = None
