@@ -11,7 +11,6 @@ from stable_baselines3 import PPO
 #from policy import PPO2
 from stable_baselines3.common.results_plotter import load_results, ts2xy
 
-import tensorflow as tf
 import numpy as np
 import os
 
