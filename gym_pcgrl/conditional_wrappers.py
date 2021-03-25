@@ -275,7 +275,7 @@ class UniformNoiseyTargets(gym.Wrapper):
         super(UniformNoiseyTargets, self).__init__(env)
         self.cond_bounds = self.env.unwrapped.cond_bounds
         self.num_params = self.num_params
-        self.midep_trgs = kwargs.get('rand_trgs', False)
+        self.midep_trgs = kwargs.get('midep_trgs', False)
 
     def set_rand_trgs(self):
         trgs = {}
@@ -286,7 +286,7 @@ class UniformNoiseyTargets(gym.Wrapper):
         self.env.set_trgs(trgs)
 
     def step(self, action):
-        if not self.midep_trgs:
+        if self.midep_trgs:
             if np.random.random() < 0.005:
                 self.set_rand_trgs()
                 self.do_set_trgs()

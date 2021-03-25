@@ -164,7 +164,7 @@ infer_kwargs = {
         'render': True,
         'n_cpu': 1,
         'load_best': True,
-        'midep_trgs': opts.midep_trgs,
+        'midep_trgs': midep_trgs,
         }
 
 if __name__ == '__main__':
