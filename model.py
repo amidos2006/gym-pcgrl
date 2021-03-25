@@ -4,6 +4,7 @@ import numpy as np
 from stable_baselines3.common.policies import ActorCriticPolicy, MlpExtractor, ActorCriticCnnPolicy
 from stable_baselines3.common.distributions import CategoricalDistribution, Distribution
 import torch
+from torch import nn
 
 conv = torch.nn.Conv2d
 linear = torch.nn.Linear
@@ -21,28 +22,46 @@ conv_to_fc = torch.nn.Flatten
 #
 #    return activ(linear(layer_3, 'fc1', n_hidden=512, init_scale=np.sqrt(2)))
 
-class Cnn2(torch.nn.Module):
+class Cnn1(torch.nn.Module):
     def __init__(self, observation_space, **kwargs):
         super().__init__()
 
         n_chan = observation_space.shape[2]
         self.features_dim = 512
-        self.c1 = (conv(in_channels=n_chan, out_channels=32, kernel_size=3, stride=2, **kwargs))
-        self.c2 = (conv(32, 64, kernel_size=3, stride=2, **kwargs))
-        self.c3 = (conv(64, 64, kernel_size=3, stride=1, **kwargs))
-        self.flatten = conv_to_fc()
-        self.l1 = linear(1024, 512)
+        self.cnn = nn.Sequential(
+            conv(n_chan, 32, kernel_size=3, stride=1, **kwargs),
+            nn.ReLU(),
+            conv(32, 64, kernel_size=3, stride=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, **kwargs),
+            nn.ReLU(),
+            nn.Flatten(),
+        )
+
+        # Compute shape by doing one forward pass
+        with torch.no_grad():
+            n_flatten = self.cnn(torch.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float()).shape[1]
+        self.l1 = linear(n_flatten, 512)
 
     def forward(self, image):
         image = image.permute(0, 3, 1, 2)
-        activ = torch.nn.functional.relu
-        x = activ(self.c1(image))
-        x = activ(self.c2(x))
-        x = activ(self.c3(x))
-        x = self.flatten(x)
-        x = activ(self.l1(x))
+        x = self.cnn(image)
+        x = self.l1(x)
 
         return x
+
+def FullyConv1(self, image, n_tools, **kwargs):
+    act = nn.functional.relu
+    self.cnn = nn.Sequential(
+        conv(n_chan, 32, kernel_size=3, stride=1, **kwargs),
+        nn.ReLU(),
+        conv(32, 64, kernel_size=3, stride=1, **kwargs),
+        nn.ReLU(),
+        conv(64, 64, kernel_size=3, stride=1, **kwargs),
+        nn.ReLU(),
+        nn.Flatten(),
+    )
+     
 
 #def FullyConv1(image, n_tools, **kwargs):
 #    activ = tf.nn.relu
@@ -156,33 +175,34 @@ class Cnn2(torch.nn.Module):
 #    def value(self, obs, state=None, mask=None):
 #        return self.sess.run(self.value_flat, {self.obs_ph: obs})
 #
-#class FullyConvPolicySmallMap(ActorCriticPolicy):
-#    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
-#        super(FullyConvPolicySmallMap, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
-#        n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
-#        self._pdtype = NoDenseCategoricalProbabilityDistributionType(ac_space.n)
-#        with tf.variable_scope("model", reuse=kwargs['reuse']):
-#            pi_latent, vf_latent = FullyConv1(self.processed_obs, n_tools, **kwargs)
-#            self._value_fn = linear(vf_latent, 'vf', 1)
-#            self._proba_distribution, self._policy, self.q_value = \
-#                self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
-#        self._setup_init()
-#
-#    def step(self, obs, state=None, mask=None, deterministic=False):
-#        if deterministic:
-#            action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
-#                                                   {self.obs_ph: obs})
-#        else:
-#            action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
-#                                                   {self.obs_ph: obs})
-#
-#        return action, value, self.initial_state, neglogp
-#
-#    def proba_step(self, obs, state=None, mask=None):
-#        return self.sess.run(self.policy_proba, {self.obs_ph: obs})
-#
-#    def value(self, obs, state=None, mask=None):
-#        return self.sess.run(self.value_flat, {self.obs_ph: obs})
+class FullyConvPolicySmallMap(ActorCriticPolicy):
+    def __init__(self, **kwargs):
+        super(FullyConvPolicySmallMap, self).__init__(**kwargs)
+        ob_space = kwargs.get('observation_space')
+        n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
+        self._pdtype = NoDenseCategoricalProbabilityDistributionType(ac_space.n)
+        with tf.variable_scope("model", reuse=kwargs['reuse']):
+            pi_latent, vf_latent = FullyConv1(self.processed_obs, n_tools, **kwargs)
+            self._value_fn = linear(vf_latent, 'vf', 1)
+            self._proba_distribution, self._policy, self.q_value = \
+                self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
+        self._setup_init()
+
+    def step(self, obs, state=None, mask=None, deterministic=False):
+        if deterministic:
+            action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
+                                                   {self.obs_ph: obs})
+        else:
+            action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
+                                                   {self.obs_ph: obs})
+
+        return action, value, self.initial_state, neglogp
+
+    def proba_step(self, obs, state=None, mask=None):
+        return self.sess.run(self.policy_proba, {self.obs_ph: obs})
+
+    def value(self, obs, state=None, mask=None):
+        return self.sess.run(self.value_flat, {self.obs_ph: obs})
 
 ################################################################################
 #   Boilerplate policy classes
@@ -190,7 +210,7 @@ class Cnn2(torch.nn.Module):
 
 class CustomPolicyBigMap(ActorCriticCnnPolicy):
     def __init__(self, *args, **kwargs):
-        super(CustomPolicyBigMap, self).__init__(*args, **kwargs, features_extractor_class=Cnn2)#, feature_extraction="cnn")
+        super(CustomPolicyBigMap, self).__init__(*args, **kwargs, features_extractor_class=Cnn1)#, feature_extraction="cnn")
 
 #class CustomPolicySmallMap(ActorCriticCnnPolicy):
 #    def __init__(self, *args, **kwargs):

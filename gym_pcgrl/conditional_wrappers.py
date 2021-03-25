@@ -18,6 +18,7 @@ class ParamRew(gym.Wrapper):
         super().__init__(self.env)
 #       cond_trgs = self.unwrapped.cond_trgs
         self.usable_metrics = cond_metrics
+        self.static_metrics = list(env.static_trgs.keys())
         self.num_params = len(self.usable_metrics)
         self.auto_reset = True
         self.weights = {}
@@ -38,7 +39,7 @@ class ParamRew(gym.Wrapper):
 #           self.max_improvement += improvement * self.weights[k]
         self.metric_trgs = self.unwrapped.cond_trgs
 
-        for k in self.usable_metrics:
+        for k in self.usable_metrics + self.static_metrics:
             v = self.metrics[k]
             self.weights[k] = self.unwrapped.weights[k]
 
@@ -51,7 +52,7 @@ class ParamRew(gym.Wrapper):
         self.action_space = self.env.action_space
         orig_obs_shape = self.observation_space.shape
         #TODO: adapt to (c, w, h) vs (w, h, c)
-        obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + 2 * len(self.usable_metrics) 
+        obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + 2 * len(self.usable_metrics)
         low = self.observation_space.low
         high = self.observation_space.high
         metrics_shape = (obs_shape[0], obs_shape[1], 2 * len(self.usable_metrics))
@@ -195,8 +196,11 @@ class ParamRew(gym.Wrapper):
     def get_reward(self):
         reward = 0
 
-        for metric in self.usable_metrics:
-            trg = self.metric_trgs[metric]
+        for metric in self.usable_metrics + list(self.static_trgs.keys()):
+            if metric in self.metric_trgs:
+                trg = self.metric_trgs[metric]
+            elif metric in self.static_trgs:
+                trg = self.static_trgs[metric]
             val = self.metrics[metric]
             last_val = self.last_metrics[metric]
             trg_change = trg - last_val
@@ -216,6 +220,7 @@ class ParamRew(gym.Wrapper):
                 else:
                     metric_rew += abs(trg_change) - abs(trg_change - change)
             reward += metric_rew * self.weights[metric]
+
        #assert(reward <= self.max_improvement, 'actual reward {} is less than supposed maximum possible \
        #        improvement toward target vectors of {}'.format(reward, self.max_improvement))
        #if self.max_improvement == 0:
@@ -270,15 +275,26 @@ class UniformNoiseyTargets(gym.Wrapper):
         super(UniformNoiseyTargets, self).__init__(env)
         self.cond_bounds = self.env.unwrapped.cond_bounds
         self.num_params = self.num_params
+        self.midep_trgs = kwargs.get('rand_trgs', False)
 
     def set_rand_trgs(self):
         trgs = {}
+
         for k in self.env.usable_metrics:
             (lb, ub) = self.cond_bounds[k]
             trgs[k] = np.random.random() * (ub - lb) + lb
         self.env.set_trgs(trgs)
 
+    def step(self, action):
+        if not self.midep_trgs:
+            if np.random.random() < 0.005:
+                self.set_rand_trgs()
+                self.do_set_trgs()
+
+        return self.env.step(action)
+
+
     def reset(self):
         self.set_rand_trgs()
-        return self.env.reset()
 
+        return self.env.reset()

@@ -56,20 +56,21 @@ def max_exp_idx(exp_name):
         n = max(log_ns)
     return int(n)
 
-def load_model(log_dir):
-    model_path = os.path.join(log_dir, 'latest_model.pkl')
+def load_model(log_dir, load_best=False):
+    if load_best:
+        name = 'best'
+    else:
+        name = 'latest'
+    model_path = os.path.join(log_dir, '{}_model.pkl'.format(name))
     if not os.path.exists(model_path):
-        model_path = os.path.join(log_dir, 'latest_model.zip')
-    if not os.path.exists(model_path):
-        model_path = os.path.join(log_dir, 'best_model.pkl')
-    if not os.path.exists(model_path):
-        model_path = os.path.join(log_dir, 'best_model.zip')
+        model_path = os.path.join(log_dir, '{}_model.zip'.format(name))
     if not os.path.exists(model_path):
         files = [f for f in os.listdir(log_dir) if '.pkl' in f or '.zip' in f]
         if len(files) > 0:
             # selects the last file listed by os.listdir
             model_path = os.path.join(log_dir, np.random.choice(files))
         else:
-            raise Exception('No models are saved')
+            raise Exception('No models are saved at {}'.format(model_path))
+    print('Loading model at {}'.format(model_path))
     model = PPO.load(model_path)
     return model

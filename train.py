@@ -74,11 +74,10 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         if game == "sokoban":
             T()
 #           policy = CustomPolicySmallMap
-#           policy = CustomPolicySmallMap
     if game == "binary":
-        kwargs['cropped_size'] = 28
+        kwargs['cropped_size'] = 32
     elif game == "zelda":
-        kwargs['cropped_size'] = 22
+        kwargs['cropped_size'] = 32
     elif game == "sokoban":
         kwargs['cropped_size'] = 10
     n = max_exp_idx(exp_name)
@@ -86,7 +85,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 
     if not resume:
         n = n + 1
-    log_dir = 'runs/{}_{}_{}'.format(exp_name, n, 'log')
+    log_dir = 'runs/{}_{}_log'.format(exp_name, n)
     kwargs = {
         **kwargs,
         'render_rank': 0,
@@ -100,6 +99,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
 
     if not resume:
         os.mkdir(log_dir)
+#       pass
     else:
         model = load_model(log_dir)
 
@@ -129,26 +129,32 @@ opts = get_args()
 ### User settings
 conditional = True
 game = opts.problem
-experiment = 'conditional'
 representation = opts.representation
 steps = 1e8
 render = False
 logging = True
 n_cpu = 12
 resume = opts.resume
+midep_trgs = opts.midep_trgs
 #################
 
 if conditional:
+    experiment = 'conditional'
     max_step = 500
     cond_metrics = opts.conditionals
+    if midep_trgs:
+        experiment = '{}_{}'.join(experiment, 'midepTrgs')
     experiment = '_'.join([experiment] + cond_metrics)
 else:
+    experiment = 'vanilla'
     max_step = None
+    cond_metrics = None
 kwargs = {
     'conditional': conditional,
     'cond_metrics': cond_metrics,
     'resume': resume,
     'max_step': max_step,
+    'midep_trgs': midep_trgs,
 }
 
 if __name__ == '__main__':

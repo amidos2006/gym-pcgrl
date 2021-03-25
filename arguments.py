@@ -30,6 +30,14 @@ def get_args():
         '--resume',
         help='Are we resuming from a saved training run?',
         action="store_true",)
+    opts.add_argument(
+        '--experiment_id',
+        help='An experiment ID for tracking different runs of experiments with identical hyperparameters.',
+        default=None)
+    opts.add_argument(
+        '--midep_trgs',
+        help='Do we sample new (random) targets mid-episode, or nah?',
+        action='store_true',)
     opts = opts.parse_args()
 
     return opts

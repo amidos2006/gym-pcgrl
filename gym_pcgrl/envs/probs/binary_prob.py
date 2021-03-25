@@ -36,6 +36,8 @@ class BinaryProblem(Problem):
             "path-length": 100
         }
 
+        self.static_trgs = {}
+
         # conditional inputs/targets
         self.cond_trgs = {
                 'regions': 1,
@@ -53,7 +55,7 @@ class BinaryProblem(Problem):
                                                                                             
                 #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
                 # and "snake" along that one
-                'path-length': (0, np.ceil(self._width / 2) + self._height),  # Upper bound: zig-zag
+                'path-length': (0, np.ceil(self._width / 2 + 1) * (self._height)),  # Upper bound: zig-zag
 
                                                                                             #   11111111
                                                                                             #   00000001

@@ -30,8 +30,9 @@ class PcgrlEnv(gym.Env):
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self.metrics = {}
-        print('problem metrics trgs: {}'.format(self._prob.metric_trgs))
-        for k in self._prob.cond_trgs:
+        print('problem conditional trgs: {}'.format(self._prob.cond_trgs))
+        print('problem static trgs: {}'.format(self._prob.static_trgs))
+        for k in {**self._prob.cond_trgs, **self._prob.static_trgs}:
             self.metrics[k] = None
         print('env metrics: {}'.format(self.metrics))
         self._iteration = 0
@@ -53,6 +54,7 @@ class PcgrlEnv(gym.Env):
         self.cond_trgs = collections.OrderedDict(self._prob.cond_trgs)
         self.weights = self._prob.weights
         self.cond_bounds = self._prob.cond_bounds
+        self.static_trgs = self._prob.static_trgs
 
     def configure(self, map_width, max_step=300):
         self._prob._width = map_width
