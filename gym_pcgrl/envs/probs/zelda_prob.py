@@ -36,46 +36,6 @@ class ZeldaProblem(Problem):
             "path-length": 1
         }
 
-        # like _rewards but for use with ParamRew
-        self.weights = {
-                'player': 3,
-                'key': 3,
-                'door': 3,
-                'regions': 5,
-                'enemies': 1,
-                'nearest-enemy':2,
-                'path-length': 1,
-                }
-
-        self.static_trgs = {
-#               'regions': 1,
-#               'player': 1,
-#               'key': 1,
-#               'door':1,
-                }
-        # conditional inputs/targets ( just a default we don't use in the ParamRew wrapper)
-        self.cond_trgs = {
-                'enemies': 5,
-                'nearest-enemy': 7,
-                'path-length': 100,
-                }
-        # boundaries for conditional inputs/targets
-        self.cond_bounds = {
-                'nearest-enemy': (0, self._width),
-                'enemies': (0, self._width * self._height - 2), 
-                                                                                            
-                #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
-                # and "snake" along that one
-                'path-length': (0, np.ceil(self._width / 2 + 1) * (self._height)),  # Upper bound: zig-zag
-
-                                                                                            #   11111111
-                                                                                            #   00000001
-                                                                                            #   11111111
-                                                                                            #   10000000
-                                                                                            #   11111111
-                }
-
-
 
     """
     Get a list of all the different tile names
@@ -240,3 +200,60 @@ class ZeldaProblem(Problem):
                 "scorpion": Image.open(os.path.dirname(__file__) + "/zelda/scorpion.png").convert('RGBA'),
             }
         return super().render(map)
+
+class MultiGoalZeldaProblem(ZeldaProblem):
+    def __init__(self):
+        super(MultiGoalZeldaProblem, self).__init__()
+
+        # like _rewards but for use with ParamRew
+        self.weights = {
+                'player': 3,
+                'key': 3,
+                'door': 3,
+                'regions': 5,
+                'enemies': 1,
+                'nearest-enemy':2,
+                'path-length': 1,
+                }
+
+        self.static_trgs = {
+#               'regions': 1,
+#               'player': 1,
+#               'key': 1,
+#               'door':1,
+                }
+        # conditional inputs/targets ( just a default we don't use in the ParamRew wrapper)
+        self.cond_trgs = {
+                'player': 1,
+                'key': 1,
+                'door': 1,
+                'enemies': 5,
+                'nearest-enemy': 7,
+                'path-length': 100,
+                }
+        # boundaries for conditional inputs/targets
+        self.cond_bounds = {
+                'nearest-enemy': (0, self._width),
+                'enemies': (0, self._width * self._height - 2), 
+                'player': (0, self._width * self._height - 2), 
+                'key': (0, self._width * self._height - 2), 
+                'door': (0, self._width * self._height - 2), 
+                                                                                            
+                #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
+                # and "snake" along that one
+                'path-length': (0, np.ceil(self._width / 2 + 1) * (self._height)),  # Upper bound: zig-zag
+
+                                                                                            #   11111111
+                                                                                            #   00000001
+                                                                                            #   11111111
+                                                                                            #   10000000
+                                                                                            #   11111111
+                }
+
+    # We do these things in the ParamRew wrapper
+    def get_episode_over(self, new_stats, old_stats):
+        return False
+
+    def get_reward(self, new_stats, old_stats):
+        return None
+

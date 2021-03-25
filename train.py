@@ -140,7 +140,7 @@ midep_trgs = opts.midep_trgs
 
 if conditional:
     experiment = 'conditional'
-    max_step = 500
+    max_step = None
     cond_metrics = opts.conditionals
     if midep_trgs:
         experiment = '{}_{}'.join(experiment, 'midepTrgs')

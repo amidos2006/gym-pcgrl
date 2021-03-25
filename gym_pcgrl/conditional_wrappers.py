@@ -37,7 +37,11 @@ class ParamRew(gym.Wrapper):
             improvement = abs(v[1] - v[0])
             self.param_ranges[k] = improvement
 #           self.max_improvement += improvement * self.weights[k]
-        self.metric_trgs = self.unwrapped.cond_trgs
+
+        self.metric_trgs = {}
+        # we might be using a subset of possible conditional targets supplied by the problem
+        for k in self.usable_metrics:
+            self.metric_trgs[k] = self.unwrapped.cond_trgs[k]
 
         for k in self.usable_metrics + self.static_metrics:
             v = self.metrics[k]
@@ -75,6 +79,7 @@ class ParamRew(gym.Wrapper):
            #win.connect("destroy", Gtk.main_quit)
             win.show_all()
             self.win = win
+        self.infer = kwargs.get('infer', False)
 
     def configure(self, **kwargs):
         pass
@@ -174,7 +179,11 @@ class ParamRew(gym.Wrapper):
         self.last_metrics = copy.deepcopy(self.metrics)
         self.n_step += 1
 
-        if not self.auto_reset:
+        if self.auto_reset:
+            # either exceeded number of changes, steps, or have reached target
+            done = done or self.get_done()
+        else:
+            assert self.infer
             done = False
 
         return ob, rew, done, info
@@ -230,7 +239,16 @@ class ParamRew(gym.Wrapper):
 
         return reward
 
-
+    def get_done(self):
+        done = True
+        trg_dict = self.metric_trgs
+        trg_dict.update(self.static_trgs)
+        for k, v in trg_dict.items():
+            if self.metrics[k] != int(v):
+                done = False
+        if done:
+            print('targets reached! {}'.format(trg_dict))
+        return done
 
 # TODO: What the fuck is this actually doing and why does it kind of work?
 class PerlinNoiseyTargets(gym.Wrapper):

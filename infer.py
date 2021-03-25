@@ -165,6 +165,7 @@ infer_kwargs = {
         'n_cpu': 1,
         'load_best': True,
         'midep_trgs': midep_trgs,
+        'infer': True,
         }
 
 if __name__ == '__main__':
