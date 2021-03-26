@@ -42,7 +42,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     elif game == "sokoban":
         infer_kwargs['cropped_size'] = 10
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
-    model = load_model(log_dir, load_best=True)
+    model = load_model(log_dir, load_best=infer_kwargs.get('load_best'))
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
     env = make_vec_envs(env_name, representation, None, **infer_kwargs)
@@ -62,6 +62,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
        #action = get_action(obs, env, model)
         action, _ = model.predict(obs)
         obs, rewards, dones, info = env.step(action)
+#       print('reward: {}'.format(rewards))
 #       reward = rewards[0]
 #       n_regions = info[0]['regions']
 #       readouts = []
@@ -163,7 +164,7 @@ infer_kwargs = {
         'max_step': max_step,
         'render': True,
         'n_cpu': 1,
-        'load_best': True,
+        'load_best': False,
         'midep_trgs': midep_trgs,
         'infer': True,
         }
