@@ -38,6 +38,10 @@ def get_args():
         '--midep_trgs',
         help='Do we sample new (random) targets mid-episode, or nah?',
         action='store_true',)
+    opts.add_argument(
+        '--load_best',
+        help='Whether to load the best saved model of a given run rather than the latest.',
+        action='store_true',)
     opts = opts.parse_args()
 
     return opts
