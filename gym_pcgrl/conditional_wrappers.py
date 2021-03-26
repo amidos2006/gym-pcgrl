@@ -160,7 +160,7 @@ class ParamRew(gym.Wrapper):
 #               assert self.n_step < 20
                 metric = 0
             trg_range = self.param_ranges[k]
-            metrics_ob[:, :, i] = trg / trg_range - metric / trg_range
+            metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
 #           metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
 #           metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1
