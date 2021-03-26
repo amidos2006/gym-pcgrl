@@ -249,7 +249,7 @@ class ParamRew(gym.Wrapper):
         for k, v in trg_dict.items():
             if self.metrics[k] != int(v):
                 done = False
-        if done:
+        if done and self.infer:
             print('targets reached! {}'.format(trg_dict))
         return done
 
