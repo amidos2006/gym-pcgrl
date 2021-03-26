@@ -164,7 +164,7 @@ infer_kwargs = {
         'max_step': max_step,
         'render': True,
         'n_cpu': 1,
-        'load_best': False,
+        'load_best': opts.load_best,
         'midep_trgs': midep_trgs,
         'infer': True,
         }

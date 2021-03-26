@@ -56,10 +56,11 @@ class ParamRew(gym.Wrapper):
         self.action_space = self.env.action_space
         orig_obs_shape = self.observation_space.shape
         #TODO: adapt to (c, w, h) vs (w, h, c)
-        obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + 2 * len(self.usable_metrics)
+        n_new_obs = 1 * len(self.usable_metrics)
+        obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + n_new_obs
         low = self.observation_space.low
         high = self.observation_space.high
-        metrics_shape = (obs_shape[0], obs_shape[1], 2 * len(self.usable_metrics))
+        metrics_shape = (obs_shape[0], obs_shape[1], n_new_obs)
         self.metrics_shape = metrics_shape
         metrics_low = np.full(metrics_shape, fill_value=0)
         metrics_high = np.full(metrics_shape, fill_value=1)
@@ -158,8 +159,10 @@ class ParamRew(gym.Wrapper):
 #               print(k, metric, self.metrics)
 #               assert self.n_step < 20
                 metric = 0
-            metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
-            metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
+            trg_range = self.param_ranges[k]
+            metrics_ob[:, :, i] = trg / trg_range - metric / trg_range
+#           metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
+#           metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1
 #       print('param rew obs shape ', obs.shape)
 #       print('metric trgs shape ', metrics_ob.shape)
