@@ -13,8 +13,10 @@
 cd /scratch/se2161/pcgrl
 #conda init bash
 source activate
+conda activate pcgrl
 
 #python train.py --conditionals "regions"
 #python train.py --conditionals "path-length"
-python train.py --conditionals "regions" "path-length"
+#python train.py --conditionals "regions" "path-length"
+python train.py --problem "zeldagoal" --conditionals "player" "key"
 
