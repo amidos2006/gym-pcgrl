@@ -161,7 +161,7 @@ class BinaryProblem(Problem):
 
 class MultiGoalBinaryProblem(BinaryProblem):
     def __init__(self):
-        super().__init__(MultiGoalBinaryProblem, self)
+        super(MultiGoalBinaryProblem, self).__init__()
 
         self.static_trgs = {}
 
