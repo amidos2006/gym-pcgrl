@@ -168,7 +168,7 @@ class MultiGoalBinaryProblem(BinaryProblem):
         # conditional inputs/targets
         self.cond_trgs = {
                 'regions': 1,
-                'path-length': 100,
+                'path-length': 1,
                 }
         # boundaries for conditional inputs/targets
         self.cond_bounds = {

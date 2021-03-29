@@ -133,9 +133,11 @@ representation = opts.representation
 steps = 1e8
 render = False
 logging = True
-n_cpu = 12
+n_cpu = 50
 resume = opts.resume
 midep_trgs = opts.midep_trgs
+change_percentage = opts.change_percentage
+observe_sign = opts.observe_sign
 #################
 
 if conditional:
@@ -144,6 +146,10 @@ if conditional:
     cond_metrics = opts.conditionals
     if midep_trgs:
         experiment = '{}_{}'.join(experiment, 'midepTrgs')
+    if change_percentage:
+        experiment = '{}_{}'.join(experiment, 'changePctg')
+    if observe_sign:
+        experiment = '{}_{}'.join(experiment, 'observeSign')
     experiment = '_'.join([experiment] + cond_metrics)
 else:
     experiment = 'vanilla'
@@ -155,6 +161,8 @@ kwargs = {
     'resume': resume,
     'max_step': max_step,
     'midep_trgs': midep_trgs,
+    'change_percentage': change_percentage,
+    'observe_sign': observe_sign,
 }
 
 if __name__ == '__main__':

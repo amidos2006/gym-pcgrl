@@ -81,6 +81,8 @@ class ParamRew(gym.Wrapper):
             win.show_all()
             self.win = win
         self.infer = kwargs.get('infer', False)
+        self.change_percentage = kwargs.get('change_percentage')
+        self.observe_sign = kwargs.get('observe_sign')
 
     def configure(self, **kwargs):
         pass
@@ -160,7 +162,10 @@ class ParamRew(gym.Wrapper):
 #               assert self.n_step < 20
                 metric = 0
             trg_range = self.param_ranges[k]
-            metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
+            if self.observe_sign:
+                metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
+            else:
+                metrics_ob[:, :, i] = trg / trg_range - metric / trg_range
 #           metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
 #           metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1
@@ -183,8 +188,12 @@ class ParamRew(gym.Wrapper):
         self.n_step += 1
 
         if self.auto_reset:
-            # either exceeded number of changes, steps, or have reached target
-            done = done or self.get_done()
+            if self.change_percentage:
+                # either exceeded number of changes, steps, or have reached target
+                done = done or self.get_done()
+            else:
+                # Either hit target or very high max number of steps
+                done = self.get_done() or self.n_step >= 10000
         else:
             assert self.infer
             done = False
