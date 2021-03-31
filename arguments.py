@@ -44,11 +44,11 @@ def get_args():
         action='store_true',)
     opts.add_argument(
         '--change_percentage',
-        help='Whether to limit the number of changes to the map per episode.'
+        help='Whether to limit the number of changes to the map per episode.',
         action='store_true',)
     opts.add_argument(
         '--observe_sign',
-        help='Whether to observe only the sign of the direction of change to reach a target.'
+        help='Whether to observe only the sign of the direction of change to reach a target.',
         action='store_true',)
     opts = opts.parse_args()
 
