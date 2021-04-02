@@ -13,13 +13,19 @@ def get_args():
     opts.add_argument(
         '-p',
         '--problem',
-        help='which problem (i.e. game) to generate levels for (binary, sokoban, zelda, mario, ... rct, simcity???)',
+        help='which problem (i.e. game) to generate levels for (binary, sokoban, zelda, mario, ... roller coaster tycoon, simcity???)',
         default='binary')
     opts.add_argument(
         '-r',
         '--representation',
         help='Which representation to use (narrow, turtle, wide, ... cellular-automaton???)',
         default='turtle')
+    opts.add_argument(
+        '-ca',
+        '--ca_action',
+        help='Cellular automaton-type action. The entire next game state is sampled from the model output.',
+        action='store_true',
+    )
     opts.add_argument(
         '-c',
         '--conditionals',
@@ -38,6 +44,12 @@ def get_args():
         '--midep_trgs',
         help='Do we sample new (random) targets mid-episode, or nah?',
         action='store_true',)
+    opts.add_argument(
+        '--n_cpu',
+        help='How many environments to run in parallel.',
+        type=int,
+        default=12,
+    )
     opts.add_argument(
         '--load_best',
         help='Whether to load the best saved model of a given run rather than the latest.',

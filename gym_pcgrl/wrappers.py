@@ -1,9 +1,11 @@
 import math
 import os
 from opensimplex import OpenSimplex
+from pdb import set_trace as T
 
 import gym
 import numpy as np
+from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 
 # clean the input action
 get_action = lambda a: a.item() if hasattr(a, "item") else a
@@ -304,3 +306,61 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
+
+def get_one_hot_map(int_map, n_tile_types):
+    obs = (np.arange(n_tile_types) == int_map[...,None]-1).astype(int)
+    obs = obs.transpose(2, 0, 1)
+
+    return obs
+
+class CAactionWrapper(gym.Wrapper):
+    def __init__(self, game, **kwargs):
+        self.pcgrl_env = gym.make(game)
+        self.pcgrl_env.adjust_param(**kwargs)
+        super().__init__(self.pcgrl_env)
+        # Indices for flatting
+        flat_indices = ['map']
+        env = self.pcgrl_env
+        self.n_tile_types = env.action_space.nvec[2]
+        width = env._prob._width
+        height = env._prob._height
+        self.n_ca_tick = 0
+        # Add the action map wrapper
+#       env = ActionMap(env)
+        # Transform to one hot encoding if not binary
+
+        if 'binary' not in game:
+            env = OneHotEncoding(env, 'map')
+        # Final Wrapper has to be ToImage or ToFlat
+        self.env = ToImage(env, flat_indices)
+        gym.Wrapper.__init__(self, self.env)
+        # NOTE: check this insanity out so cool
+        self.action_space = self.pcgrl_env.action_space = gym.spaces.MultiDiscrete([self.n_tile_types] * width * height)
+        self.last_action = None
+        self.INFER = kwargs.get('infer')
+
+    def step(self, action):
+        env = self.pcgrl_env
+        action = action.reshape(env._rep._map.shape)
+#       obs = get_one_hot_map(action, self.n_tile_types)
+        obs = action.reshape(1, *action.shape)
+        obs = obs.transpose(1, 2, 0)
+        env._rep._map = obs.squeeze(-1)
+        self.n_ca_tick += 1
+        if self.n_ca_tick <= 50 or (action == self.last_action).all():
+            done = False
+        else:
+            done = True
+        if done or self.INFER:
+            env._rep_stats = env._prob.get_stats(get_string_map(action, env._prob.get_tile_types()))
+            env.metrics = env._rep_stats
+        self.last_action = action
+
+        return obs, 0, done, {}
+
+    def reset(self):
+        self.last_action = None
+        self.n_ca_tick = 0
+        obs = super().reset()
+        
+        return obs

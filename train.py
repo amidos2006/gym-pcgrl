@@ -4,7 +4,7 @@ from pdb import set_trace as T
 
 import model
 from stable_baselines3.common.policies import ActorCriticCnnPolicy
-from model import CustomPolicyBigMap
+from model import CustomPolicyBigMap, CApolicy
 from utils import get_exp_name, max_exp_idx, load_model
 from envs import make_vec_envs
 from stable_baselines3 import PPO
@@ -60,9 +60,13 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
+    ca_action = kwargs.get('ca_action',)
 
     if representation == 'wide':
-        policy = FullyConvPolicyBigMap
+        if ca_action:
+            policy = CApolicy
+        else:
+            T()
 
         if game == "sokoban":
             T()
@@ -97,22 +101,41 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         used_dir = None
     kwargs.update({'render': render})
 
-    if not resume:
-        os.mkdir(log_dir)
-#       pass
-    else:
-        model = load_model(log_dir)
-
     try:
-        env = make_vec_envs(env_name, representation, log_dir, **kwargs)
+        env, dummy_action_space = make_vec_envs(env_name, representation, log_dir, **kwargs)
     except Exception as e:
         # if this is a new experiment, clean up the logging directory if we fail to start up
         if not resume:
             os.rmdir(log_dir)
         raise e
 
+    if representation == 'wide':
+        n_tools = dummy_action_space.nvec[2]
+
+
+
+    if not resume:
+        os.mkdir(log_dir)
+#       pass
+    else:
+        model = load_model(log_dir, n_tools=n_tools)
+
+
+
+    if ca_action:
+        assert representation == 'wide'
+        # FIXME: there should be a better way hahahaha
+        env.action_space = dummy_action_space
+        policy_kwargs = {'n_tools': n_tools}
+        # more frequent updates, for debugging... or because our action space is huge?
+        n_steps = 2048
+    else:
+        policy_kwargs = {}
+        # the default for SB3 PPO
+        n_steps = 2048
+
     if not resume or model is None:
-        model = PPO(policy, env, verbose=1, tensorboard_log="./runs")
+        model = PPO(policy, env, verbose=1, n_steps=256, tensorboard_log="./runs", policy_kwargs=policy_kwargs)
     else:
         model.set_env(env)
 
@@ -131,11 +154,12 @@ conditional = True
 game = opts.problem
 representation = opts.representation
 steps = 1e8
-render = False
+render = True
 logging = True
-n_cpu = 12
+n_cpu = opts.n_cpu
 resume = opts.resume
 midep_trgs = opts.midep_trgs
+ca_action = opts.ca_action
 #################
 
 if conditional:
@@ -150,11 +174,14 @@ else:
     max_step = None
     cond_metrics = None
 kwargs = {
+    'map_width': 16,
+    'change_percentage': 1,
     'conditional': conditional,
     'cond_metrics': cond_metrics,
     'resume': resume,
     'max_step': max_step,
     'midep_trgs': midep_trgs,
+    'ca_action': ca_action
 }
 
 if __name__ == '__main__':

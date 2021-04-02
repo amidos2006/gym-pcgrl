@@ -188,7 +188,6 @@ class ParamRew(gym.Wrapper):
         else:
             assert self.infer
             done = False
-
         return ob, rew, done, info
 
     def get_cond_trgs(self):

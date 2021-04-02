@@ -1,4 +1,5 @@
 from gym_pcgrl.envs.probs import PROBLEMS
+from pdb import set_trace as T
 from gym_pcgrl.envs.reps import REPRESENTATIONS
 from gym_pcgrl.envs.helper import get_int_prob, get_string_map
 import numpy as np
@@ -148,6 +149,13 @@ class PcgrlEnv(gym.Env):
         representation and the used problem
     """
     def adjust_param(self, **kwargs):
+        # fun time
+        map_width = kwargs.get('map_width')
+        if map_width:
+            self._prob._width = map_width
+            self._prob._height = map_width
+            self.width = map_width
+
         if 'change_percentage' in kwargs:
             percentage = min(1, max(0, kwargs.get('change_percentage')))
             self._max_changes = max(int(percentage * self._prob._width * self._prob._height), 1)
@@ -157,6 +165,9 @@ class PcgrlEnv(gym.Env):
         self.action_space = self._rep.get_action_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space = self._rep.get_observation_space(self._prob._width, self._prob._height, self.get_num_tiles())
         self.observation_space.spaces['heatmap'] = spaces.Box(low=0, high=self._max_changes, dtype=np.uint8, shape=(self._prob._height, self._prob._width))
+        
+
+
 
     """
     Advance the environment using a specific action

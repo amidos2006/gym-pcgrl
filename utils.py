@@ -56,7 +56,7 @@ def max_exp_idx(exp_name):
         n = max(log_ns)
     return int(n)
 
-def load_model(log_dir, load_best=False):
+def load_model(log_dir, load_best=False, n_tools=None):
     if load_best:
         name = 'best'
     else:
@@ -72,5 +72,11 @@ def load_model(log_dir, load_best=False):
         else:
             raise Exception('No models are saved at {}'.format(model_path))
     print('Loading model at {}'.format(model_path))
-    model = PPO.load(model_path)
+    if n_tools:
+        policy_kwargs = {
+                'n_tools': n_tools,
+                }
+    else:
+        policy_kwargs = {}
+    model = PPO.load(model_path, policy_kwargs=policy_kwargs)
     return model
