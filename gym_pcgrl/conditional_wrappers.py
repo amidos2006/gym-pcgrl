@@ -151,8 +151,6 @@ class ParamRew(gym.Wrapper):
         i = 0
 
         for k in self.usable_metrics:
-            if k in self.static_trgs:
-                continue
             trg = self.metric_trgs[k]
             metric = self.metrics[k]
 

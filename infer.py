@@ -47,7 +47,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     n_cpu = infer_kwargs.get('n_cpu')
     env, dummy_action_space, n_tools = make_vec_envs(env_name, representation, None, **infer_kwargs)
     model = load_model(log_dir, load_best=infer_kwargs.get('load_best'), n_tools=n_tools)
-    model.set_env(env)
+#   model.set_env(env)
     env.action_space = dummy_action_space
     obs = env.reset()
     # Record final values of each trial
@@ -164,9 +164,6 @@ infer_kwargs = {
        #'target_path': 200,
         'conditional': True,
         'cond_metrics': cond_metrics,
-        'add_visits': False,
-        'add_changes': False,
-        'add_heatmap': False,
         'max_step': max_step,
         'render': True,
         'n_cpu': 1,
