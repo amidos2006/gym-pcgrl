@@ -60,13 +60,14 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     resume = kwargs.get('resume', False)
-    ca_action = kwargs.get('ca_action',)
+    ca_action = kwargs.get('ca_action')
+    map_width = kwargs.get('map_width')
 
     if representation == 'wide':
         if ca_action:
             policy = CApolicy
         else:
-            T()
+            policy = CApolicy
 
         if game == "sokoban":
             T()
@@ -101,41 +102,39 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         used_dir = None
     kwargs.update({'render': render})
 
+    if not resume:
+        os.mkdir(log_dir)
     try:
-        env, dummy_action_space = make_vec_envs(env_name, representation, log_dir, **kwargs)
+        env, dummy_action_space, n_tools = make_vec_envs(env_name, representation, log_dir, **kwargs)
     except Exception as e:
         # if this is a new experiment, clean up the logging directory if we fail to start up
         if not resume:
             os.rmdir(log_dir)
+        T()
         raise e
 
-    if representation == 'wide':
-        n_tools = dummy_action_space.nvec[2]
-
-
-
-    if not resume:
-        os.mkdir(log_dir)
 #       pass
-    else:
+    if resume:
         model = load_model(log_dir, n_tools=n_tools)
 
 
 
-    if ca_action:
-        assert representation == 'wide'
-        # FIXME: there should be a better way hahahaha
-        env.action_space = dummy_action_space
+    if representation == 'wide':
         policy_kwargs = {'n_tools': n_tools}
-        # more frequent updates, for debugging... or because our action space is huge?
-        n_steps = 2048
+        if ca_action:
+            # FIXME: there should be a better way hahahaha
+            env.action_space = dummy_action_space
+            # more frequent updates, for debugging... or because our action space is huge?
+            n_steps = 2048
+        else:
+            n_steps = 2048
     else:
         policy_kwargs = {}
         # the default for SB3 PPO
         n_steps = 2048
 
     if not resume or model is None:
-        model = PPO(policy, env, verbose=1, n_steps=256, tensorboard_log="./runs", policy_kwargs=policy_kwargs)
+        model = PPO(policy, env, verbose=1, n_steps=n_steps, tensorboard_log="./runs", policy_kwargs=policy_kwargs)
     else:
         model.set_env(env)
 
@@ -154,7 +153,7 @@ conditional = True
 game = opts.problem
 representation = opts.representation
 steps = 1e8
-render = True
+render = False
 logging = True
 n_cpu = opts.n_cpu
 resume = opts.resume
@@ -162,22 +161,24 @@ midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 #################
 
+max_step = None
+global COND_METRICS
 if conditional:
     experiment = 'conditional'
-    max_step = None
-    cond_metrics = opts.conditionals
-    if midep_trgs:
-        experiment = '{}_{}'.join(experiment, 'midepTrgs')
-    experiment = '_'.join([experiment] + cond_metrics)
+    COND_METRICS = opts.conditionals
+    experiment = '_'.join([experiment] + COND_METRICS)
 else:
     experiment = 'vanilla'
-    max_step = None
-    cond_metrics = None
+    COND_METRICS = None
+    if midep_trgs:
+        experiment = '_'.join([experiment, 'midepTrgs'])
+if ca_action:
+    experiment = '_'.join([experiment, 'CAaction'])
 kwargs = {
     'map_width': 16,
     'change_percentage': 1,
     'conditional': conditional,
-    'cond_metrics': cond_metrics,
+    'cond_metrics': COND_METRICS,
     'resume': resume,
     'max_step': max_step,
     'midep_trgs': midep_trgs,

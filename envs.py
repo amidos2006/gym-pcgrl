@@ -1,6 +1,7 @@
 from gym_pcgrl import wrappers, conditional_wrappers
 from stable_baselines3.common.vec_env import SubprocVecEnv, DummyVecEnv
 from utils import RenderMonitor
+from gym import spaces
 from pdb import set_trace as T
 
 def make_env(env_name, representation, rank=0, log_dir=None, **kwargs):
@@ -39,6 +40,7 @@ def make_vec_envs(env_name, representation, log_dir, **kwargs):
     '''
     Prepare a vectorized environment using a list of 'make_env' functions.
     '''
+    map_width = kwargs.get('map_width', None)
     n_cpu = kwargs.pop('n_cpu')
     if n_cpu > 1:
         env_lst = []
@@ -50,8 +52,16 @@ def make_vec_envs(env_name, representation, log_dir, **kwargs):
     # A hack :~)
     dummy_env = make_env(env_name, representation, -1, None, **kwargs)()
     action_space = dummy_env.action_space
+    if isinstance(action_space, spaces.Discrete):
+        n_tools = action_space.n // (map_width ** 2)
+    elif isinstance(action_space, spaces.MultiDiscrete):
+        n_tools = action_space.nvec[2]
+    elif isinstance(action_space, spaces.Box):
+        n_tools = action_space.shape[0]
+    else:
+        raise Exception
     del(dummy_env)
 
-    return env, action_space
+    return env, action_space, n_tools
 
 

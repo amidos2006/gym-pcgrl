@@ -147,10 +147,12 @@ class ParamRew(gym.Wrapper):
         return ob
 
     def observe_metric_trgs(self, obs):
-        metrics_ob = np.zeros((self.metrics_shape))
+        metrics_ob = np.zeros(self.metrics_shape)
         i = 0
 
         for k in self.usable_metrics:
+            if k in self.static_trgs:
+                continue
             trg = self.metric_trgs[k]
             metric = self.metrics[k]
 

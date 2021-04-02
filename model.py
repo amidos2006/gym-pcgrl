@@ -2,7 +2,7 @@ from pdb import set_trace as T
 from gym import spaces
 import numpy as np
 from stable_baselines3.common.policies import ActorCriticPolicy, MlpExtractor, ActorCriticCnnPolicy
-from stable_baselines3.common.distributions import MultiCategoricalDistribution, Distribution
+from stable_baselines3.common.distributions import MultiCategoricalDistribution, CategoricalDistribution, Distribution
 import torch as th
 from torch import nn
 from typing import Any, Dict, List, Optional, Tuple, Type, Union
@@ -51,10 +51,10 @@ class Cnn1(th.nn.Module):
         return x
 
 class FullCnn(th.nn.Module):
+    ''' Like the old FullCnn2, for wide representations with binary or zelda.'''
     def __init__(self, observation_space, n_tools, **kwargs):
         super().__init__()
-        # NOTE: dummy variable, we will override the linear layers in the stable_baselines3 policy
-        self.features_dim = 1
+        self.features_dim = n_tools
         n_chan = observation_space.shape[2]
         act = nn.functional.relu
         self.cnn = nn.Sequential(
@@ -64,27 +64,42 @@ class FullCnn(th.nn.Module):
             nn.ReLU(),
             conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
             nn.ReLU(),
-        )
-        self.act_head = nn.Sequential(
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
             conv(64, n_tools, kernel_size=3, stride=1, padding=1, **kwargs),
             nn.ReLU(),
         )
+        self.act_head = nn.Sequential(
+        )
 
         # Compute shape by doing one forward pass
-        with th.no_grad():
-            _, _, width, height = self.cnn(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float()).shape
-            assert width == height
-            n_shrink = np.log2(width)
-            assert n_shrink % 1 == 0
-            n_shrink = int(n_shrink)
+#       with th.no_grad():
+#           _, _, width, height = self.cnn(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float()).shape
+#           assert width == height
+#           n_shrink = np.log2(width)
+#           assert n_shrink % 1 == 0
+#           n_shrink = int(n_shrink)
 
         self.val_shrink = nn.Sequential(
-            *[conv(64, 64, kernel_size=3, stride=2, padding=1, **kwargs),
-            nn.ReLU()] * n_shrink
+            conv(n_tools, 64, kernel_size=3, stride=2, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=2, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=1, stride=1, padding=0, **kwargs),
+            nn.ReLU(),
         )
+        with th.no_grad():
+            n_flatten = self.val_shrink(self.cnn(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float())).view(-1).shape[0]
+
         self.val_head = nn.Sequential(
-            conv(64, 1, kernel_size=1, **kwargs),
             nn.Flatten(),
+            linear(n_flatten, 1)
         )
 
     def forward(self, image):
@@ -94,6 +109,69 @@ class FullCnn(th.nn.Module):
         val = self.val_head(self.val_shrink(x))
 
         return act, val
+
+class NCA(th.nn.Module):
+    ''' Like the old FullCnn2, for wide representations with binary or zelda.'''
+    def __init__(self, observation_space, n_tools, **kwargs):
+        super().__init__()
+        self.features_dim = n_tools
+        n_chan = observation_space.shape[2]
+        act = nn.functional.relu
+        self.cnn = nn.Sequential(
+            conv(n_chan, 32, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(32, 64, kernel_size=3, stride=1, padding=1,  **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, n_tools, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+        )
+        self.act_head = nn.Sequential(
+            nn.Flatten(2),
+        )
+
+        # Compute shape by doing one forward pass
+#       with th.no_grad():
+#           _, _, width, height = self.cnn(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float()).shape
+#           assert width == height
+#           n_shrink = np.log2(width)
+#           assert n_shrink % 1 == 0
+#           n_shrink = int(n_shrink)
+
+        self.val_shrink = nn.Sequential(
+            conv(n_tools, 64, kernel_size=3, stride=2, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=2, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=1, stride=1, padding=0, **kwargs),
+            nn.ReLU(),
+        )
+        with th.no_grad():
+            n_flatten = self.val_shrink(self.cnn(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float())).view(-1).shape[0]
+
+        self.val_head = nn.Sequential(
+            nn.Flatten(),
+            linear(n_flatten, 1)
+        )
+
+    def forward(self, image):
+        image = image.permute(0, 3, 1, 2)
+        x = self.cnn(image)
+        act = self.act_head(x)
+        act = act.permute(0, 2, 1)
+        val = self.val_head(self.val_shrink(x))
+
+        return act, val
+
 
 class NoDenseMultiCategoricalDistribution(MultiCategoricalDistribution):
     """
@@ -119,6 +197,34 @@ class NoDenseMultiCategoricalDistribution(MultiCategoricalDistribution):
         """
 
 #       action_logits = nn.Linear(latent_dim, sum(self.action_dims))
+        action_logits = IdentityModule()
+        return action_logits
+
+class NoDenseCategoricalDistribution(CategoricalDistribution):
+    """
+    MultiCategorical distribution for multi discrete actions.
+
+    :param action_dims: List of sizes of discrete action spaces
+    """
+
+    def __init__(self, action_dims: List[int]):
+        super(NoDenseCategoricalDistribution, self).__init__(action_dims)
+        self.action_dims = action_dims
+        self.distributions = None
+
+    def proba_distribution_net(self, latent_dim: int) -> nn.Module:
+        """
+        Create the layer that represents the distribution:
+        it will be the logits (flattened) of the MultiCategorical distribution.
+        You can then get probabilities using a softmax on each sub-space.
+
+        :param latent_dim: Dimension of the last layer
+            of the policy network (before the action layer)
+        :return:
+        """
+
+#       action_logits = nn.Linear(latent_dim, sum(self.action_dims))
+        action_logits = IdentityModule()
         return action_logits
 
 ################################################################################
@@ -128,16 +234,69 @@ class NoDenseMultiCategoricalDistribution(MultiCategoricalDistribution):
 class CustomPolicyBigMap(ActorCriticCnnPolicy):
     def __init__(self, *args, **kwargs):
         super(CustomPolicyBigMap, self).__init__(*args, **kwargs, features_extractor_class=Cnn1)#, feature_extraction="cnn")
+import gym
+
+def make_proba_distribution(
+    action_space: gym.spaces.Space, use_sde: bool = False, dist_kwargs: Optional[Dict[str, Any]] = None
+) -> Distribution:
+    """
+    Return an instance of Distribution for the correct type of action space
+
+    :param action_space: the input action space
+    :param use_sde: Force the use of StateDependentNoiseDistribution
+        instead of DiagGaussianDistribution
+    :param dist_kwargs: Keyword arguments to pass to the probability distribution
+    :return: the appropriate Distribution object
+    """
+    if dist_kwargs is None:
+        dist_kwargs = {}
+
+    if isinstance(action_space, gym.spaces.MultiDiscrete):
+        return NoDenseMultiCategoricalDistribution(action_space.nvec)
+    elif isinstance(action_space, gym.spaces.Discrete):
+        return NoDenseCategoricalDistribution(action_space.n)
+
+class IdentityModule(th.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flatten = th.nn.Flatten()
+
+    def forward(self, latent_pi):
+        return self.flatten(latent_pi)
 
 class CApolicy(ActorCriticCnnPolicy):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, 
+            observation_space,
+            action_space,
+            lr_schedule,
+            **kwargs):
         n_tools = kwargs.pop("n_tools")
         features_extractor_kwargs = {'n_tools': n_tools}
-        super(CApolicy, self).__init__(*args, **kwargs, net_arch=None, features_extractor_class=FullCnn, features_extractor_kwargs=features_extractor_kwargs)
+        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=FullCnn, features_extractor_kwargs=features_extractor_kwargs)
+        self.action_net = IdentityModule()
         # funky for CA type action
-        action_space = args[1]
-        # sloppily overwriting the dist build by SB
-        self.action_dist = NoDenseMultiCategoricalDistribution(action_space.nvec)
+        use_sde = False
+        dist_kwargs = None
+        self.action_dist = make_proba_distribution(action_space, use_sde=use_sde, dist_kwargs=dist_kwargs)
+        self._build(lr_schedule)
+
+    def _get_action_dist_from_latent(self, latent_pi: th.Tensor, latent_sde: Optional[th.Tensor] = None) -> Distribution:
+        """
+        Retrieve action distribution given the latent codes.
+
+        :param latent_pi: Latent code for the actor
+        :param latent_sde: Latent code for the gSDE exploration function
+        :return: Action distribution
+        """
+        mean_actions = self.action_net(latent_pi)
+        mean_actions = latent_pi
+
+
+        if isinstance(self.action_dist, NoDenseMultiCategoricalDistribution) or isinstance(self.action_dist, NoDenseCategoricalDistribution):
+            # Here mean_actions are the flattened logits
+            return self.action_dist.proba_distribution(action_logits=mean_actions)
+        else:
+            raise ValueError("Invalid action distribution")
 
     def _get_latent(self, obs: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         """

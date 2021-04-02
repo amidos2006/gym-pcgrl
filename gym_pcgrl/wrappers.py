@@ -189,7 +189,8 @@ class ActionMap(gym.Wrapper):
 
     def step(self, action):
        #y, x, v = np.unravel_index(np.argmax(action), action.shape)
-        y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
+#       y, x, v = np.unravel_index(action, (self.h, self.w, self.dim))
+        v, x, y = np.unravel_index(action, (self.dim, self.w, self.h))
 
         if 'pos' in self.old_obs:
             o_x, o_y = self.old_obs['pos']
@@ -336,6 +337,7 @@ class CAactionWrapper(gym.Wrapper):
         gym.Wrapper.__init__(self, self.env)
         # NOTE: check this insanity out so cool
         self.action_space = self.pcgrl_env.action_space = gym.spaces.MultiDiscrete([self.n_tile_types] * width * height)
+#       self.action_space = self.pcgrl_env.action_space = gym.spaces.Box(low=0, high=1, shape=(self.n_tile_types, width, height))
         self.last_action = None
         self.INFER = kwargs.get('infer')
 
@@ -351,7 +353,7 @@ class CAactionWrapper(gym.Wrapper):
             done = False
         else:
             done = True
-        if done or self.INFER:
+        if True:
             env._rep_stats = env._prob.get_stats(get_string_map(action, env._prob.get_tile_types()))
             env.metrics = env._rep_stats
         self.last_action = action

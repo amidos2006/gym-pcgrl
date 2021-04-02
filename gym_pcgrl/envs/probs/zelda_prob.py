@@ -96,20 +96,20 @@ class ZeldaProblem(Problem):
             enemies.extend(map_locations["bat"])
             enemies.extend(map_locations["scorpion"])
 #FIXME: hackishly toggling off this pathfinding to save time when using ParamRew wrapper and not considering these metrics
-#           if len(enemies) > 0:
-#               dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "player", "bat", "spider", "scorpion"])
-#               min_dist = self._width * self._height
-#               for e_x,e_y in enemies:
-#                   if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
-#                       min_dist = dikjstra[e_y][e_x]
-#               map_stats["nearest-enemy"] = min_dist
-#           if map_stats["key"] == 1 and map_stats["door"] == 1:
-#               k_x,k_y = map_locations["key"][0]
-#               d_x,d_y = map_locations["door"][0]
-#               dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
-#               map_stats["path-length"] += dikjstra[k_y][k_x]
-#               dikjstra,_ = run_dikjstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
-#               map_stats["path-length"] += dikjstra[d_y][d_x]
+            if len(enemies) > 0:
+                dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "player", "key", "bat", "spider", "scorpion"])
+                min_dist = self._width * self._height
+                for e_x,e_y in enemies:
+                    if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
+                        min_dist = dikjstra[e_y][e_x]
+                map_stats["nearest-enemy"] = min_dist
+            if map_stats["key"] == 1 and map_stats["door"] == 1:
+                k_x,k_y = map_locations["key"][0]
+                d_x,d_y = map_locations["door"][0]
+                dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
+                map_stats["path-length"] += dikjstra[k_y][k_x]
+                dikjstra,_ = run_dikjstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
+                map_stats["path-length"] += dikjstra[d_y][d_x]
 
         return map_stats
 
@@ -218,16 +218,16 @@ class MultiGoalZeldaProblem(ZeldaProblem):
                 }
 
         self.static_trgs = {
-#               'regions': 1,
-#               'player': 1,
-#               'key': 1,
-#               'door':1,
+                'regions': 1,
+                'player': 1,
+                'key': 1,
+                'door':1,
                 }
         # conditional inputs/targets ( just a default we don't use in the ParamRew wrapper)
         self.cond_trgs = {
-                'player': 1,
-                'key': 1,
-                'door': 1,
+#               'player': 1,
+#               'key': 1,
+#               'door': 1,
                 'enemies': 5,
                 'nearest-enemy': 7,
                 'path-length': 100,
@@ -236,9 +236,9 @@ class MultiGoalZeldaProblem(ZeldaProblem):
         self.cond_bounds = {
                 'nearest-enemy': (0, self._width),
                 'enemies': (0, self._width * self._height - 2), 
-                'player': (0, self._width * self._height - 2), 
-                'key': (0, self._width * self._height - 2), 
-                'door': (0, self._width * self._height - 2), 
+#               'player': (0, self._width * self._height - 2), 
+#               'key': (0, self._width * self._height - 2), 
+#               'door': (0, self._width * self._height - 2), 
                                                                                             
                 #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
                 # and "snake" along that one

@@ -26,6 +26,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             }
     max_trials = kwargs.get('max_trials', -1)
     n = kwargs.get('n', None)
+    map_width = infer_kwargs.get('map_width')
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     if n is None:
@@ -44,13 +45,9 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
-    env, dummy_action_space = make_vec_envs(env_name, representation, None, **infer_kwargs)
-    if representation == 'wide':
-        n_tools = dummy_action_space.nvec[2]
-    else:
-        # not true, strictly speaking, but non-wide representations don't need to know the number of tools
-        n_tools = None
+    env, dummy_action_space, n_tools = make_vec_envs(env_name, representation, None, **infer_kwargs)
     model = load_model(log_dir, load_best=infer_kwargs.get('load_best'), n_tools=n_tools)
+    model.set_env(env)
     env.action_space = dummy_action_space
     obs = env.reset()
     # Record final values of each trial
@@ -66,7 +63,6 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     n_trials = 0
     while n_trials != max_trials:
        #action = get_action(obs, env, model)
-        T()
         action, _ = model.predict(obs)
         obs, rewards, dones, info = env.step(action)
 #       print('reward: {}'.format(rewards))
@@ -138,6 +134,7 @@ game = opts.problem
 representation = opts.representation
 conditional = True
 midep_trgs = opts.midep_trgs
+ca_action = opts.ca_action
 if conditional:
     experiment = 'conditional'
 else:
@@ -153,7 +150,9 @@ if conditional:
     cond_metrics = opts.conditionals
 
     if midep_trgs:
-        experiment = '_'.join(experiment, 'midepTrgs')
+        experiment = '_'.join([experiment, 'midepTrgs'])
+    if ca_action:
+        experiment = '_'.join([experiment, 'CAaction'])
     experiment = '_'.join([experiment] + cond_metrics)
 else:
     max_step = None
@@ -174,7 +173,8 @@ infer_kwargs = {
         'load_best': opts.load_best,
         'midep_trgs': midep_trgs,
         'infer': True,
-        'ca_action': opts.ca_action,
+        'ca_action': ca_action,
+        'map_width': 16
         }
 
 if __name__ == '__main__':
