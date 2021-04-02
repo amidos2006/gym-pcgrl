@@ -15,8 +15,24 @@ cd /scratch/se2161/pcgrl
 source activate
 conda activate pcgrl
 
+### BINARY
+
+## TURTLE
+
 #python train.py --conditionals "regions"
 #python train.py --conditionals "path-length"
 #python train.py --conditionals "regions" "path-length"
-python train.py --problem "zeldagoal" --conditionals "player" "key"
 
+### ZELDA
+
+## TURTLE
+
+#python train.py --problem "zeldagoal" --conditionals "enemies" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "path-length" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "enemies" length" --representation "turtle"
+
+## NARROW
+
+python train.py --problem "zeldagoal" --conditionals "enemies" --representation "narrow"
+#python train.py --problem "zeldagoal" --conditionals "path-length" --representation "narrow"
+#python train.py --problem "zeldagoal" --conditionals "path-length" --representation "narrow"
