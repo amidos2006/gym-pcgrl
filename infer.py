@@ -36,11 +36,11 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             n = EXPERIMENT_ID
     if n == 0:
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
-    if game == "binary":
+    if game == "binarygoal":
         infer_kwargs['cropped_size'] = 32
-    elif game == "zelda":
+    elif game == "zeldagoal":
         infer_kwargs['cropped_size'] = 32
-    elif game == "sokoban":
+    elif game == "sokobangoal":
         infer_kwargs['cropped_size'] = 10
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
     # no log dir, 1 parallel environment
@@ -145,8 +145,8 @@ kwargs = {
        #'n': 4, # rank of saved experiment (by default, n is max possible)
         }
 
+max_step = 1000
 if conditional:
-    max_step = None
     cond_metrics = opts.conditionals
 
     if midep_trgs:
@@ -155,7 +155,6 @@ if conditional:
         experiment = '_'.join([experiment, 'CAaction'])
     experiment = '_'.join([experiment] + cond_metrics)
 else:
-    max_step = None
     cond_metrics = None
 
 # For inference

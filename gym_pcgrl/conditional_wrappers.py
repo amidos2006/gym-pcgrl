@@ -17,8 +17,12 @@ class ParamRew(gym.Wrapper):
         self.env = env
         super().__init__(self.env)
 #       cond_trgs = self.unwrapped.cond_trgs
-        self.usable_metrics = cond_metrics
-        self.static_metrics = list(env.static_trgs.keys())
+        self.usable_metrics = set(cond_metrics)  # controllable metrics
+        self.static_metrics = set(env.static_trgs.keys())  # fixed metrics (i.e. playability constraints)
+
+        for k in self.usable_metrics:
+            if k in self.static_metrics:
+                self.static_metrics.remove(k)
         self.num_params = len(self.usable_metrics)
         self.auto_reset = True
         self.weights = {}
@@ -40,10 +44,16 @@ class ParamRew(gym.Wrapper):
 
         self.metric_trgs = {}
         # we might be using a subset of possible conditional targets supplied by the problem
+
         for k in self.usable_metrics:
             self.metric_trgs[k] = self.unwrapped.cond_trgs[k]
 
-        for k in self.usable_metrics + self.static_metrics:
+        # All metrics that we will consider for reward
+        self.all_metrics = set()
+        self.all_metrics.update(self.usable_metrics)
+        self.all_metrics.update(self.static_metrics)
+
+        for k in self.all_metrics:
             v = self.metrics[k]
             self.weights[k] = self.unwrapped.weights[k]
 
@@ -81,6 +91,7 @@ class ParamRew(gym.Wrapper):
             win.show_all()
             self.win = win
         self.infer = kwargs.get('infer', False)
+        self.last_loss = None
 
     def configure(self, **kwargs):
         pass
@@ -93,18 +104,12 @@ class ParamRew(gym.Wrapper):
 
     def getState(self):
         scalars = super().getState()
-       #trg_weights = [v for k, v in self.weights.items()]
-       #scalars += trg_weights
         print('scalars: ', scalars)
         raise Exception
 
         return scalars
 
     def set_trgs(self, trgs):
-#       if self.rand_params:
-#           for k in self.usable_metrics:
-#               min_v, max_v = self.cond_bounds[k]
-#               trgs[k] = random.uniform(min_v, max_v)
         self.next_trgs = trgs
 
     def do_set_trgs(self):
@@ -112,27 +117,10 @@ class ParamRew(gym.Wrapper):
         i = 0
         self.init_metrics = copy.deepcopy(self.metrics)
 
-#       self.max_improvement = 0
         for k, trg in trgs.items():
             if k in self.usable_metrics:
                 self.metric_trgs[k] = trg
-#               self.max_improvement += abs(trg - self.init_metrics[k]) * self.weights[k]
 
-       #for k in self.usable_metrics:
-       #    weight_name = '{}_weight'.format(k)
-       #    if weight_name in params:
-       #        self.weights[k] = params[weight_name]
-       #    i += 1
-
-       #for k, _ in self.usable_metrics():
-       #    if k in params:
-       #        metric_trg = params[k]
-       #        self.metric_trgs[k] = metric_trg
-       #        self.max_improvement += abs(metric_trg - self.init_metrics[k]) * self.weights[k]
-       #    i += 1
-
-
-#       print('set trgs {}'.format(self.metric_trgs))
         self.display_metric_trgs()
 
     def reset(self):
@@ -142,6 +130,7 @@ class ParamRew(gym.Wrapper):
         ob = self.observe_metric_trgs(ob)
         self.metrics = self.unwrapped.metrics
         self.last_metrics = copy.deepcopy(self.metrics)
+        self.last_loss = self.get_loss()
         self.n_step = 0
 
         return ob
@@ -155,9 +144,6 @@ class ParamRew(gym.Wrapper):
             metric = self.metrics[k]
 
             if not metric:
-                #FIXME: a problem after reset in pcgrl envs
-#               print(k, metric, self.metrics)
-#               assert self.n_step < 20
                 metric = 0
             trg_range = self.param_ranges[k]
             metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
@@ -188,6 +174,7 @@ class ParamRew(gym.Wrapper):
         else:
             assert self.infer
             done = False
+
         return ob, rew, done, info
 
     def get_cond_trgs(self):
@@ -204,52 +191,50 @@ class ParamRew(gym.Wrapper):
         if self.render_gui:
             self.win.display_metric_trgs()
 
-    def get_reward(self):
-        reward = 0
+    def get_loss(self):
+        loss = 0
 
-        for metric in self.usable_metrics + list(self.static_trgs.keys()):
+        for metric in self.all_metrics:
             if metric in self.metric_trgs:
                 trg = self.metric_trgs[metric]
-            elif metric in self.static_trgs:
+            elif metric in self.static_metrics:
                 trg = self.static_trgs[metric]
             val = self.metrics[metric]
-            last_val = self.last_metrics[metric]
-            trg_change = trg - last_val
-            change = val - last_val
-            metric_rew = 0
-            same_sign = (change < 0) == (trg_change < 0)
-            # changed in wrong direction
 
-            if not same_sign:
-                metric_rew -= abs(change)
+            if isinstance(trg, tuple):
+                # then we assume it corresponds to a target range, and we penalize the minimum distance to that range
+                loss_m = -abs(np.arange(*trg) - val).min()
             else:
-                less_change = abs(change) < abs(trg_change)
-                # changed not too much, in the right direction
+                loss_m = -abs(trg-val)
+            loss_m = loss_m * self.weights[metric]
+            loss += loss_m
 
-                if less_change:
-                    metric_rew += abs(change)
-                else:
-                    metric_rew += abs(trg_change) - abs(trg_change - change)
-            reward += metric_rew * self.weights[metric]
+        return loss
 
-       #assert(reward <= self.max_improvement, 'actual reward {} is less than supposed maximum possible \
-       #        improvement toward target vectors of {}'.format(reward, self.max_improvement))
-       #if self.max_improvement == 0:
-       #    pass
-       #else:
-       #    reward = 100 * (reward / self.max_improvement)
+    def get_reward(self):
+#           reward = loss
+        loss = self.get_loss()
+        reward = loss - self.last_loss
+        self.last_loss = loss
 
         return reward
 
     def get_done(self):
         done = True
-        trg_dict = self.metric_trgs
-        trg_dict.update(self.static_trgs)
+        # overwrite static trgs with conditional ones, in case we have made a static one conditional in this run
+        trg_dict = self.static_trgs
+        trg_dict.update(self.metric_trgs)
+
         for k, v in trg_dict.items():
-            if self.metrics[k] != int(v):
+            if isinstance(v, tuple):
+                if self.metrics[k] in np.arange(*v):
+                    done = False
+            elif self.metrics[k] != int(v):
                 done = False
+
         if done and self.infer:
             print('targets reached! {}'.format(trg_dict))
+
         return done
 
 # TODO: What the fuck is this actually doing and why does it kind of work?

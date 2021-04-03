@@ -79,12 +79,14 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         if game == "sokoban":
             T()
 #           policy = CustomPolicySmallMap
-    if game == "binary":
+    if game == "binarygoal":
         kwargs['cropped_size'] = 32
-    elif game == "zelda":
+    elif game == "zeldagoal":
         kwargs['cropped_size'] = 32
-    elif game == "sokoban":
+    elif game == "sokobangoal":
         kwargs['cropped_size'] = 10
+    else:
+        raise Exception
     n = max_exp_idx(exp_name)
     global log_dir
 
@@ -161,7 +163,7 @@ midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 #################
 
-max_step = None
+max_step = 1000
 global COND_METRICS
 if conditional:
     experiment = 'conditional'
