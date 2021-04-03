@@ -27,12 +27,14 @@ conda activate pcgrl
 
 ## TURTLE
 
-#python train.py --problem "zeldagoal" --conditionals "enemies" --representation "turtle"
+python train.py --problem "zeldagoal" --conditionals "enemies" --representation "turtle"
 #python train.py --problem "zeldagoal" --conditionals "path-length" --representation "turtle"
-#python train.py --problem "zeldagoal" --conditionals "enemies" length" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "enemies" "path-length" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "nearest-enemy" --representation "turtle"
 
 ## NARROW
 
-python train.py --problem "zeldagoal" --conditionals "enemies" --representation "narrow"
+#python train.py --problem "zeldagoal" --conditionals "enemies" --representation "narrow"
 #python train.py --problem "zeldagoal" --conditionals "path-length" --representation "narrow"
-#python train.py --problem "zeldagoal" --conditionals "path-length" --representation "narrow"
+#python train.py --problem "zeldagoal" --conditionals "enemies" "path-length" --representation "narrow"
+#python train.py --problem "zeldagoal" --conditionals "nearest-enemy" --representation "narrow"
