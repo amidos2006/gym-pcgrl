@@ -9,6 +9,7 @@ import cv2
 from utils import get_exp_name, max_exp_idx, load_model, get_action
 from envs import make_vec_envs
 from matplotlib import pyplot as plt
+import pickle
 
 font                   = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (10,500)
@@ -47,10 +48,10 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     elif game == "sokobangoal":
         infer_kwargs['cropped_size'] = 10
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
-    data_path = os.path.join(log_dir, 'cell_scores.npy')
+    data_path = os.path.join(log_dir, 'eval_data.pkl')
     if VIS_ONLY:
-        cell_scores = np.load(data_path)
-        visualize_data(cell_scores)
+        eval_data = pickle.load(open(data_path, "rb"))
+        visualize_data(eval_data)
         return
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
@@ -75,9 +76,10 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
         control_bounds = env.remotes[0].recv()
     ctrl_bounds = [(k, v) for (k, v) in control_bounds.items()]
     if len(ctrl_bounds) == 1:
+        step_size = 10
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1] 
-        eval_trgs = np.arange(bounds[0], bounds[1] + 1, 30)
+        eval_trgs = np.arange(bounds[0], bounds[1] + 1, step_size)
         cell_scores = np.zeros((len(eval_trgs), 1))
         for i, trg in enumerate(eval_trgs):
             trg_dict = {ctrl_name: trg}
@@ -86,13 +88,36 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
 #           set_ctrl_trgs(env, {ctrl_name: trg})
             rew = eval_episodes(model, env, 1, n_cpu)
             cell_scores[i] = rew
-    visualize_data(cell_scores)
-    np.save(data_path, cell_scores)
+        ctrl_names = (ctrl_name)
+        ctrl_ranges = eval_trgs
+    elif len(ctrl_bounds) == 2:
+        step_0 = 30
+        step_1 = 30
+        ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
+        b0, b1 = ctrl_bounds[0][1], ctrl_bounds[1][1]
+        trgs_0 = np.arange(b0[0], b0[1]+0.5, step_0)
+        trgs_1 = np.arange(b1[0], b1[1]+0.5, step_1)
+        cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        for i, t0 in enumerate(trgs_0):
+            for j, t1 in enumerate(trgs_1):
+                trg_dict = {ctrl_0: t0, ctrl_1: t1}
+                print('evaluating control targets: {}'.format(trg_dict))
+                env.envs[0].set_trgs(trg_dict)
+    #           set_ctrl_trgs(env, {ctrl_name: trg})
+                rew = eval_episodes(model, env, 1, n_cpu)
+                cell_scores[i, j] = rew
+        ctrl_names = (ctrl_0, ctrl_1)
+        ctrl_ranges = (trgs_0, trgs_1)
 
-def visualize_data(cell_scores):
+    eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores)
+    pickle.dump(data_path, open(eval_data, "wb"))
+    visualize_data(eval_data)
+
+def visualize_data(eval_data):
     fig, ax = plt.subplots()
     im = ax.imshow(cell_scores)
     plt.show()
+    plt.savefig('cell_scores.png')
 
 def eval_episodes(model, env, n_trials, n_envs):
     eval_scores = np.zeros(n_trials)
@@ -157,6 +182,11 @@ def eval_episodes(model, env, n_trials, n_envs):
 #def set_ctrl_trgs(env, trg_dict):
 #    [remote.send(('env_method', ('set_trgs', [trg_dict], {}))) for remote in env.remotes]
 
+class EvalData():
+    def __init__(self, cell_scores, ctrl_names, ctrl_ranges):
+        self.ctrl_names = ctrl_names
+        self.ctrl_ranges = ctrl_ranges
+        self.cell_scores = cell_scores
 
 from arguments import get_args
 args = get_args()
@@ -174,7 +204,7 @@ global EXPERIMENT_DIR
 #EXPERIMENT_DIR = 'hpc_runs/runs'
 EXPERIMENT_DIR = 'runs'
 EXPERIMENT_ID = opts.experiment_id
-game = opts.problem
+problem = opts.problem
 representation = opts.representation
 conditional = True
 midep_trgs = opts.midep_trgs
@@ -188,6 +218,11 @@ kwargs = {
        #'target_path': 105,
        #'n': 4, # rank of saved experiment (by default, n is max possible)
         }
+
+if problem == 'sokoban':
+    map_width = 5
+else:
+    map_width = 16
 
 if conditional:
     max_step = 1000
@@ -220,6 +255,6 @@ infer_kwargs = {
 
 if __name__ == '__main__':
 
-    infer(game, representation, experiment, infer_kwargs, **kwargs)
+    infer(problem, representation, experiment, infer_kwargs, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()

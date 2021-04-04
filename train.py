@@ -145,8 +145,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
-from arguments import get_args
-opts = get_args()
+from arguments import parse_args
+opts = parse_args()
 
 ################################## MAIN ########################################
 

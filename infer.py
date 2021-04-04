@@ -114,8 +114,8 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     return infer_info
 
 
-from arguments import get_args
-opts = get_args()
+from arguments import parse_args
+opts = parse_args()
 
 # For locating trained model
 global EXPERIMENT_ID
