@@ -113,13 +113,6 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             n_trials += 1
     return infer_info
 
-prob_cond_metrics = {
-        'binary': ['regions'],
-#       'binary': ['path-length'],
-        'zelda': ['num_enemies'],
-        'sokoban': ['num_boxes'],
-        }
-
 
 from arguments import get_args
 opts = get_args()

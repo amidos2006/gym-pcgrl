@@ -57,8 +57,8 @@ class ParamRew(gym.Wrapper):
             v = self.metrics[k]
             self.weights[k] = self.unwrapped.weights[k]
 
-        for k in self.usable_metrics:
-            self.cond_bounds['{}_weight'.format(k)] = (0, 1)
+#       for k in self.usable_metrics:
+#           self.cond_bounds['{}_weight'.format(k)] = (0, 1)
         self.width = self.unwrapped.width
         self.observation_space = self.env.observation_space
         # FIXME: hack for gym-pcgrl
@@ -92,6 +92,17 @@ class ParamRew(gym.Wrapper):
             self.win = win
         self.infer = kwargs.get('infer', False)
         self.last_loss = None
+
+    def get_control_bounds(self):
+        controllable_bounds = {k: self.cond_bounds[k] for k in self.usable_metrics}
+        return controllable_bounds
+
+    def get_control_vals(self):
+        control_vals = {k: self.metrics[k] for k in self.usable_metrics}
+        return control_vals
+
+    def get_metric_vals(self):
+        return self.metrics
 
     def configure(self, **kwargs):
         pass
