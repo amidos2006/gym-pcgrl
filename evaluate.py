@@ -228,11 +228,12 @@ if conditional:
     max_step = 1000
     cond_metrics = opts.conditionals
 
+    experiment = '_'.join([experiment] + cond_metrics)
     if midep_trgs:
         experiment = '_'.join([experiment, 'midepTrgs'])
     if ca_action:
+        max_step = 50
         experiment = '_'.join([experiment, 'CAaction'])
-    experiment = '_'.join([experiment] + cond_metrics)
 else:
     max_step = None
     cond_metrics = None

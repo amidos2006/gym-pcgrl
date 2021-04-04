@@ -146,6 +146,7 @@ if conditional:
         experiment = '_'.join([experiment, 'midepTrgs'])
     experiment = '_'.join([experiment] + cond_metrics)
     if ca_action:
+        max_step = 50
         experiment = '_'.join([experiment, 'CAaction'])
 else:
     cond_metrics = None

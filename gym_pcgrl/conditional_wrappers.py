@@ -9,6 +9,7 @@ import numpy as np
 
 class ParamRew(gym.Wrapper):
     def __init__(self, env, cond_metrics, rand_params=False, **kwargs):
+        self.CA_action = kwargs.get('ca_action')
 
         self.render_gui = kwargs.get('render')
         # Whether to always select random parameters, to stabilize learning multiple objectives
@@ -66,7 +67,11 @@ class ParamRew(gym.Wrapper):
         self.action_space = self.env.action_space
         orig_obs_shape = self.observation_space.shape
         #TODO: adapt to (c, w, h) vs (w, h, c)
-        n_new_obs = 1 * len(self.usable_metrics)
+        if self.CA_action:
+            n_new_obs = 2 * len(self.usable_metrics)
+#           n_new_obs = 1 * len(self.usable_metrics)
+        else:
+            n_new_obs = 1 * len(self.usable_metrics)
         obs_shape = orig_obs_shape[0], orig_obs_shape[1], orig_obs_shape[2] + n_new_obs
         low = self.observation_space.low
         high = self.observation_space.high
@@ -157,7 +162,12 @@ class ParamRew(gym.Wrapper):
             if not metric:
                 metric = 0
             trg_range = self.param_ranges[k]
-            metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
+            if self.CA_action:
+#               metrics_ob[:, :, i] = (trg - metric) / trg_range
+                metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
+                metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
+            else:
+                metrics_ob[:, :, i] = np.sign(trg / trg_range - metric / trg_range)
 #           metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
 #           metrics_ob[:, :, i*2+1] = metric / self.param_ranges[k]
             i += 1

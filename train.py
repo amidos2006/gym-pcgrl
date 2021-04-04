@@ -4,7 +4,7 @@ from pdb import set_trace as T
 
 import model
 from stable_baselines3.common.policies import ActorCriticCnnPolicy
-from model import CustomPolicyBigMap, CApolicy
+from model import CustomPolicyBigMap, CApolicy, WidePolicy
 from utils import get_exp_name, max_exp_idx, load_model
 from envs import make_vec_envs
 from stable_baselines3 import PPO
@@ -127,7 +127,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
             # FIXME: there should be a better way hahahaha
             env.action_space = dummy_action_space
             # more frequent updates, for debugging... or because our action space is huge?
-            n_steps = 2048
+            n_steps = 10
         else:
             n_steps = 2048
     else:
