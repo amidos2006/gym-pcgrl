@@ -144,9 +144,9 @@ if conditional:
 
     if midep_trgs:
         experiment = '_'.join([experiment, 'midepTrgs'])
+    experiment = '_'.join([experiment] + cond_metrics)
     if ca_action:
         experiment = '_'.join([experiment, 'CAaction'])
-    experiment = '_'.join([experiment] + cond_metrics)
 else:
     cond_metrics = None
 

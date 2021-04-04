@@ -349,13 +349,12 @@ class CAactionWrapper(gym.Wrapper):
         obs = obs.transpose(1, 2, 0)
         env._rep._map = obs.squeeze(-1)
         self.n_ca_tick += 1
-        if self.n_ca_tick <= 50 or (action == self.last_action).all():
+        if self.n_ca_tick <= 50:  # or (action == self.last_action).all():
             done = False
         else:
             done = True
-        if True:
-            env._rep_stats = env._prob.get_stats(get_string_map(action, env._prob.get_tile_types()))
-            env.metrics = env._rep_stats
+        env._rep_stats = env._prob.get_stats(get_string_map(action, env._prob.get_tile_types()))
+        env.metrics = env._rep_stats
         self.last_action = action
 
         return obs, 0, done, {}

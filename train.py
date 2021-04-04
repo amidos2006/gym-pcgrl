@@ -67,7 +67,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         if ca_action:
             policy = CApolicy
         else:
-            policy = CApolicy
+            policy = WidePolicy
 
         if game == "sokoban":
             T()
@@ -176,6 +176,7 @@ else:
         experiment = '_'.join([experiment, 'midepTrgs'])
 if ca_action:
     experiment = '_'.join([experiment, 'CAaction'])
+    max_step = 50
 kwargs = {
     'map_width': 16,
     'change_percentage': 1,

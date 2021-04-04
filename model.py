@@ -197,7 +197,7 @@ class NoDenseMultiCategoricalDistribution(MultiCategoricalDistribution):
         """
 
 #       action_logits = nn.Linear(latent_dim, sum(self.action_dims))
-        action_logits = IdentityModule()
+        action_logits = IdentityActModule()
         return action_logits
 
 class NoDenseCategoricalDistribution(CategoricalDistribution):
@@ -224,7 +224,7 @@ class NoDenseCategoricalDistribution(CategoricalDistribution):
         """
 
 #       action_logits = nn.Linear(latent_dim, sum(self.action_dims))
-        action_logits = IdentityModule()
+        action_logits = IdentityActModule()
         return action_logits
 
 ################################################################################
@@ -256,13 +256,43 @@ def make_proba_distribution(
     elif isinstance(action_space, gym.spaces.Discrete):
         return NoDenseCategoricalDistribution(action_space.n)
 
-class IdentityModule(th.nn.Module):
+class IdentityActModule(th.nn.Module):
     def __init__(self):
         super().__init__()
         self.flatten = th.nn.Flatten()
 
-    def forward(self, latent_pi):
-        return self.flatten(latent_pi)
+    def forward(self, latents):
+        latent_pi, latent_val = latents
+        ret = self.flatten(latent_pi)
+        return ret
+    
+
+class IdentityValModule(th.nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.flatten = th.nn.Flatten()
+
+    def forward(self, latents):
+        latent_pi, latent_val = latents
+        ret = self.flatten(latent_val)
+        return ret
+
+class WidePolicy(ActorCriticCnnPolicy):
+    def __init__(self, 
+            observation_space,
+            action_space,
+            lr_schedule,
+            **kwargs):
+        n_tools = kwargs.pop("n_tools")
+        features_extractor_kwargs = {'n_tools': n_tools}
+        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=FullCnn, features_extractor_kwargs=features_extractor_kwargs)
+        # funky for CA type action
+        use_sde = False
+        dist_kwargs = None
+        self.action_dist = make_proba_distribution(action_space, use_sde=use_sde, dist_kwargs=dist_kwargs)
+        self._build(lr_schedule)
+        self.action_net = IdentityActModule()
+        self.value_net = IdentityValModule()
 
 class CApolicy(ActorCriticCnnPolicy):
     def __init__(self, 
@@ -272,88 +302,71 @@ class CApolicy(ActorCriticCnnPolicy):
             **kwargs):
         n_tools = kwargs.pop("n_tools")
         features_extractor_kwargs = {'n_tools': n_tools}
-        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=FullCnn, features_extractor_kwargs=features_extractor_kwargs)
-        self.action_net = IdentityModule()
+        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=NCA, features_extractor_kwargs=features_extractor_kwargs)
         # funky for CA type action
         use_sde = False
         dist_kwargs = None
         self.action_dist = make_proba_distribution(action_space, use_sde=use_sde, dist_kwargs=dist_kwargs)
         self._build(lr_schedule)
+        self.action_net = IdentityActModule()
+        self.value_net = IdentityValModule()
 
-    def _get_action_dist_from_latent(self, latent_pi: th.Tensor, latent_sde: Optional[th.Tensor] = None) -> Distribution:
-        """
-        Retrieve action distribution given the latent codes.
+  # def _get_action_dist_from_latent(self, latent_pi: th.Tensor, latent_sde: Optional[th.Tensor] = None) -> Distribution:
+  #     """
+  #     Retrieve action distribution given the latent codes.
 
-        :param latent_pi: Latent code for the actor
-        :param latent_sde: Latent code for the gSDE exploration function
-        :return: Action distribution
-        """
-        mean_actions = self.action_net(latent_pi)
-        mean_actions = latent_pi
+  #     :param latent_pi: Latent code for the actor
+  #     :param latent_sde: Latent code for the gSDE exploration function
+  #     :return: Action distribution
+  #     """
+  #     mean_actions = self.action_net(latent_pi)
+  #     mean_actions = latent_pi
 
 
-        if isinstance(self.action_dist, NoDenseMultiCategoricalDistribution) or isinstance(self.action_dist, NoDenseCategoricalDistribution):
-            # Here mean_actions are the flattened logits
-            return self.action_dist.proba_distribution(action_logits=mean_actions)
-        else:
-            raise ValueError("Invalid action distribution")
+  #     if isinstance(self.action_dist, NoDenseMultiCategoricalDistribution) or isinstance(self.action_dist, NoDenseCategoricalDistribution):
+  #         # Here mean_actions are the flattened logits
+  #         return self.action_dist.proba_distribution(action_logits=mean_actions)
+  #     else:
+  #         raise ValueError("Invalid action distribution")
 
-    def _get_latent(self, obs: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
-        """
-        Get the latent code (i.e., activations of the last layer of each network)
-        for the different networks.
+  # def _get_latent(self, obs: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+  #     """
+  #     Get the latent code (i.e., activations of the last layer of each network)
+  #     for the different networks.
 
-        :param obs: Observation
-        :return: Latent codes
-            for the actor, the value function and for gSDE function
-        """
-        # Preprocess the observation if needed
-        latent_pi, latent_vf = self.extract_features(obs)
-       #latent_pi, latent_vf = self.mlp_extractor(features)
+  #     :param obs: Observation
+  #     :return: Latent codes
+  #         for the actor, the value function and for gSDE function
+  #     """
+  #     # Preprocess the observation if needed
+  #     latent_pi, latent_vf = self.extract_features(obs)
+  #    #latent_pi, latent_vf = self.mlp_extractor(features)
 
-        # Features for sde
-        latent_sde = latent_pi
-        if self.sde_features_extractor is not None:
-            latent_sde = self.sde_features_extractor(features)
-        return latent_pi, latent_vf, latent_sde
+  #     # Features for sde
+  #     latent_sde = latent_pi
+  #     if self.sde_features_extractor is not None:
+  #         latent_sde = self.sde_features_extractor(features)
+  #     return latent_pi, latent_vf, latent_sde
 
-    def forward(self, obs: th.Tensor, deterministic: bool = False) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
-        """
-        Forward pass in all the networks (actor and critic)
+  # def forward(self, obs: th.Tensor, deterministic: bool = False) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+  #     """
+  #     Forward pass in all the networks (actor and critic)
 
-        :param obs: Observation
-        :param deterministic: Whether to sample or use deterministic actions
-        :return: action, value and log probability of the action
-        """
-        latent_pi, latent_vf, latent_sde = self._get_latent(obs)
-        latent_pi = latent_sde = latent_pi.reshape(latent_pi.shape[0], -1)
-        # Evaluate the values for the given observations
-#       values = self.value_net(latent_vf)
-        values = latent_vf
-#       distribution = self._get_action_dist_from_latent(latent_pi, latent_sde=latent_sde)
-        distribution = self.action_dist.proba_distribution(latent_pi)
-        actions = distribution.get_actions(deterministic=deterministic)
-        log_prob = distribution.log_prob(actions)
-        return actions, values, log_prob
+  #     :param obs: Observation
+  #     :param deterministic: Whether to sample or use deterministic actions
+  #     :return: action, value and log probability of the action
+  #     """
+  #     latent_pi, latent_vf, latent_sde = self._get_latent(obs)
+  #     latent_pi = latent_sde = latent_pi.reshape(latent_pi.shape[0], -1)
+  #     # Evaluate the values for the given observations
+# #     values = self.value_net(latent_vf)
+  #     values = latent_vf
+# #     distribution = self._get_action_dist_from_latent(latent_pi, latent_sde=latent_sde)
+  #     distribution = self.action_dist.proba_distribution(latent_pi)
+  #     actions = distribution.get_actions(deterministic=deterministic)
+  #     log_prob = distribution.log_prob(actions)
+  #     return actions, values, log_prob
 
-    def evaluate_actions(self, obs: th.Tensor, actions: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
-        """
-        Evaluate actions according to the current policy,
-        given the observations.
-
-        :param obs:
-        :param actions:
-        :return: estimated value, log likelihood of taking those actions
-            and entropy of the action distribution.
-        """
-        latent_pi, latent_vf, latent_sde = self._get_latent(obs)
-        latent_pi = latent_sde = latent_pi.reshape(latent_pi.shape[0], -1)
-#       distribution = self._get_action_dist_from_latent(latent_pi, latent_sde)
-        distribution = self.action_dist.proba_distribution(latent_pi)
-        log_prob = distribution.log_prob(actions)
-#       values = self.value_net(latent_vf)
-        values = latent_vf
-        return values, log_prob, distribution.entropy()
 
 
 

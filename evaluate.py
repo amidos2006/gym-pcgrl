@@ -110,7 +110,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
         ctrl_ranges = (trgs_0, trgs_1)
 
     eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores)
-    pickle.dump(data_path, open(eval_data, "wb"))
+    pickle.dump(eval_data, open(data_path, "wb"))
     visualize_data(eval_data)
 
 def visualize_data(eval_data):
