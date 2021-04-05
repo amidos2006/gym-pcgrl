@@ -269,7 +269,7 @@ class NoDenseMultiCategoricalDistribution(MultiCategoricalDistribution):
         return action_logits
 
     def sample(self) -> th.Tensor:
-#       return th.stack([dist.sample() for dist in self.distributions], dim=1)
+#       actions = th.stack([dist.sample() for dist in self.distributions], dim=1)
         actions = th.stack([dist.logits.argmax(dim=1) for dist in self.distributions], dim=1)
         return actions
 

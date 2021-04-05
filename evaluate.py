@@ -25,7 +25,6 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     infer_kwargs = {
             **infer_kwargs,
             'inference': True,
-            'render': True,
             'evaluate': True
             }
     max_trials = kwargs.get('max_trials', -1)
@@ -45,14 +44,14 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     if game == "binarygoal":
         infer_kwargs['cropped_size'] = 32
     elif game == "zeldagoal":
-        infer_kwargs['cropped_size'] = 32
+        infer_kwargs['cropped_size'] = 28
     elif game == "sokobangoal":
         infer_kwargs['cropped_size'] = 10
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
     data_path = os.path.join(log_dir, '{}_eval_data.pkl'.format(eval_controls))
     if VIS_ONLY:
         eval_data = pickle.load(open(data_path, "rb"))
-        visualize_data(eval_data)
+        visualize_data(eval_data, log_dir)
         return
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
@@ -79,28 +78,34 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         eval_controls = control_bounds.keys()
     ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
     if len(ctrl_bounds) == 1:
-        step_size = 10
+        step_size = STEP_0
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1] 
         eval_trgs = np.arange(bounds[0], bounds[1] + 1, step_size)
         cell_scores = np.zeros((len(eval_trgs), 1))
+        cell_ctrl_scores = np.zeros(shape=(len(eval_trgs), 1))
+        cell_static_scores = np.zeros(shape=(len(eval_trgs), 1))
         for i, trg in enumerate(eval_trgs):
             trg_dict = {ctrl_name: trg}
             print('evaluating control targets: {}'.format(trg_dict))
             env.envs[0].set_trgs(trg_dict)
 #           set_ctrl_trgs(env, {ctrl_name: trg})
-            rew = eval_episodes(model, env, 1, n_cpu)
-            cell_scores[i] = rew
-        ctrl_names = (ctrl_name)
-        ctrl_ranges = eval_trgs
+            net_score, ctrl_score, static_score = eval_episodes(model, env, N_TRIALS, n_cpu)
+            cell_scores[i] = net_score
+            cell_ctrl_scores[i] = ctrl_score
+            cell_static_scores[i] = static_score
+        ctrl_names = (ctrl_name, None)
+        ctrl_ranges = (eval_trgs, None)
     elif len(ctrl_bounds) >=2:
-        step_0 = 30
-        step_1 = 30
+        step_0 = STEP_0
+        step_1 = STEP_1
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
         b0, b1 = ctrl_bounds[0][1], ctrl_bounds[1][1]
         trgs_0 = np.arange(b0[0], b0[1]+0.5, step_0)
         trgs_1 = np.arange(b1[0], b1[1]+0.5, step_1)
         cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        cell_ctrl_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         trg_dict = env.envs[0].static_trgs
         trg_dict = dict([(k, min(v)) if isinstance(v, tuple) else (k, v) for (k, v) in trg_dict.items()])
         for i, t0 in enumerate(trgs_0):
@@ -110,23 +115,22 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 print('evaluating control targets: {}'.format(trg_dict))
                 env.envs[0].set_trgs(trg_dict)
     #           set_ctrl_trgs(env, {ctrl_name: trg})
-                rew = eval_episodes(model, env, 1, n_cpu)
-                cell_scores[i, j] = rew
+                net_score, ctrl_score, static_score = eval_episodes(model, env, N_TRIALS, n_cpu)
+                cell_scores[i, j] = net_score
+                cell_ctrl_scores[i, j] = ctrl_score
+                cell_static_scores[i, j] = static_score
         ctrl_names = (ctrl_0, ctrl_1)
         ctrl_ranges = (trgs_0, trgs_1)
 
-    eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores)
+    eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores)
     pickle.dump(eval_data, open(data_path, "wb"))
-    visualize_data(eval_data)
+    visualize_data(eval_data, log_dir)
 
-def visualize_data(eval_data):
-    fig, ax = plt.subplots()
-    im = ax.imshow(eval_data.cell_scores)
-    plt.show()
-    plt.savefig('cell_scores.png')
 
 def eval_episodes(model, env, n_trials, n_envs):
     eval_scores = np.zeros(n_trials)
+    eval_ctrl_scores = np.zeros(n_trials)
+    eval_static_scores = np.zeros(n_trials)
     n = 0
     # FIXME: why do we need this?
     while n < n_trials:
@@ -135,6 +139,8 @@ def eval_episodes(model, env, n_trials, n_envs):
         i = 0
         # note that this is weighted loss
         init_loss = env.envs[0].get_loss()
+        init_ctrl_loss = env.envs[0].get_ctrl_loss()
+        init_static_loss = env.envs[0].get_static_loss()
         done = False
         while not done:
             action, _ = model.predict(obs)
@@ -142,13 +148,92 @@ def eval_episodes(model, env, n_trials, n_envs):
 #           epi_rewards[i] = rewards
             i += 1
         final_loss = env.envs[0].get_loss()
+        final_ctrl_loss = env.envs[0].get_ctrl_loss()
+        final_static_loss = env.envs[0].get_static_loss()
         # what percentage of loss (distance from target) was recovered?
-        score = (final_loss - init_loss) / abs(init_loss)
+        eps = 0.001
+        max_loss = max(abs(init_loss), eps)
+        max_ctrl_loss = max(abs(init_ctrl_loss), eps)
+        max_static_loss = max(abs(init_static_loss), eps)
+        score = (final_loss - init_loss) / abs(max_loss)
+        ctrl_score = (final_ctrl_loss - init_ctrl_loss) / abs(max_ctrl_loss)
+        static_score = (final_static_loss - init_static_loss) / abs(max_static_loss)
         eval_scores[n] = score
+        eval_ctrl_scores[n] = ctrl_score
+        eval_static_scores[n] = static_score
         n += n_envs
     eval_score = eval_scores.mean()
+    eval_ctrl_score = eval_ctrl_scores.mean()
+    eval_static_score = eval_static_scores.mean()
     print('eval score: {}'.format(eval_score))
-    return eval_score
+    print('control score: {}'.format(ctrl_score))
+    print('static score: {}'.format(static_score))
+    return eval_score, eval_ctrl_score, eval_static_score
+
+
+def visualize_data(eval_data, log_dir):
+
+    def create_heatmap(title, data):
+        fig, ax = plt.subplots()
+        # percentages from ratios
+        data = data * 100
+        if data.shape[1]:
+            data = data.T
+            ax.set_yticks([])
+            ax.set_xticks(np.arange(cell_scores.shape[0]))
+            ax.set_xticklabels([int(x) if i % 50 == 0 else None for (i, x) in enumerate(ctrl_ranges[0])])
+        else:
+#           ax.set_xticks(np.arange(cell_scores.shape[0]))
+            ax.set_yticks(np.arange(cell_scores.shape[1]))
+            ax.set_xticklabels([int(x) for x in ctrl_ranges[0]])
+            ax.set_yticklabels([int(x) for x in ctrl_ranges[0]])
+        # Create the heatmap
+        im = ax.imshow(data, aspect='auto')
+
+        #Create colorbar
+        cbar = ax.figure.colorbar(im, ax=ax)
+        cbar.ax.set_ylabel("", rotation=90, va="bottom")
+
+        # We want to show all ticks...
+        # ... and label them with the respective list entries
+        plt.xlabel(ctrl_names[0])
+        plt.ylabel(ctrl_names[1])
+
+        # Rotate the tick labels and set their alignment.
+        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                 rotation_mode="anchor")
+
+        ax.set_title(title)
+        fig.tight_layout()
+
+        plt.savefig(os.path.join(log_dir, "{}_{}.png".format(ctrl_names, title)))
+        plt.show()
+
+    ctrl_names = eval_data.ctrl_names
+    ctrl_ranges = eval_data.ctrl_ranges
+    cell_scores = eval_data.cell_scores
+    cell_ctrl_scores = eval_data.cell_ctrl_scores
+    cell_static_scores = eval_data.cell_static_scores
+
+    title = "All goals (mean progress, %)"
+    create_heatmap(title, cell_scores)
+
+    title = "Controlled goals (mean progress, %)"
+    create_heatmap(title, cell_ctrl_scores)
+
+    title = "Fixed goals (mean progress, %)"
+    create_heatmap(title, cell_static_scores)
+
+
+
+class EvalData():
+    def __init__(self, ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores):
+        self.ctrl_names = ctrl_names
+        self.ctrl_ranges = ctrl_ranges
+        self.cell_scores = cell_scores
+        self.cell_ctrl_scores = cell_ctrl_scores
+        self.cell_static_scores = cell_static_scores
+
 
 
 #NOTE: let's not try multiproc how about that :~)
@@ -171,7 +256,6 @@ def eval_episodes(model, env, n_trials, n_envs):
 #        dones = np.array([False])
 #        while not dones.all():
 #            action, _ = model.predict(obs)
-#            T()
 #            obs, rewards, dones, info = env.step(action)
 ##           epi_rewards[i] = rewards
 #            i += 1
@@ -188,12 +272,6 @@ def eval_episodes(model, env, n_trials, n_envs):
 #def set_ctrl_trgs(env, trg_dict):
 #    [remote.send(('env_method', ('set_trgs', [trg_dict], {}))) for remote in env.remotes]
 
-class EvalData():
-    def __init__(self, ctrl_names, ctrl_ranges, cell_scores):
-        self.ctrl_names = ctrl_names
-        self.ctrl_ranges = ctrl_ranges
-        self.cell_scores = cell_scores
-
 from arguments import get_args
 args = get_args()
 args.add_argument('--vis_only',
@@ -204,6 +282,14 @@ args.add_argument('--eval_controls',
         help='Which controls to evaluate and visualize.',
         nargs='+',
         default=[],
+        )
+args.add_argument('--n_trials',
+        help='Which controls to evaluate and visualize.',
+        default=5,
+        )
+args.add_argument('--step_size',
+        help='Which controls to evaluate and visualize.',
+        default=10,
         )
 opts = args.parse_args()
 global VIS_ONLY 
@@ -256,7 +342,7 @@ infer_kwargs = {
         'conditional': True,
         'cond_metrics': cond_metrics,
         'max_step': max_step,
-        'render': True,
+        'render': opts.render,
         # TODO: multiprocessing
 #       'n_cpu': opts.n_cpu,
         'n_cpu': 1,
@@ -267,6 +353,12 @@ infer_kwargs = {
         'map_width': map_width,
         'eval_controls': opts.eval_controls,
         }
+
+global STEP_0
+global STEP_1
+STEP_0 = opts.step_size
+STEP_1 = opts.step_size
+N_TRIALS = opts.n_trials
 
 if __name__ == '__main__':
 

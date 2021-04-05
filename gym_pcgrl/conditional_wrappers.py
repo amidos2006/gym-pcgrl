@@ -68,6 +68,7 @@ class ParamRew(gym.Wrapper):
         orig_obs_shape = self.observation_space.shape
         #TODO: adapt to (c, w, h) vs (w, h, c)
         if self.CA_action:
+#       if self.CA_action and False:
             n_new_obs = 2 * len(self.usable_metrics)
 #           n_new_obs = 1 * len(self.usable_metrics)
         else:
@@ -162,6 +163,7 @@ class ParamRew(gym.Wrapper):
             if not metric:
                 metric = 0
             trg_range = self.param_ranges[k]
+#           if self.CA_action and False:
             if self.CA_action:
 #               metrics_ob[:, :, i] = (trg - metric) / trg_range
                 metrics_ob[:, :, i*2] = trg / self.param_ranges[k]
@@ -226,11 +228,40 @@ class ParamRew(gym.Wrapper):
                 # then we assume it corresponds to a target range, and we penalize the minimum distance to that range
                 loss_m = -abs(np.arange(*trg) - val).min()
             else:
-                loss_m = -abs(trg-val)
+                loss_m = -abs(trg - val)
             loss_m = loss_m * self.weights[metric]
             loss += loss_m
 
         return loss
+
+    def get_ctrl_loss(self):
+        loss = 0
+        for metric in self.usable_metrics:
+            trg = self.metric_trgs[metric]
+            val = self.metrics[metric]
+            loss_m = -abs(trg - val)
+            loss_m = loss_m * self.weights[metric]
+            loss += loss_m
+
+        return loss
+
+    def get_static_loss(self):
+        loss = 0
+        for metric in self.static_metrics:
+            if metric in self.usable_metrics:
+                continue
+            trg = self.static_trgs[metric]
+            val = self.metrics[metric]
+            if isinstance(trg, tuple):
+                loss_m = -abs(np.arange(*trg) - val).min()
+            else:
+                loss_m = -abs(trg - val)
+            loss_m = loss_m * self.weights[metric]
+            loss += loss_m
+
+        return loss
+
+
 
     def get_reward(self):
 #           reward = loss
