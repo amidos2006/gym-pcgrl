@@ -127,7 +127,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
             # FIXME: there should be a better way hahahaha
             env.action_space = dummy_action_space
             # more frequent updates, for debugging... or because our action space is huge?
-            n_steps = 10
+            n_steps = 512
         else:
             n_steps = 2048
     else:
@@ -140,6 +140,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
     else:
         model.set_env(env)
 
+   #model.policy = model.policy.to('cuda:0')
+    model.policy = model.policy.cuda()
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
@@ -155,7 +157,7 @@ conditional = True
 game = opts.problem
 representation = opts.representation
 steps = 1e8
-render = False
+render = opts.render
 logging = True
 n_cpu = opts.n_cpu
 resume = opts.resume

@@ -111,7 +111,7 @@ class FullCnn(th.nn.Module):
         return act, val
 
 class NCA(th.nn.Module):
-    ''' Like the old FullCnn2, for wide representations with binary or zelda.'''
+    '''Big dumb ugly NCA that crashes early on so far.'''
     def __init__(self, observation_space, n_tools, **kwargs):
         super().__init__()
         self.features_dim = n_tools
@@ -172,6 +172,74 @@ class NCA(th.nn.Module):
 
         return act, val
 
+#@title Minimalistic Neural CA
+class CA(th.nn.Module):
+    def __init__(self, observation_space, n_tools=None, hidden_n=96, **kwargs):
+        super().__init__()
+        self.n_tools = n_tools
+        self.ident = th.tensor([[0.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,0.0]])
+        self.sobel_x = th.tensor([[-1.0,0.0,1.0],[-2.0,0.0,2.0],[-1.0,0.0,1.0]])/8.0
+        self.lap = th.tensor([[1.0,2.0,1.0],[2.0,-12,2.0],[1.0,2.0,1.0]])/16.0
+        self.filters = th.stack([self.ident, self.sobel_x, self.sobel_x.T, self.lap])
+
+        # dummy
+        self.features_dim = n_tools
+        self.chn = observation_space.shape[2]
+        # it's dumb that we're applying sobel and laplace filters to our ParamRew observation, which is the same acrsss the map, so we add this lil' embedding layer
+        self.w1 = th.nn.Conv2d(self.chn*4, hidden_n, 1)
+        self.w2 = th.nn.Conv2d(hidden_n, n_tools, 1, bias=False)
+        self.w2.weight.data.zero_()
+
+        self.val_shrink = nn.Sequential(
+            conv(n_tools, 64, kernel_size=3, stride=2, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=2, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=1, stride=1, padding=0, **kwargs),
+            nn.ReLU(),
+        )
+        with th.no_grad():
+            n_flatten = self.val_shrink(self.w2(self.w1(self.perception(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float())))).view(-1).shape[0]
+        self.filters = self.filters.cuda()
+
+        self.val_head = nn.Sequential(
+            nn.Flatten(),
+            linear(n_flatten, 1)
+        )
+
+    def forward(self, x, update_rate=0.5):
+        x = x.permute(0, 3, 1, 2)
+        y = self.perception(x)
+        y = self.w2(th.relu(self.w1(y)))
+        b, c, h, w = y.shape
+        act = y
+        # FIXME: should not be calling cuda here :(
+        update_mask = (th.rand(b, 1, h, w) < update_rate).cuda()
+        act = x[:,-self.n_tools:] * (update_mask == False) + y * update_mask
+       #update_mask = (th.rand(b, 1, h, w)+update_rate).floor()
+       #act = x[:,-self.n_tools:]+y*update_mask.cuda()
+        val = self.val_head(self.val_shrink(act))
+        
+        return act, val
+
+    def perchannel_conv(self, x, filters):
+        '''filters: [filter_n, h, w]'''
+        b, ch, h, w = x.shape
+        # TODO: Don't assume the control observations will come first! Do something smart, like pass a dictionary of np arrays. Being hackish now for backward compatibility.
+        y = x.reshape(b*ch, 1, h, w)
+        y = th.nn.functional.pad(y, [1, 1, 1, 1])
+        y = th.nn.functional.conv2d(y, filters[:,None])
+        return y.reshape(b, -1, h, w)
+
+    def perception(self, x):
+        return self.perchannel_conv(x, self.filters)
+
+
+
+#    def seed(self, n, sz=128):
+#        return th.zeros(n, self.chn, sz, sz)
+
+
 
 class NoDenseMultiCategoricalDistribution(MultiCategoricalDistribution):
     """
@@ -200,6 +268,11 @@ class NoDenseMultiCategoricalDistribution(MultiCategoricalDistribution):
         action_logits = IdentityActModule()
         return action_logits
 
+    def sample(self) -> th.Tensor:
+#       return th.stack([dist.sample() for dist in self.distributions], dim=1)
+        actions = th.stack([dist.logits.argmax(dim=1) for dist in self.distributions], dim=1)
+        return actions
+
 class NoDenseCategoricalDistribution(CategoricalDistribution):
     """
     MultiCategorical distribution for multi discrete actions.
@@ -226,6 +299,10 @@ class NoDenseCategoricalDistribution(CategoricalDistribution):
 #       action_logits = nn.Linear(latent_dim, sum(self.action_dims))
         action_logits = IdentityActModule()
         return action_logits
+
+    def sample(self):
+        ret = super().sample()
+        return ret
 
 ################################################################################
 #   Boilerplate policy classes
@@ -263,6 +340,8 @@ class IdentityActModule(th.nn.Module):
 
     def forward(self, latents):
         latent_pi, latent_val = latents
+        #FIXME: eeksauce
+        latent_pi = latent_pi.permute(0, 2, 3, 1)
         ret = self.flatten(latent_pi)
         return ret
     
@@ -285,7 +364,7 @@ class WidePolicy(ActorCriticCnnPolicy):
             **kwargs):
         n_tools = kwargs.pop("n_tools")
         features_extractor_kwargs = {'n_tools': n_tools}
-        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=FullCnn, features_extractor_kwargs=features_extractor_kwargs)
+        super(WidePolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=FullCnn, features_extractor_kwargs=features_extractor_kwargs)
         # funky for CA type action
         use_sde = False
         dist_kwargs = None
@@ -302,7 +381,8 @@ class CApolicy(ActorCriticCnnPolicy):
             **kwargs):
         n_tools = kwargs.pop("n_tools")
         features_extractor_kwargs = {'n_tools': n_tools}
-        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=NCA, features_extractor_kwargs=features_extractor_kwargs)
+       #super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=NCA, features_extractor_kwargs=features_extractor_kwargs)
+        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=CA, features_extractor_kwargs=features_extractor_kwargs)
         # funky for CA type action
         use_sde = False
         dist_kwargs = None

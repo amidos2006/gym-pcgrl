@@ -107,6 +107,7 @@ class ToImage(gym.Wrapper):
 Transform any object in the dictionary to one hot encoding
 
 can be stacked
+       - name: name of the action subspace to one-hot encode. E.g., "map" 
 """
 class OneHotEncoding(gym.Wrapper):
     def __init__(self, game, name, **kwargs):
@@ -151,6 +152,10 @@ class OneHotEncoding(gym.Wrapper):
         obs[self.name] = np.eye(self.dim)[old]
 
         return obs
+    
+    def get_one_hot_map(self):
+        obs = {'map': self.env._rep._map}
+        return self.transform(obs)
 
 """
 Transform the input space to a 3D map of values where the argmax value will be applied
@@ -308,12 +313,8 @@ class ActionMapImagePCGRLWrapper(gym.Wrapper):
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
 
-def get_one_hot_map(int_map, n_tile_types):
-    obs = (np.arange(n_tile_types) == int_map[...,None]-1).astype(int)
-    obs = obs.transpose(2, 0, 1)
 
-    return obs
-
+# This precedes the ParamRew wrapper so we only worry about the map as observation
 class CAactionWrapper(gym.Wrapper):
     def __init__(self, game, **kwargs):
         self.pcgrl_env = gym.make(game)
@@ -330,8 +331,8 @@ class CAactionWrapper(gym.Wrapper):
 #       env = ActionMap(env)
         # Transform to one hot encoding if not binary
 
-        if 'binary' not in game:
-            env = OneHotEncoding(env, 'map')
+        # we need the observation to be one-hot, so we can reliably separate map from control observations for NCA skip connection
+        env = OneHotEncoding(env, 'map')
         # Final Wrapper has to be ToImage or ToFlat
         self.env = ToImage(env, flat_indices)
         gym.Wrapper.__init__(self, self.env)
@@ -342,26 +343,36 @@ class CAactionWrapper(gym.Wrapper):
         self.INFER = kwargs.get('infer')
 
     def step(self, action):
-        env = self.pcgrl_env
-        action = action.reshape(env._rep._map.shape)
+        env = self.env
+        pcgrl_env = self.pcgrl_env
+        action = action.reshape(pcgrl_env._rep._map.shape).astype(int)
 #       obs = get_one_hot_map(action, self.n_tile_types)
         obs = action.reshape(1, *action.shape)
         obs = obs.transpose(1, 2, 0)
-        env._rep._map = obs.squeeze(-1)
+        pcgrl_env._rep._map = obs.squeeze(-1)
+        obs = self.env.get_one_hot_map()
         self.n_ca_tick += 1
         if self.n_ca_tick <= 50:  # or (action == self.last_action).all():
             done = False
         else:
             done = True
-        env._rep_stats = env._prob.get_stats(get_string_map(action, env._prob.get_tile_types()))
-        env.metrics = env._rep_stats
+        self.env._rep_stats = pcgrl_env._prob.get_stats(get_string_map(action, pcgrl_env._prob.get_tile_types()))
+        pcgrl_env.metrics = env.metrics = self.env._rep_stats
         self.last_action = action
 
-        return obs, 0, done, {}
+        return obs['map'], 0, done, {}
 
     def reset(self):
         self.last_action = None
         self.n_ca_tick = 0
-        obs = super().reset()
+        if self.pcgrl_env.unwrapped._rep._map is None:
+            # get map dimensions (sloppy)
+            super().reset()
+        # load up our initial state (empty)
+        self.env.unwrapped._rep._random_start = False
+        init_state = np.zeros(self.unwrapped._rep._map.shape).astype(np.uint8)
+        self.unwrapped._rep._old_map = init_state
+        obs = self.env.reset()
+#       obs = self.env.get_one_hot_map()
         
         return obs

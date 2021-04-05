@@ -57,6 +57,11 @@ def get_args():
         default=12,
     )
     args.add_argument(
+        '--render',
+        help='Render an environment?',
+        action='store_true',
+    )
+    args.add_argument(
         '--load_best',
         help='Whether to load the best saved model of a given run rather than the latest.',
         action='store_true',)
