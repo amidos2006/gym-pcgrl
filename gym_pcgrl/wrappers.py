@@ -365,13 +365,13 @@ class CAactionWrapper(gym.Wrapper):
     def reset(self):
         self.last_action = None
         self.n_ca_tick = 0
-        if self.pcgrl_env.unwrapped._rep._map is None:
-            # get map dimensions (sloppy)
-            super().reset()
-        # load up our initial state (empty)
-        self.env.unwrapped._rep._random_start = False
-        init_state = np.zeros(self.unwrapped._rep._map.shape).astype(np.uint8)
-        self.unwrapped._rep._old_map = init_state
+#       if self.pcgrl_env.unwrapped._rep._map is None:
+#           # get map dimensions (sloppy)
+#           super().reset()
+#       # load up our initial state (empty)
+#       self.env.unwrapped._rep._random_start = False
+#       init_state = np.zeros(self.unwrapped._rep._map.shape).astype(np.uint8)
+#       self.unwrapped._rep._old_map = init_state
         obs = self.env.reset()
 #       obs = self.env.get_one_hot_map()
         

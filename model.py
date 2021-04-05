@@ -207,7 +207,7 @@ class CA(th.nn.Module):
             linear(n_flatten, 1)
         )
 
-    def forward(self, x, update_rate=0.5):
+    def forward(self, x, update_rate=0.2):
         x = x.permute(0, 3, 1, 2)
         y = self.perception(x)
         y = self.w2(th.relu(self.w1(y)))
