@@ -47,7 +47,7 @@ class ParamRew(gym.Wrapper):
         # we might be using a subset of possible conditional targets supplied by the problem
 
         for k in self.usable_metrics:
-            self.metric_trgs[k] = self.unwrapped.cond_trgs[k]
+            self.metric_trgs[k] = self.unwrapped.static_trgs[k]
 
         # All metrics that we will consider for reward
         self.all_metrics = set()

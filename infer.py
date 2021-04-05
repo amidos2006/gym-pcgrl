@@ -123,7 +123,7 @@ global EXPERIMENT_DIR
 #EXPERIMENT_DIR = 'hpc_runs/runs'
 EXPERIMENT_DIR = 'runs'
 EXPERIMENT_ID = opts.experiment_id
-game = opts.problem
+problem = opts.problem
 representation = opts.representation
 conditional = True
 midep_trgs = opts.midep_trgs
@@ -137,6 +137,12 @@ kwargs = {
        #'target_path': 105,
        #'n': 4, # rank of saved experiment (by default, n is max possible)
         }
+
+
+if problem == 'sokoban':
+    map_width = 5
+else:
+    map_width = 16
 
 max_step = 1000
 if conditional:
@@ -164,10 +170,10 @@ infer_kwargs = {
         'midep_trgs': midep_trgs,
         'infer': True,
         'ca_action': ca_action,
-        'map_width': 16
+        'map_width': map_width,
         }
 
 if __name__ == '__main__':
-    infer(game, representation, experiment, infer_kwargs, **kwargs)
+    infer(problem, representation, experiment, infer_kwargs, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()

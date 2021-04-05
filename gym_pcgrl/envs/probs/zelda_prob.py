@@ -241,9 +241,9 @@ class MultiGoalZeldaProblem(ZeldaProblem):
         self.cond_bounds = {
                 'nearest-enemy': (0, self._max_nearest_enemy),
                 'enemies': (0, self._width * self._height - 2), 
-#               'player': (0, self._width * self._height - 2), 
-#               'key': (0, self._width * self._height - 2), 
-#               'door': (0, self._width * self._height - 2), 
+                'player': (0, self._width * self._height - 2), 
+                'key': (0, self._width * self._height - 2), 
+                'door': (0, self._width * self._height - 2), 
                                                                                             
                 #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
                 # and "snake" along that one

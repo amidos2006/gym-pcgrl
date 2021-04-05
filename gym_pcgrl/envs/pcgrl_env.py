@@ -31,9 +31,9 @@ class PcgrlEnv(gym.Env):
         self._rep = REPRESENTATIONS[rep]()
         self._rep_stats = None
         self.metrics = {}
-        print('problem conditional trgs: {}'.format(self._prob.cond_trgs))
+#       print('problem conditional trgs: {}'.format(self._prob.cond_trgs))
         print('problem static trgs: {}'.format(self._prob.static_trgs))
-        for k in {**self._prob.cond_trgs, **self._prob.static_trgs}:
+        for k in {**self._prob.static_trgs}:
             self.metrics[k] = None
         print('env metrics: {}'.format(self.metrics))
         self._iteration = 0
@@ -54,7 +54,7 @@ class PcgrlEnv(gym.Env):
 
         # For use with gym-city Conditional wrapper, for dynamically shifting reward targets
         
-        self.cond_trgs = collections.OrderedDict(self._prob.cond_trgs)
+#       self.cond_trgs = collections.OrderedDict(self._prob.cond_trgs)
         self.weights = self._prob.weights
         self.cond_bounds = self._prob.cond_bounds
         self.static_trgs = self._prob.static_trgs
@@ -73,9 +73,9 @@ class PcgrlEnv(gym.Env):
         #TODO
         return len(bounds)
 
-    def set_params(self, trgs):
-        for k, v in trgs.items():
-            self.cond_trgs[k] = v
+#   def set_params(self, trgs):
+#       for k, v in trgs.items():
+#           self.cond_trgs[k] = v
 
     def display_metric_trgs(self):
         pass

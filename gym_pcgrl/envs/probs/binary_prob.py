@@ -162,8 +162,12 @@ class BinaryProblem(Problem):
 class MultiGoalBinaryProblem(BinaryProblem):
     def __init__(self):
         super(MultiGoalBinaryProblem, self).__init__()
+        self._max_path_length = np.ceil(self._width / 2 + 1) * (self._height)
 
-        self.static_trgs = {}
+        self.static_trgs = {
+                'regions': 1,
+                'path-length': self._max_path_length,
+                }
 
         # conditional inputs/targets
         self.cond_trgs = {
@@ -182,7 +186,7 @@ class MultiGoalBinaryProblem(BinaryProblem):
                                                                                             
                 #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
                 # and "snake" along that one
-                'path-length': (0, np.ceil(self._width / 2 + 1) * (self._height)),  # Upper bound: zig-zag
+                'path-length': (0, self._max_path_length),  # Upper bound: zig-zag
 
                                                                                             #   11111111
                                                                                             #   00000001

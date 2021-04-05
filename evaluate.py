@@ -17,7 +17,7 @@ fontScale              = 1
 fontColor              = (255,255,255)
 lineType               = 2
 
-def infer(game, representation, experiment, infer_kwargs, **kwargs):
+def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     """
      - max_trials: The number of trials per evaluation.
      - infer_kwargs: Args to pass to the environment.
@@ -32,6 +32,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     n = kwargs.get('n', None)
     map_width = infer_kwargs.get('map_width')
     max_steps = infer_kwargs.get('max_steps')
+    eval_controls = infer_kwargs.get('eval_controls')
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
     if n is None:
@@ -48,7 +49,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     elif game == "sokobangoal":
         infer_kwargs['cropped_size'] = 10
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
-    data_path = os.path.join(log_dir, 'eval_data.pkl')
+    data_path = os.path.join(log_dir, '{}_eval_data.pkl'.format(eval_controls))
     if VIS_ONLY:
         eval_data = pickle.load(open(data_path, "rb"))
         visualize_data(eval_data)
@@ -74,7 +75,9 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     elif n_cpu > 1:
         env.remotes[0].send(('env_method', ('get_control_bounds', [], {})))  # supply args and kwargs
         control_bounds = env.remotes[0].recv()
-    ctrl_bounds = [(k, v) for (k, v) in control_bounds.items()]
+    if not eval_controls:
+        eval_controls = control_bounds.keys()
+    ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
     if len(ctrl_bounds) == 1:
         step_size = 10
         ctrl_name = ctrl_bounds[0][0]
@@ -90,7 +93,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             cell_scores[i] = rew
         ctrl_names = (ctrl_name)
         ctrl_ranges = eval_trgs
-    elif len(ctrl_bounds) == 2:
+    elif len(ctrl_bounds) >=2:
         step_0 = 30
         step_1 = 30
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
@@ -98,9 +101,12 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
         trgs_0 = np.arange(b0[0], b0[1]+0.5, step_0)
         trgs_1 = np.arange(b1[0], b1[1]+0.5, step_1)
         cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
+        trg_dict = env.envs[0].static_trgs
+        trg_dict = dict([(k, min(v)) if isinstance(v, tuple) else (k, v) for (k, v) in trg_dict.items()])
         for i, t0 in enumerate(trgs_0):
             for j, t1 in enumerate(trgs_1):
-                trg_dict = {ctrl_0: t0, ctrl_1: t1}
+                ctrl_trg_dict = {ctrl_0: t0, ctrl_1: t1}
+                trg_dict.update(ctrl_trg_dict)
                 print('evaluating control targets: {}'.format(trg_dict))
                 env.envs[0].set_trgs(trg_dict)
     #           set_ctrl_trgs(env, {ctrl_name: trg})
@@ -115,7 +121,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
 
 def visualize_data(eval_data):
     fig, ax = plt.subplots()
-    im = ax.imshow(cell_scores)
+    im = ax.imshow(eval_data.cell_scores)
     plt.show()
     plt.savefig('cell_scores.png')
 
@@ -183,7 +189,7 @@ def eval_episodes(model, env, n_trials, n_envs):
 #    [remote.send(('env_method', ('set_trgs', [trg_dict], {}))) for remote in env.remotes]
 
 class EvalData():
-    def __init__(self, cell_scores, ctrl_names, ctrl_ranges):
+    def __init__(self, ctrl_names, ctrl_ranges, cell_scores):
         self.ctrl_names = ctrl_names
         self.ctrl_ranges = ctrl_ranges
         self.cell_scores = cell_scores
@@ -193,6 +199,11 @@ args = get_args()
 args.add_argument('--vis_only',
         help='Just load data from previous evaluation and visualize it.',
         action='store_true',
+        )
+args.add_argument('--eval_controls',
+        help='Which controls to evaluate and visualize.',
+        nargs='+',
+        default=[],
         )
 opts = args.parse_args()
 global VIS_ONLY 
@@ -246,16 +257,19 @@ infer_kwargs = {
         'cond_metrics': cond_metrics,
         'max_step': max_step,
         'render': True,
-        'n_cpu': opts.n_cpu,
+        # TODO: multiprocessing
+#       'n_cpu': opts.n_cpu,
+        'n_cpu': 1,
         'load_best': opts.load_best,
         'midep_trgs': midep_trgs,
         'infer': True,
         'ca_action': ca_action,
-        'map_width': 16
+        'map_width': map_width,
+        'eval_controls': opts.eval_controls,
         }
 
 if __name__ == '__main__':
 
-    infer(problem, representation, experiment, infer_kwargs, **kwargs)
+    evaluate(problem, representation, experiment, infer_kwargs, **kwargs)
 #   evaluate(test_params, game, representation, experiment, infer_kwargs, **kwargs)
 #   analyze()

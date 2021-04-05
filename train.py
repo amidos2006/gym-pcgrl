@@ -154,7 +154,7 @@ opts = parse_args()
 
 ### User settings
 conditional = True
-game = opts.problem
+problem = opts.problem
 representation = opts.representation
 steps = 1e8
 render = opts.render
@@ -164,6 +164,12 @@ resume = opts.resume
 midep_trgs = opts.midep_trgs
 ca_action = opts.ca_action
 #################
+
+if problem == 'sokobangoal':
+    map_width = 5
+else:
+    map_width = 16
+
 
 max_step = 1000
 global COND_METRICS
@@ -180,7 +186,7 @@ if ca_action:
     experiment = '_'.join([experiment, 'CAaction'])
     max_step = 50
 kwargs = {
-    'map_width': 16,
+    'map_width': map_width,
     'change_percentage': 1,
     'conditional': conditional,
     'cond_metrics': COND_METRICS,
@@ -191,4 +197,4 @@ kwargs = {
 }
 
 if __name__ == '__main__':
-    main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs)
+    main(problem, representation, experiment, steps, n_cpu, render, logging, **kwargs)
