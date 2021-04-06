@@ -36,12 +36,14 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
             n = EXPERIMENT_ID
     if n == 0:
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
-    if game == "binarygoal":
-        infer_kwargs['cropped_size'] = 32
-    elif game == "zeldagoal":
-        infer_kwargs['cropped_size'] = 32
-    elif game == "sokobangoal":
-        infer_kwargs['cropped_size'] = 10
+    crop_size = infer_kwargs.get('cropped_size')
+    if crop_size is None:
+        if game == "binarygojl":
+            infer_kwargs['cropped_size'] = 32
+        elif game == "zeldagoal":
+            infer_kwargs['cropped_size'] = 32
+        elif game == "sokobangoal":
+            infer_kwargs['cropped_size'] = 10
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
@@ -121,7 +123,10 @@ opts = parse_args()
 global EXPERIMENT_ID
 global EXPERIMENT_DIR
 #EXPERIMENT_DIR = 'hpc_runs/runs'
-EXPERIMENT_DIR = 'runs'
+if not opts.HPC:
+    EXPERIMENT_DIR = 'runs'
+else:
+    EXPERIMENT_DIR = 'hpc_runs'
 EXPERIMENT_ID = opts.experiment_id
 problem = opts.problem
 representation = opts.representation
@@ -171,6 +176,7 @@ infer_kwargs = {
         'infer': True,
         'ca_action': ca_action,
         'map_width': map_width,
+        'cropped_size': opts.crop_size,
         }
 
 if __name__ == '__main__':

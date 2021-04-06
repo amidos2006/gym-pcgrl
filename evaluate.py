@@ -41,12 +41,14 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
             n = EXPERIMENT_ID
     if n == 0:
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
-    if game == "binarygoal":
-        infer_kwargs['cropped_size'] = 32
-    elif game == "zeldagoal":
-        infer_kwargs['cropped_size'] = 28
-    elif game == "sokobangoal":
-        infer_kwargs['cropped_size'] = 10
+    crop_size = infer_kwargs.get('cropped_size')
+    if crop_size is None:
+        if game == "binarygoal":
+            infer_kwargs['cropped_size'] = 32
+        elif game == "zeldagoal":
+            infer_kwargs['cropped_size'] = 28
+        elif game == "sokobangoal":
+            infer_kwargs['cropped_size'] = 10
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
     data_path = os.path.join(log_dir, '{}_eval_data.pkl'.format(eval_controls))
     if VIS_ONLY:
@@ -77,23 +79,33 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     if not eval_controls:
         eval_controls = control_bounds.keys()
     ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
+    # Hackish get initial states
+    init_states = []
+    for i in range(N_TRIALS):
+        env.envs[0].reset()
+        init_states.append(env.envs[0].unwrapped._rep._map)
     if len(ctrl_bounds) == 1:
         step_size = STEP_0
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1] 
         eval_trgs = np.arange(bounds[0], bounds[1] + 1, step_size)
+        level_images = []
         cell_scores = np.zeros((len(eval_trgs), 1))
         cell_ctrl_scores = np.zeros(shape=(len(eval_trgs), 1))
         cell_static_scores = np.zeros(shape=(len(eval_trgs), 1))
+        N_EVALS = N_TRIALS * N_MAPS
         for i, trg in enumerate(eval_trgs):
             trg_dict = {ctrl_name: trg}
             print('evaluating control targets: {}'.format(trg_dict))
             env.envs[0].set_trgs(trg_dict)
 #           set_ctrl_trgs(env, {ctrl_name: trg})
-            net_score, ctrl_score, static_score = eval_episodes(model, env, N_TRIALS, n_cpu)
+            net_score, ctrl_score, static_score, level_image = eval_episodes(model, env, N_EVALS, n_cpu, init_states)
+            level_images.append(level_image)
             cell_scores[i] = net_score
             cell_ctrl_scores[i] = ctrl_score
             cell_static_scores[i] = static_score
+        if RENDER_LEVELS:
+            T()
         ctrl_names = (ctrl_name, None)
         ctrl_ranges = (eval_trgs, None)
     elif len(ctrl_bounds) >=2:
@@ -115,7 +127,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 print('evaluating control targets: {}'.format(trg_dict))
                 env.envs[0].set_trgs(trg_dict)
     #           set_ctrl_trgs(env, {ctrl_name: trg})
-                net_score, ctrl_score, static_score = eval_episodes(model, env, N_TRIALS, n_cpu)
+                net_score, ctrl_score, static_score = eval_episodes(model, env, N_EVALS, n_cpu, init_states)
                 cell_scores[i, j] = net_score
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
@@ -127,13 +139,14 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     visualize_data(eval_data, log_dir)
 
 
-def eval_episodes(model, env, n_trials, n_envs):
+def eval_episodes(model, env, n_trials, n_envs, init_states):
     eval_scores = np.zeros(n_trials)
     eval_ctrl_scores = np.zeros(n_trials)
     eval_static_scores = np.zeros(n_trials)
     n = 0
     # FIXME: why do we need this?
     while n < n_trials:
+        env.envs[0].set_map(init_states[n % N_MAPS])
         obs = env.reset()
 #       epi_rewards = np.zeros((max_step, n_envs))
         i = 0
@@ -168,7 +181,13 @@ def eval_episodes(model, env, n_trials, n_envs):
     print('eval score: {}'.format(eval_score))
     print('control score: {}'.format(ctrl_score))
     print('static score: {}'.format(static_score))
-    return eval_score, eval_ctrl_score, eval_static_score
+    if RENDER_LEVELS:
+        level_image = env.envs[0].render('rgb_array')
+        print(level_image)
+        print(level_image.shape)
+    else:
+        level_image = None
+    return eval_score, eval_ctrl_score, eval_static_score, level_image
 
 
 def visualize_data(eval_data, log_dir):
@@ -179,10 +198,16 @@ def visualize_data(eval_data, log_dir):
         data = data * 100
         data = np.clip(data, -200, 100)
         data = data.T
-        if not data.shape[1]:
+        if data.shape[0] == 1:
+            fig.set_size_inches(10, 2)
             ax.set_yticks([])
-            ax.set_xticks(np.arange(cell_scores.shape[0]))
-            ax.set_xticklabels([int(x) for (i, x) in enumerate(ctrl_ranges[0])])
+            tick_idxs = np.arange(0, cell_scores.shape[0], 10)
+            ticks = np.arange(cell_scores.shape[0])
+            ticks = ticks[tick_idxs]
+            ax.set_xticks(ticks)
+            labels = np.array([int(x) if x % 50 == 0 else "" for (i, x) in enumerate(ctrl_ranges[0])])
+            labels = labels[tick_idxs]
+            ax.set_xticklabels(labels)
         else:
             ax.set_xticks(np.arange(cell_scores.shape[0]))
             ax.set_yticks(np.arange(cell_scores.shape[1]))
@@ -284,13 +309,24 @@ args.add_argument('--eval_controls',
         nargs='+',
         default=[],
         )
+args.add_argument('--n_maps',
+        help='Number maps on which to simulate in each cell.',
+        default=3,
+        type=int,
+        )
 args.add_argument('--n_trials',
-        help='Which controls to evaluate and visualize.',
-        default=5,
+        help='Number trials for which to simulate on each map.',
+        default=3,
+        type=int,
         )
 args.add_argument('--step_size',
-        help='Which controls to evaluate and visualize.',
-        default=10,
+        help='Bin size along either dimension.',
+        default=20,
+        type=int,
+        )
+args.add_argument('--render_levels',
+        help='Save final maps (default to only one eval per cell)',
+        action='store_true',
         )
 opts = args.parse_args()
 global VIS_ONLY 
@@ -300,7 +336,10 @@ VIS_ONLY = opts.vis_only
 global EXPERIMENT_ID
 global EXPERIMENT_DIR
 #EXPERIMENT_DIR = 'hpc_runs/runs'
-EXPERIMENT_DIR = 'runs'
+if not opts.HPC:
+    EXPERIMENT_DIR = 'runs'
+else:
+    EXPERIMENT_DIR = 'hpc_runs'
 EXPERIMENT_ID = opts.experiment_id
 problem = opts.problem
 representation = opts.representation
@@ -353,13 +392,21 @@ infer_kwargs = {
         'ca_action': ca_action,
         'map_width': map_width,
         'eval_controls': opts.eval_controls,
+        'cropped_size': opts.crop_size,
         }
 
 global STEP_0
 global STEP_1
 STEP_0 = opts.step_size
 STEP_1 = opts.step_size
-N_TRIALS = opts.n_trials
+RENDER_LEVELS = opts.render_levels
+
+if RENDER_LEVELS:
+    N_MAPS = 1
+    N_TRIALS = 1
+else:
+    N_MAPS = opts.n_maps
+    N_TRIALS = opts.n_trials
 
 if __name__ == '__main__':
 

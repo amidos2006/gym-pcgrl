@@ -79,14 +79,16 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         if game == "sokoban":
             T()
 #           policy = CustomPolicySmallMap
-    if game == "binarygoal":
-        kwargs['cropped_size'] = 32
-    elif game == "zeldagoal":
-        kwargs['cropped_size'] = 32
-    elif game == "sokobangoal":
-        kwargs['cropped_size'] = 10
-    else:
-        raise Exception
+    crop_size = kwargs.get('cropped_size')
+    if crop_size is None:
+        if game == "binarygoal":
+            kwargs['cropped_size'] = 32
+        elif game == "zeldagoal":
+            kwargs['cropped_size'] = 32
+        elif game == "sokobangoal":
+            kwargs['cropped_size'] = 10
+        else:
+            raise Exception
     n = max_exp_idx(exp_name)
     global log_dir
 
@@ -193,7 +195,8 @@ kwargs = {
     'resume': resume,
     'max_step': max_step,
     'midep_trgs': midep_trgs,
-    'ca_action': ca_action
+    'ca_action': ca_action,
+    'cropped_size': opts.crop_size,
 }
 
 if __name__ == '__main__':

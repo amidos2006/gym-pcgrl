@@ -288,12 +288,15 @@ class MultiGoalZeldaProblem(ZeldaProblem):
             enemies.extend(map_locations["spider"])
             enemies.extend(map_locations["bat"])
             enemies.extend(map_locations["scorpion"])
+            UPPER_DIST = self._width * self._height * 100
             if len(enemies) > 0:
                 dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "player", "key", "bat", "spider", "scorpion"])
-                min_dist = self._width * self._height
+                min_dist = UPPER_DIST
                 for e_x,e_y in enemies:
                     if dikjstra[e_y][e_x] > 0 and dikjstra[e_y][e_x] < min_dist:
                         min_dist = dikjstra[e_y][e_x]
+                if min_dist == UPPER_DIST:
+                    min_dist = 0
                 map_stats["nearest-enemy"] = min_dist
             # NOTE: BIG CONTROLLABILITY HACK!! We want to provide a reliable path-length signal when possible. So we compute it even on invalid maps,
             # take the least path-length, as with enemies above. And we're greedy, closest key, then closest door. No time for shortest overall path,
@@ -301,7 +304,7 @@ class MultiGoalZeldaProblem(ZeldaProblem):
             if map_stats["key"] > 0 and map_stats["door"] > 0:
                 d_x,d_y = map_locations["door"][0]
                 dikjstra,_ = run_dikjstra(p_x, p_y, map, ["empty", "key", "player", "bat", "spider", "scorpion"])
-                min_key_dist = self._width * self._height
+                min_key_dist = UPPER_DIST
                 min_key_coords = None
                 for k_x,k_y in map_locations["key"]:
                     key_dist = dikjstra[k_x][k_y]
@@ -309,18 +312,19 @@ class MultiGoalZeldaProblem(ZeldaProblem):
                         min_key_dist = key_dist
                         min_key_coords = k_x, k_y
 
-                if min_key_coords:
+                if min_key_coords and not min_key_dist == UPPER_DIST:
                     map_stats["path-length"] += min_key_dist
 
                     dikjstra,_ = run_dikjstra(k_x, k_y, map, ["empty", "player", "key", "door", "bat", "spider", "scorpion"])
-                    min_door_dist = self._width * self._height
+                    min_door_dist = UPPER_DIST
                     min_door_coords = None
                     for d_x,d_y in map_locations["door"]:
                         door_dist = dikjstra[d_x][d_y]
                         if door_dist > 0 and door_dist < min_door_dist:
                             min_door_dist = door_dist
                             min_door_coords = d_x, d_y
-                    if min_door_coords:
+
+                    if min_door_coords and not min_door_dist == UPPER_DIST:
                         map_stats["path-length"] += min_door_dist
 
         return map_stats

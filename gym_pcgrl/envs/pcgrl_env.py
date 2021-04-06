@@ -65,6 +65,10 @@ class PcgrlEnv(gym.Env):
         self.width = map_width
         self._prob.max_step = max_step
 
+    def set_map(self, init_map):
+        self._prob._random_start = False
+        self._prob._old_map = init_map
+
 
     def get_param_bounds(self):
         return self.param_bounds

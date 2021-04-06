@@ -65,5 +65,18 @@ def get_args():
         '--load_best',
         help='Whether to load the best saved model of a given run rather than the latest.',
         action='store_true',)
+    args.add_argument(
+        '--crop_size',
+        help='Hackishly control crop size of agent observation.',
+        type=int,
+        default=32,
+        )
+
+    # Not for training:
+    args.add_argument(
+        '--HPC',
+        help='Load from "hpc_runs" (rather than "runs") directory.',
+        action='store_true',
+        )
 
     return args
