@@ -177,16 +177,17 @@ def visualize_data(eval_data, log_dir):
         fig, ax = plt.subplots()
         # percentages from ratios
         data = data * 100
-        if data.shape[1]:
-            data = data.T
+        data = np.clip(data, -200, 100)
+        data = data.T
+        if not data.shape[1]:
             ax.set_yticks([])
             ax.set_xticks(np.arange(cell_scores.shape[0]))
-            ax.set_xticklabels([int(x) if i % 50 == 0 else None for (i, x) in enumerate(ctrl_ranges[0])])
+            ax.set_xticklabels([int(x) for (i, x) in enumerate(ctrl_ranges[0])])
         else:
-#           ax.set_xticks(np.arange(cell_scores.shape[0]))
+            ax.set_xticks(np.arange(cell_scores.shape[0]))
             ax.set_yticks(np.arange(cell_scores.shape[1]))
             ax.set_xticklabels([int(x) for x in ctrl_ranges[0]])
-            ax.set_yticklabels([int(x) for x in ctrl_ranges[0]])
+            ax.set_yticklabels([int(x) for x in ctrl_ranges[1]])
         # Create the heatmap
         im = ax.imshow(data, aspect='auto')
 
