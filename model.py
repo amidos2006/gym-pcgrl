@@ -173,7 +173,7 @@ class NCA(th.nn.Module):
         return act, val
 
 #@title Minimalistic Neural CA
-class CA(th.nn.Module):
+class CA_0(th.nn.Module):
     def __init__(self, observation_space, n_tools=None, hidden_n=96, **kwargs):
         super().__init__()
         self.n_tools = n_tools
@@ -212,10 +212,83 @@ class CA(th.nn.Module):
         y = self.perception(x)
         y = self.w2(th.relu(self.w1(y)))
         b, c, h, w = y.shape
-        act = y
         # FIXME: should not be calling cuda here :(
         update_mask = (th.rand(b, 1, h, w) < update_rate).cuda()
         act = x[:,-self.n_tools:] * (update_mask == False) + y * update_mask
+       #update_mask = (th.rand(b, 1, h, w)+update_rate).floor()
+       #act = x[:,-self.n_tools:]+y*update_mask.cuda()
+        val = self.val_head(self.val_shrink(act))
+        
+        return act, val
+
+    def perchannel_conv(self, x, filters):
+        '''filters: [filter_n, h, w]'''
+        b, ch, h, w = x.shape
+        # TODO: Don't assume the control observations will come first! Do something smart, like pass a dictionary of np arrays. Being hackish now for backward compatibility.
+        y = x.reshape(b*ch, 1, h, w)
+        y = th.nn.functional.pad(y, [1, 1, 1, 1])
+        y = th.nn.functional.conv2d(y, filters[:,None])
+        return y.reshape(b, -1, h, w)
+
+    def perception(self, x):
+        return self.perchannel_conv(x, self.filters)
+
+#@title Minimalistic Neural CA
+class CA_1(th.nn.Module):
+    def __init__(self, observation_space, n_tools=None, hidden_n=96, **kwargs):
+        super().__init__()
+        self.n_tools = n_tools
+        self.ident = th.tensor([[0.0,0.0,0.0],[0.0,1.0,0.0],[0.0,0.0,0.0]])
+        self.sobel_x = th.tensor([[-1.0,0.0,1.0],[-2.0,0.0,2.0],[-1.0,0.0,1.0]])/8.0
+        self.lap = th.tensor([[1.0,2.0,1.0],[2.0,-12,2.0],[1.0,2.0,1.0]])/16.0
+        self.filters = th.stack([self.ident, self.sobel_x, self.sobel_x.T, self.lap])
+
+        # dummy
+        self.features_dim = n_tools
+        self.chn = observation_space.shape[2]
+        # it's dumb that we're applying sobel and laplace filters to our ParamRew observation, which is the same acrsss the map, so we add this lil' embedding layer
+        self.w1 = th.nn.Conv2d(self.chn*4, hidden_n, 1)
+        self.w2 = th.nn.Conv2d(hidden_n, n_tools, 1, bias=False)
+        self.w2.weight.data.zero_()
+
+        self.c2 = nn.Sequential(
+            conv(self.chn, hidden_n, kernel_size=7, stride=1, padding=3, **kwargs),
+            nn.ReLU(),
+            conv(hidden_n, hidden_n, kernel_size=5, stride=1, padding=2, **kwargs),
+            nn.ReLU(),
+            conv(hidden_n, hidden_n, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(hidden_n, n_tools, kernel_size=3, stride=1, padding=1, **kwargs),
+            nn.ReLU(),
+        )
+
+        self.val_shrink = nn.Sequential(
+            conv(n_tools, 64, kernel_size=3, stride=2, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=3, stride=2, padding=1, **kwargs),
+            nn.ReLU(),
+            conv(64, 64, kernel_size=1, stride=1, padding=0, **kwargs),
+            nn.ReLU(),
+        )
+        with th.no_grad():
+            n_flatten = self.val_shrink(self.w2(self.w1(self.perception(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float())))).view(-1).shape[0]
+        self.filters = self.filters.cuda()
+
+        self.val_head = nn.Sequential(
+            nn.Flatten(),
+            linear(n_flatten, 1)
+        )
+
+    def forward(self, x, update_rate=1.0):
+        x = x.permute(0, 3, 1, 2)
+        y = self.perception(x)
+        y = self.w2(th.relu(self.w1(y)))
+        z = self.c2(x)
+        b, c, h, w = y.shape
+        # FIXME: should not be calling cuda here :(
+        update_mask = (th.rand(b, 1, h, w) < update_rate).cuda()
+        act = x[:,-self.n_tools:] * (update_mask == False) + y * update_mask
+        act = (act + z) / 2
        #update_mask = (th.rand(b, 1, h, w)+update_rate).floor()
        #act = x[:,-self.n_tools:]+y*update_mask.cuda()
         val = self.val_head(self.val_shrink(act))
@@ -382,7 +455,7 @@ class CApolicy(ActorCriticCnnPolicy):
         n_tools = kwargs.pop("n_tools")
         features_extractor_kwargs = {'n_tools': n_tools}
        #super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=NCA, features_extractor_kwargs=features_extractor_kwargs)
-        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=CA, features_extractor_kwargs=features_extractor_kwargs)
+        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=CA_1, features_extractor_kwargs=features_extractor_kwargs)
         # funky for CA type action
         use_sde = False
         dist_kwargs = None

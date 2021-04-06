@@ -3,8 +3,10 @@
 Run a trained agent for qualitative analysis.
 """
 import os
+from PIL import Image
 from pdb import set_trace as T
 import numpy as np
+from numpy import asarray
 import cv2
 from utils import get_exp_name, max_exp_idx, load_model, get_action
 from envs import make_vec_envs
@@ -30,7 +32,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     max_trials = kwargs.get('max_trials', -1)
     n = kwargs.get('n', None)
     map_width = infer_kwargs.get('map_width')
-    max_steps = infer_kwargs.get('max_steps')
+    max_steps = infer_kwargs.get('max_step')
     eval_controls = infer_kwargs.get('eval_controls')
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
@@ -42,7 +44,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     if n == 0:
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
     crop_size = infer_kwargs.get('cropped_size')
-    if crop_size is None:
+    if crop_size == -1:
         if game == "binarygoal":
             infer_kwargs['cropped_size'] = 32
         elif game == "zeldagoal":
@@ -99,13 +101,16 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
             print('evaluating control targets: {}'.format(trg_dict))
             env.envs[0].set_trgs(trg_dict)
 #           set_ctrl_trgs(env, {ctrl_name: trg})
-            net_score, ctrl_score, static_score, level_image = eval_episodes(model, env, N_EVALS, n_cpu, init_states)
+            net_score, ctrl_score, static_score, level_image = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
             level_images.append(level_image)
             cell_scores[i] = net_score
             cell_ctrl_scores[i] = ctrl_score
             cell_static_scores[i] = static_score
         if RENDER_LEVELS:
-            T()
+            ims = np.hstack(level_images)
+            image = Image.fromarray(ims)
+            image.save(os.path.join(log_dir,"levels.png"))
+
         ctrl_names = (ctrl_name, None)
         ctrl_ranges = (eval_trgs, None)
     elif len(ctrl_bounds) >=2:
@@ -125,21 +130,22 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 ctrl_trg_dict = {ctrl_0: t0, ctrl_1: t1}
                 trg_dict.update(ctrl_trg_dict)
                 print('evaluating control targets: {}'.format(trg_dict))
-                env.envs[0].set_trgs(trg_dict)
     #           set_ctrl_trgs(env, {ctrl_name: trg})
-                net_score, ctrl_score, static_score = eval_episodes(model, env, N_EVALS, n_cpu, init_states)
+                net_score, ctrl_score, static_score = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
                 cell_scores[i, j] = net_score
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
         ctrl_names = (ctrl_0, ctrl_1)
         ctrl_ranges = (trgs_0, trgs_1)
 
-    eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores)
-    pickle.dump(eval_data, open(data_path, "wb"))
-    visualize_data(eval_data, log_dir)
+    if not RENDER_LEVELS:
+        eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores)
+        pickle.dump(eval_data, open(data_path, "wb"))
+        visualize_data(eval_data, log_dir)
 
 
-def eval_episodes(model, env, n_trials, n_envs, init_states):
+def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, max_steps):
+    env.envs[0].set_trgs(trg_dict)
     eval_scores = np.zeros(n_trials)
     eval_ctrl_scores = np.zeros(n_trials)
     eval_static_scores = np.zeros(n_trials)
@@ -156,13 +162,17 @@ def eval_episodes(model, env, n_trials, n_envs, init_states):
         init_static_loss = env.envs[0].get_static_loss()
         done = False
         while not done:
+            if i == max_steps - 1:
+                if RENDER_LEVELS:
+                    image = env.render('rgb_array')
+                    env.render()
+                final_loss = env.envs[0].get_loss()
+                final_ctrl_loss = env.envs[0].get_ctrl_loss()
+                final_static_loss = env.envs[0].get_static_loss()
             action, _ = model.predict(obs)
             obs, rewards, done, info = env.step(action)
 #           epi_rewards[i] = rewards
             i += 1
-        final_loss = env.envs[0].get_loss()
-        final_ctrl_loss = env.envs[0].get_ctrl_loss()
-        final_static_loss = env.envs[0].get_static_loss()
         # what percentage of loss (distance from target) was recovered?
         eps = 0.001
         max_loss = max(abs(init_loss), eps)
@@ -182,9 +192,9 @@ def eval_episodes(model, env, n_trials, n_envs, init_states):
     print('control score: {}'.format(ctrl_score))
     print('static score: {}'.format(static_score))
     if RENDER_LEVELS:
-        level_image = env.envs[0].render('rgb_array')
-        print(level_image)
-        print(level_image.shape)
+#       image = env.render('rgb_array')
+        image.save(os.path.join(log_dir, '{}_level.png'.format(trg_dict)))
+        level_image = asarray(image)
     else:
         level_image = None
     return eval_score, eval_ctrl_score, eval_static_score, level_image
@@ -356,13 +366,17 @@ kwargs = {
        #'n': 4, # rank of saved experiment (by default, n is max possible)
         }
 
-if problem == 'sokoban':
+RENDER_LEVELS = opts.render_levels
+if problem == 'sokobangoal':
     map_width = 5
 else:
     map_width = 16
 
 if conditional:
-    max_step = 1000
+    if RENDER_LEVELS:
+        max_step = 5000
+    else:
+        max_step = 1000
     cond_metrics = opts.conditionals
 
     experiment = '_'.join([experiment] + cond_metrics)
@@ -399,7 +413,6 @@ global STEP_0
 global STEP_1
 STEP_0 = opts.step_size
 STEP_1 = opts.step_size
-RENDER_LEVELS = opts.render_levels
 
 if RENDER_LEVELS:
     N_MAPS = 1

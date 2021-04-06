@@ -66,8 +66,8 @@ class PcgrlEnv(gym.Env):
         self._prob.max_step = max_step
 
     def set_map(self, init_map):
-        self._prob._random_start = False
-        self._prob._old_map = init_map
+        self._rep._random_start = False
+        self._rep._old_map = init_map.copy()
 
 
     def get_param_bounds(self):

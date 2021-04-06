@@ -37,7 +37,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
     if n == 0:
         raise Exception('Did not find ranked saved model of experiment: {}'.format(exp_name))
     crop_size = infer_kwargs.get('cropped_size')
-    if crop_size is None:
+    if crop_size == -1:
         if game == "binarygojl":
             infer_kwargs['cropped_size'] = 32
         elif game == "zeldagoal":
@@ -144,7 +144,7 @@ kwargs = {
         }
 
 
-if problem == 'sokoban':
+if problem == 'sokobangoal':
     map_width = 5
 else:
     map_width = 16

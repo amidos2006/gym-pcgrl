@@ -164,6 +164,8 @@ class ParamRew(gym.Wrapper):
                 metric = 0
             trg_range = self.param_ranges[k]
 #           if self.CA_action and False:
+            if isinstance(trg, tuple):
+                trg = (trg[0] + trg[1]) / 2
             if self.CA_action:
 #               metrics_ob[:, :, i] = (trg - metric) / trg_range
                 metrics_ob[:, :, i*2] = trg / self.param_ranges[k]

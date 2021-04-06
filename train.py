@@ -80,7 +80,7 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
             T()
 #           policy = CustomPolicySmallMap
     crop_size = kwargs.get('cropped_size')
-    if crop_size is None:
+    if crop_size == -1:
         if game == "binarygoal":
             kwargs['cropped_size'] = 32
         elif game == "zeldagoal":

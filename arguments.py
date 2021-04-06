@@ -69,7 +69,7 @@ def get_args():
         '--crop_size',
         help='Hackishly control crop size of agent observation.',
         type=int,
-        default=32,
+        default=-1,
         )
 
     # Not for training:
