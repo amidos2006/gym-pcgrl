@@ -230,9 +230,10 @@ class MultiGoalZeldaProblem(ZeldaProblem):
                 }
         # conditional inputs/targets ( just a default we don't use in the ParamRew wrapper)
         self.cond_trgs = {
-#               'player': 1,
-#               'key': 1,
-#               'door': 1,
+                'player': 1,
+                'key': 1,
+                'door': 1,
+                'regions': 1,
                 'enemies': 5,
                 'nearest-enemy': 7,
                 'path-length': 100,
@@ -244,6 +245,7 @@ class MultiGoalZeldaProblem(ZeldaProblem):
                 'player': (0, self._width * self._height - 2), 
                 'key': (0, self._width * self._height - 2), 
                 'door': (0, self._width * self._height - 2), 
+                'regions': (0, self._width * self._height / 2),
                                                                                             
                 #FIXME: we shouldn't assume a square map here! Find out which dimension is bigger
                 # and "snake" along that one

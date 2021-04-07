@@ -15,7 +15,13 @@ cd /scratch/se2161/pcgrl
 source activate
 conda activate pcgrl
 
-### BINARY
+
+
+### BINARY ###
+
+
+## NARROW
+
 
 ## TURTLE
 
@@ -23,20 +29,18 @@ conda activate pcgrl
 #python train.py --problem "binarygoal" --conditionals "path-length" --representation "turtle"
 #python train.py --problem "binarygoal" --conditionals "regions" "path-length" --representation "turtle"
 
+
 ## WIDE
+
 
 ## WIDE - CA
 
 #python train.py --problem "binarygoal" --conditionals "regions" "path-length" --representation "wide" --ca_action
 
-### ZELDA
 
-## TURTLE
 
-#python train.py --problem "zeldagoal" --conditionals "enemies" --representation "turtle"
-#python train.py --problem "zeldagoal" --conditionals "path-length" --representation "turtle"
-#python train.py --problem "zeldagoal" --conditionals "enemies" "path-length" --representation "turtle"
-#python train.py --problem "zeldagoal" --conditionals "nearest-enemy" --representation "turtle"
+### ZELDA ###
+
 
 ## NARROW
 
@@ -44,21 +48,47 @@ conda activate pcgrl
 #python train.py --problem "zeldagoal" --conditionals "path-length" --representation "narrow"
 #python train.py --problem "zeldagoal" --conditionals "enemies" "path-length" --representation "narrow"
 #python train.py --problem "zeldagoal" --conditionals "nearest-enemy" --representation "narrow"
+#python train.py --problem "zeldagoal" --conditionals "player" "key" "door" "enemies" "regions" "nearest-enemy" "path-length" --representation "narrow"
+
+## TURTLE
+
+#python train.py --problem "zeldagoal" --conditionals "enemies" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "path-length" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "enemies" "path-length" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "nearest-enemy" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "player" "key" "door" "enemies" "regions" "nearest-enemy" "path-length" --representation "turtle"
+
+## WIDE
+
+#python train.py --problem "zeldagoal" --conditionals "player" "key" "door" "enemies" "regions" "nearest-enemy" "path-length" --representation "wide"
+
+## WIDE - CA
+
+python train.py --problem "zeldagoal" --conditionals "player" "key" "door" "enemies" "regions" "nearest-enemy" "path-length" --representation "wide" --ca_action
 
 ### SOKOBAN
 
 ## NARROW
 
+#python train.py --problem "sokobangoal" --conditionals "player" "crate" "sol-length" --representation "narrow"
+
 ## TURTLE
 
 #python train.py --problem "sokobangoal" --conditionals "crate" --representation "turtle"
-python train.py --problem "sokobangoal" --conditionals "sol-length" --representation "turtle"
+#python train.py --problem "sokobangoal" --conditionals "sol-length" --representation "turtle"
+#python train.py --problem "sokobangoal" --conditionals "crate" "sol-length" --representation "turtle"
+#python train.py --problem "sokobangoal" --conditionals "player" "crate" "sol-length" --representation "turtle"
 
 ## WIDE
 
 #python train.py --problem "sokobangoal" --conditionals "crate" --representation "wide"
 #python train.py --problem "sokobangoal" --conditionals "sol-length" --representation "wide"
+#python train.py --problem "sokobangoal" --conditionals "crate" "sol-length" --representation "wide"
+#python train.py --problem "sokobangoal" --conditionals "player" "crate" "sol-length" --representation "wide"
  
 ## WIDE - CA
 
 #python train.py --problem "sokobangoal" --conditionals "crate" --representation "wide" --ca_action
+#python train.py --problem "sokobangoal" --conditionals "sol-length" --representation "wide" --ca_action
+#python train.py --problem "sokobangoal" --conditionals "crate" "sol-length" --representation "wide" --ca_action
+#python train.py --problem "sokobangoal" --conditionals "player" "crate" "sol-length" --representation "wide" --ca_action
