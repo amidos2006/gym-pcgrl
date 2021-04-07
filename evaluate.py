@@ -88,9 +88,9 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         init_states.append(env.envs[0].unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
     if len(ctrl_bounds) == 1:
-        step_size = STEP_0
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1] 
+        step_size = (bounds[1] - bounds[0]) / (N_BINS[0] - 1)
         eval_trgs = np.arange(bounds[0], bounds[1] + 1, step_size)
         level_images = []
         cell_scores = np.zeros((len(eval_trgs), 1))
@@ -109,15 +109,15 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         if RENDER_LEVELS:
             ims = np.hstack(level_images)
             image = Image.fromarray(ims)
-            image.save(os.path.join(log_dir,"levels.png"))
+            image.save(os.path.join(log_dir,"{}_{}-bins_levels.png".format(ctrl_names, N_BINS)))
 
         ctrl_names = (ctrl_name, None)
         ctrl_ranges = (eval_trgs, None)
     elif len(ctrl_bounds) >=2:
-        step_0 = STEP_0
-        step_1 = STEP_1
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
         b0, b1 = ctrl_bounds[0][1], ctrl_bounds[1][1]
+        step_0 = (b0[1] - b0[0]) / (N_BINS[0] - 1)
+        step_1 = (b1[1] - b1[0]) / (N_BINS[-1] - 1)
         trgs_0 = np.arange(b0[0], b0[1]+0.5, step_0)
         trgs_1 = np.arange(b1[0], b1[1]+0.5, step_1)
         cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
@@ -139,15 +139,15 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
             if RENDER_LEVELS:
-                level_images.append(np.vstack(level_images_y))
-        if RENDER_LEVELS:
-            image = np.hstack(level_images)
-            image = Image.fromarray(level_images)
-            image.save(os.path.join(log_dir, "levels.png"))
-
-    if not RENDER_LEVELS:
+                level_images.append(np.hstack(level_images_y))
         ctrl_names = (ctrl_0, ctrl_1)
         ctrl_ranges = (trgs_0, trgs_1)
+        if RENDER_LEVELS:
+            image = np.vstack(level_images)
+            image = Image.fromarray(image)
+            image.save(os.path.join(log_dir, "{}_{}-bins_levels.png".format(ctrl_names, N_BINS)))
+
+    if not RENDER_LEVELS:
         eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores)
         pickle.dump(eval_data, open(data_path, "wb"))
         visualize_data(eval_data, log_dir)
@@ -219,18 +219,19 @@ def visualize_data(eval_data, log_dir):
         if data.shape[0] == 1:
             fig.set_size_inches(10, 2)
             ax.set_yticks([])
-            tick_idxs = np.arange(0, cell_scores.shape[0], 10)
+            tick_idxs = np.arange(0, cell_scores.shape[0], cell_scores.shape[0] // 10)
             ticks = np.arange(cell_scores.shape[0])
             ticks = ticks[tick_idxs]
             ax.set_xticks(ticks)
-            labels = np.array([int(x) if x % 50 == 0 else "" for (i, x) in enumerate(ctrl_ranges[0])])
+            labels = np.array([int(x) for (i, x) in enumerate(ctrl_ranges[0])])
             labels = labels[tick_idxs]
             ax.set_xticklabels(labels)
         else:
+            data = data[::-1,:]
             ax.set_xticks(np.arange(cell_scores.shape[0]))
             ax.set_yticks(np.arange(cell_scores.shape[1]))
             ax.set_xticklabels([int(x) for x in ctrl_ranges[0]])
-            ax.set_yticklabels([int(x) for x in ctrl_ranges[1]])
+            ax.set_yticklabels([int(x) for x in ctrl_ranges[1][::-1]])
         # Create the heatmap
         im = ax.imshow(data, aspect='auto')
 
@@ -337,10 +338,16 @@ args.add_argument('--n_trials',
         default=3,
         type=int,
         )
-args.add_argument('--step_size',
-        help='Bin size along either dimension.',
-        default=20,
+#args.add_argument('--step_size',
+#        help='Bin size along either dimension.',
+#        default=20,
+#        type=int,
+#        )
+args.add_argument('--n_bins',
+        help='How many bins along each dimension (a sequence of ints).',
+        nargs='+',
         type=int,
+        default=(10,10),
         )
 args.add_argument('--render_levels',
         help='Save final maps (default to only one eval per cell)',
@@ -417,10 +424,8 @@ infer_kwargs = {
         'cropped_size': opts.crop_size,
         }
 
-global STEP_0
-global STEP_1
-STEP_0 = opts.step_size
-STEP_1 = opts.step_size
+global N_BINS
+N_BINS = tuple(opts.n_bins)
 
 if RENDER_LEVELS:
     N_MAPS = 1
