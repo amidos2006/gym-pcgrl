@@ -107,13 +107,13 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
             cell_scores[i] = net_score
             cell_ctrl_scores[i] = ctrl_score
             cell_static_scores[i] = static_score
+        ctrl_names = (ctrl_name, None)
+        ctrl_ranges = (eval_trgs, None)
         if RENDER_LEVELS:
             ims = np.hstack(level_images)
             image = Image.fromarray(ims)
             image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
 
-        ctrl_names = (ctrl_name, None)
-        ctrl_ranges = (eval_trgs, None)
     elif len(ctrl_bounds) >=2:
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
         b0, b1 = ctrl_bounds[0][1], ctrl_bounds[1][1]
