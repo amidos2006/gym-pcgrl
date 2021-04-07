@@ -200,7 +200,8 @@ class CA_0(th.nn.Module):
         )
         with th.no_grad():
             n_flatten = self.val_shrink(self.w2(self.w1(self.perception(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float())))).view(-1).shape[0]
-        self.filters = self.filters.cuda()
+        if th.cuda.is_available():
+            self.filters = self.filters.cuda()
 
         self.val_head = nn.Sequential(
             nn.Flatten(),
@@ -213,7 +214,9 @@ class CA_0(th.nn.Module):
         y = self.w2(th.relu(self.w1(y)))
         b, c, h, w = y.shape
         # FIXME: should not be calling cuda here :(
-        update_mask = (th.rand(b, 1, h, w) < update_rate).cuda()
+        update_mask = (th.rand(b, 1, h, w) < update_rate)
+        if th.cuda.is_available():
+            update_mask = update_mask.cuda()
         act = x[:,-self.n_tools:] * (update_mask == False) + y * update_mask
        #update_mask = (th.rand(b, 1, h, w)+update_rate).floor()
        #act = x[:,-self.n_tools:]+y*update_mask.cuda()
@@ -272,7 +275,8 @@ class CA_1(th.nn.Module):
         )
         with th.no_grad():
             n_flatten = self.val_shrink(self.w2(self.w1(self.perception(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float())))).view(-1).shape[0]
-        self.filters = self.filters.cuda()
+        if th.cuda.is_available():
+            self.filters = self.filters.cuda()
 
         self.val_head = nn.Sequential(
             nn.Flatten(),
@@ -286,7 +290,9 @@ class CA_1(th.nn.Module):
         z = self.c2(x)
         b, c, h, w = y.shape
         # FIXME: should not be calling cuda here :(
-        update_mask = (th.rand(b, 1, h, w) < update_rate).cuda()
+        update_mask = (th.rand(b, 1, h, w) < update_rate)
+        if th.cuda.is_available():
+            update_mask = update_mask.cuda()
         act = x[:,-self.n_tools:] * (update_mask == False) + y * update_mask
         act = (act + z) / 2
        #update_mask = (th.rand(b, 1, h, w)+update_rate).floor()
