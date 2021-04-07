@@ -2,7 +2,7 @@
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=12
-#SBATCH --gres=gpu:1
+##SBATCH --gres=gpu:1
 #SBATCH --time=120:00:00
 #SBATCH --mem=40GB
 #SBATCH --job-name=pcgrl
@@ -19,15 +19,21 @@ conda activate pcgrl
 
 ## TURTLE
 
-#python train.py --conditionals "regions"
-#python train.py --conditionals "path-length"
-#python train.py --conditionals "regions" "path-length"
+#python train.py --problem "binarygoal" --conditionals "regions" --representation "turtle"
+#python train.py --problem "binarygoal" --conditionals "path-length" --representation "turtle"
+#python train.py --problem "binarygoal" --conditionals "regions" "path-length" --representation "turtle"
+
+## WIDE
+
+## WIDE - CA
+
+#python train.py --problem "binarygoal" --conditionals "regions" "path-length" --representation "wide" --ca_action
 
 ### ZELDA
 
 ## TURTLE
 
-python train.py --problem "zeldagoal" --conditionals "enemies" --representation "turtle"
+#python train.py --problem "zeldagoal" --conditionals "enemies" --representation "turtle"
 #python train.py --problem "zeldagoal" --conditionals "path-length" --representation "turtle"
 #python train.py --problem "zeldagoal" --conditionals "enemies" "path-length" --representation "turtle"
 #python train.py --problem "zeldagoal" --conditionals "nearest-enemy" --representation "turtle"
@@ -38,3 +44,21 @@ python train.py --problem "zeldagoal" --conditionals "enemies" --representation 
 #python train.py --problem "zeldagoal" --conditionals "path-length" --representation "narrow"
 #python train.py --problem "zeldagoal" --conditionals "enemies" "path-length" --representation "narrow"
 #python train.py --problem "zeldagoal" --conditionals "nearest-enemy" --representation "narrow"
+
+### SOKOBAN
+
+## NARROW
+
+## TURTLE
+
+#python train.py --problem "sokobangoal" --conditionals "crate" --representation "turtle"
+python train.py --problem "sokobangoal" --conditionals "sol-length" --representation "turtle"
+
+## WIDE
+
+#python train.py --problem "sokobangoal" --conditionals "crate" --representation "wide"
+#python train.py --problem "sokobangoal" --conditionals "sol-length" --representation "wide"
+ 
+## WIDE - CA
+
+#python train.py --problem "sokobangoal" --conditionals "crate" --representation "wide" --ca_action

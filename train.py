@@ -10,6 +10,7 @@ from envs import make_vec_envs
 from stable_baselines3 import PPO
 #from policy import PPO2
 from stable_baselines3.common.results_plotter import load_results, ts2xy
+import torch
 
 import numpy as np
 import os
@@ -143,7 +144,8 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model.set_env(env)
 
    #model.policy = model.policy.to('cuda:0')
-    model.policy = model.policy.cuda()
+    if torch.cuda.is_available():
+        model.policy = model.policy.cuda()
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
