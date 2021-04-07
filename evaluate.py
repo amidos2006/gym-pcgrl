@@ -87,6 +87,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         env.envs[0].reset()
         init_states.append(env.envs[0].unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
+    levels_im_name = "{}_{}-bins_levels.png"
     if len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1] 
@@ -109,7 +110,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         if RENDER_LEVELS:
             ims = np.hstack(level_images)
             image = Image.fromarray(ims)
-            image.save(os.path.join(log_dir,"{}_{}-bins_levels.png".format(ctrl_names, N_BINS)))
+            image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
 
         ctrl_names = (ctrl_name, None)
         ctrl_ranges = (eval_trgs, None)
@@ -143,14 +144,34 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         ctrl_names = (ctrl_0, ctrl_1)
         ctrl_ranges = (trgs_0, trgs_1)
         if RENDER_LEVELS:
-            image = np.vstack(level_images)
+            image = np.vstack(level_images[::-1])
             image = Image.fromarray(image)
-            image.save(os.path.join(log_dir, "{}_{}-bins_levels.png".format(ctrl_names, N_BINS)))
+            image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
 
     if not RENDER_LEVELS:
         eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores)
         pickle.dump(eval_data, open(data_path, "wb"))
         visualize_data(eval_data, log_dir)
+    else:
+        fig, ax = plt.subplots()
+        ax.imshow(image)
+#       ax.axis["xzero"].set_axisline_style("-|>")
+        plt.tick_params(
+            axis='x',
+            which='both',
+            bottom=False,
+            top=False,
+            labelbottom=False)
+        plt.tick_params(
+            axis='y',
+            which='both',
+            left=False,
+            right=False,
+            labelleft=False)
+        plt.xlabel(ctrl_names[1])
+        plt.ylabel(ctrl_names[0])
+        plt.savefig(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
+#       plt.show()
 
 
 def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, max_steps):
