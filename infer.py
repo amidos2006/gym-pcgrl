@@ -63,6 +63,7 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
 #           'regions': [],
 #           }
     n_trials = 0
+    n_step = 0
     while n_trials != max_trials:
        #action = get_action(obs, env, model)
         action, _ = model.predict(obs)
@@ -106,12 +107,14 @@ def infer(game, representation, experiment, infer_kwargs, **kwargs):
 #       cv2.waitKey(1)
 #      #for p, v in model.get_parameters().items():
 #      #    print(p, v.shape)
+        n_step += 1
         if dones:
 #          #show_state(env, path_lengths, changes, regions, n_step)
 #           if 'binary' in env_name:
 #               infer_info['path_lengths'] = path_lengths[-1]
 #               infer_info['changes'] = changes[-1]
 #               infer_info['regions'] = regions[-1]
+            n_step = 0
             n_trials += 1
     return infer_info
 

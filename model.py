@@ -262,7 +262,7 @@ class CA_1(th.nn.Module):
             conv(hidden_n, hidden_n, kernel_size=3, stride=1, padding=1, **kwargs),
             nn.ReLU(),
             conv(hidden_n, n_tools, kernel_size=3, stride=1, padding=1, **kwargs),
-            nn.ReLU(),
+            nn.Sigmoid(),
         )
 
         self.val_shrink = nn.Sequential(
@@ -286,7 +286,8 @@ class CA_1(th.nn.Module):
     def forward(self, x, update_rate=1.0):
         x = x.permute(0, 3, 1, 2)
         y = self.perception(x)
-        y = self.w2(th.relu(self.w1(y)))
+#       y = self.w2(th.relu(self.w1(y)))
+        y = self.w2(th.sigmoid(self.w1(y)))
         z = self.c2(x)
         b, c, h, w = y.shape
         # FIXME: should not be calling cuda here :(
