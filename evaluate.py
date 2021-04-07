@@ -86,6 +86,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     for i in range(N_TRIALS):
         env.envs[0].reset()
         init_states.append(env.envs[0].unwrapped._rep._map)
+    N_EVALS = N_TRIALS * N_MAPS
     if len(ctrl_bounds) == 1:
         step_size = STEP_0
         ctrl_name = ctrl_bounds[0][0]
@@ -95,7 +96,6 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         cell_scores = np.zeros((len(eval_trgs), 1))
         cell_ctrl_scores = np.zeros(shape=(len(eval_trgs), 1))
         cell_static_scores = np.zeros(shape=(len(eval_trgs), 1))
-        N_EVALS = N_TRIALS * N_MAPS
         for i, trg in enumerate(eval_trgs):
             trg_dict = {ctrl_name: trg}
             print('evaluating control targets: {}'.format(trg_dict))
@@ -125,20 +125,29 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         cell_static_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
         trg_dict = env.envs[0].static_trgs
         trg_dict = dict([(k, min(v)) if isinstance(v, tuple) else (k, v) for (k, v) in trg_dict.items()])
+        level_images = []
         for i, t0 in enumerate(trgs_0):
+            level_images_y = []
             for j, t1 in enumerate(trgs_1):
                 ctrl_trg_dict = {ctrl_0: t0, ctrl_1: t1}
                 trg_dict.update(ctrl_trg_dict)
                 print('evaluating control targets: {}'.format(trg_dict))
     #           set_ctrl_trgs(env, {ctrl_name: trg})
-                net_score, ctrl_score, static_score = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
+                net_score, ctrl_score, static_score, level_image = eval_episodes(model, env, N_EVALS, n_cpu, init_states, log_dir, trg_dict, max_steps)
+                level_images_y.append(level_image)
                 cell_scores[i, j] = net_score
                 cell_ctrl_scores[i, j] = ctrl_score
                 cell_static_scores[i, j] = static_score
-        ctrl_names = (ctrl_0, ctrl_1)
-        ctrl_ranges = (trgs_0, trgs_1)
+            if RENDER_LEVELS:
+                level_images.append(np.vstack(level_images_y))
+        if RENDER_LEVELS:
+            image = np.hstack(level_images)
+            image = Image.fromarray(level_images)
+            image.save(os.path.join(log_dir, "levels.png"))
 
     if not RENDER_LEVELS:
+        ctrl_names = (ctrl_0, ctrl_1)
+        ctrl_ranges = (trgs_0, trgs_1)
         eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores)
         pickle.dump(eval_data, open(data_path, "wb"))
         visualize_data(eval_data, log_dir)
@@ -165,7 +174,6 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
             if i == max_steps - 1:
                 if RENDER_LEVELS:
                     image = env.render('rgb_array')
-                    env.render()
                 final_loss = env.envs[0].get_loss()
                 final_ctrl_loss = env.envs[0].get_ctrl_loss()
                 final_static_loss = env.envs[0].get_static_loss()
