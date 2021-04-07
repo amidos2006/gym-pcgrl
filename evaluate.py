@@ -91,7 +91,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     if len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1] 
-        step_size = (bounds[1] - bounds[0]) / (N_BINS[0] - 1)
+        step_size = max((bounds[1] - bounds[0]) / (N_BINS[0] - 1), 1)
         eval_trgs = np.arange(bounds[0], bounds[1] + 1, step_size)
         level_images = []
         cell_scores = np.zeros((len(eval_trgs), 1))
@@ -117,8 +117,8 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     elif len(ctrl_bounds) >=2:
         ctrl_0, ctrl_1 = ctrl_bounds[0][0], ctrl_bounds[1][0]
         b0, b1 = ctrl_bounds[0][1], ctrl_bounds[1][1]
-        step_0 = (b0[1] - b0[0]) / (N_BINS[0] - 1)
-        step_1 = (b1[1] - b1[0]) / (N_BINS[-1] - 1)
+        step_0 = max((b0[1] - b0[0]) / (N_BINS[0] - 1), 1)
+        step_1 = max((b1[1] - b1[0]) / (N_BINS[-1] - 1), 1)
         trgs_0 = np.arange(b0[0], b0[1]+0.5, step_0)
         trgs_1 = np.arange(b1[0], b1[1]+0.5, step_1)
         cell_scores = np.zeros(shape=(len(trgs_0), len(trgs_1)))
@@ -170,6 +170,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
             labelleft=False)
         plt.xlabel(ctrl_names[1])
         plt.ylabel(ctrl_names[0])
+        plt.tight_layout()
         plt.savefig(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
 #       plt.show()
 
