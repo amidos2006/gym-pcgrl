@@ -58,7 +58,7 @@ def callback(_locals, _globals):
 
 def main(game, representation, experiment, steps, n_cpu, render, logging, **kwargs):
     if game not in ["binarygoal", "sokobangoal", "zeldagoal"]:
-        raise Exception("Not a controllable environment. Maybe add 'goal' to the end of the name? E.g. 'sokobangoal'".)
+        raise Exception("Not a controllable environment. Maybe add 'goal' to the end of the name? E.g. 'sokobangoal'")
     kwargs['n_cpu'] = n_cpu
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
