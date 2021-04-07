@@ -114,7 +114,6 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         # if this is a new experiment, clean up the logging directory if we fail to start up
         if not resume:
             os.rmdir(log_dir)
-        T()
         raise e
 
 #       pass
