@@ -12,6 +12,7 @@ from utils import get_exp_name, max_exp_idx, load_model, get_action
 from envs import make_vec_envs
 from matplotlib import pyplot as plt
 import pickle
+import json
 
 font                   = cv2.FONT_HERSHEY_SIMPLEX
 bottomLeftCornerOfText = (10,500)
@@ -61,6 +62,8 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
             eval_data_levels.render_levels()
             return
         eval_data = pickle.load(open(data_path, "rb"))
+        # FIXME: just for backward compatibility
+        eval_data.log_dir = log_dir
         eval_data.visualize_data(log_dir)
         return
     # no log dir, 1 parallel environment
@@ -154,12 +157,12 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
             image.save(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
 
     if not RENDER_LEVELS:
-        eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores)
+        eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir)
         pickle.dump(eval_data, open(data_path, "wb"))
         eval_data.visualize_data(log_dir)
     else:
         levels_im_path = os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
-        eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, levels_image=image, levels_im_path=levels_im_path)
+        eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=image, levels_im_path=levels_im_path)
         pickle.dump(eval_data_levels, open(data_path_levels, 'wb'))
         eval_data_levels.render_levels()
 
@@ -224,7 +227,7 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
 
 
 class EvalData():
-    def __init__(self, ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, levels_image=None, levels_im_path=None):
+    def __init__(self, ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, log_dir, levels_image=None, levels_im_path=None):
         self.ctrl_names = ctrl_names
         self.ctrl_ranges = ctrl_ranges
         self.cell_scores = cell_scores
@@ -232,6 +235,7 @@ class EvalData():
         self.cell_static_scores = cell_static_scores
         self.levels_image = levels_image
         self.levels_im_path = levels_im_path
+        self.log_dir = log_dir
 
     def visualize_data(self, log_dir):
 
@@ -301,6 +305,8 @@ class EvalData():
             'ctrl_score': self.cell_ctrl_scores.mean(),
             'fixed_score': self.cell_static_scores.mean(),
         }
+        with open(os.path.join(self.log_dir, 'scores.json'), 'w') as fp:
+            json.dump(scores, fp)
 
     def render_levels(self):
         ctrl_names = self.ctrl_names
@@ -451,7 +457,7 @@ else:
 
 if conditional:
     if RENDER_LEVELS:
-        max_step = 5000
+        max_step = 1000
     else:
         max_step = 1000
     cond_metrics = opts.conditionals

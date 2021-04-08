@@ -351,6 +351,7 @@ class CAactionWrapper(gym.Wrapper):
         obs = obs.transpose(1, 2, 0)
         pcgrl_env._rep._map = obs.squeeze(-1)
         obs = self.env.get_one_hot_map()
+        print(obs['map'][:,:,-1:].transpose(1, 2, 0))
         self.n_ca_tick += 1
         if self.n_ca_tick <= 50:  # or (action == self.last_action).all():
             done = False
@@ -369,10 +370,13 @@ class CAactionWrapper(gym.Wrapper):
 #           # get map dimensions (sloppy)
 #           super().reset()
 #       # load up our initial state (empty)
-#       self.env.unwrapped._rep._random_start = False
+#       self.env.unwrapped._rep._random_start = True
 #       init_state = np.zeros(self.unwrapped._rep._map.shape).astype(np.uint8)
 #       self.unwrapped._rep._old_map = init_state
         obs = self.env.reset()
+#       self.pcgrl_env._map = self.env._rep._map
+
+        self.render()
 #       obs = self.env.get_one_hot_map()
         
         return obs

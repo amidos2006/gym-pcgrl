@@ -243,7 +243,7 @@ class MultiGoalSokobanProblem(SokobanProblem):
                 'target': (1, self._max_crates),
                 'regions': 1,
                 'ratio': 0,
-                'dist-win': self._max_path_length,
+                'dist-win': 0,
                 'sol-length': self._max_path_length,
                 }
 
@@ -253,7 +253,7 @@ class MultiGoalSokobanProblem(SokobanProblem):
                 'crate': (1, self._width * self._height),
                 'target': (1, self._width * self._height),
                 'ratio': (0, self._width * self._height),
-                'dist-win': (0, 2 * self._max_path_length),
+                'dist-win': (0, self._width * self._height * (self._width + self._height)),
                 'sol-length': (0, 2 * self._max_path_length),
                 'regions': (0, self._width * self._height / 2),
                 }
