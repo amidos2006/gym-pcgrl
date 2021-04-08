@@ -36,6 +36,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     eval_controls = infer_kwargs.get('eval_controls')
     env_name = '{}-{}-v0'.format(game, representation)
     exp_name = get_exp_name(game, representation, experiment, **kwargs)
+    levels_im_name = "{}_{}-bins_levels.png"
     if n is None:
         if EXPERIMENT_ID is None:
             n = max_exp_idx(exp_name)
@@ -52,10 +53,15 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         elif game == "sokobangoal":
             infer_kwargs['cropped_size'] = 10
     log_dir = '{}/{}_{}_log'.format(EXPERIMENT_DIR, exp_name, n)
-    data_path = os.path.join(log_dir, '{}_eval_data.pkl'.format(eval_controls))
+    data_path = os.path.join(log_dir, '{}_eval_data.pkl'.format(N_BINS))
+    data_path_levels = os.path.join(log_dir, '{}_eval_data_levels.pkl'.format(N_BINS))
     if VIS_ONLY:
+        if RENDER_LEVELS:
+            eval_data_levels = pickle.load(open(data_path_levels, "rb"))
+            eval_data_levels.render_levels()
+            return
         eval_data = pickle.load(open(data_path, "rb"))
-        visualize_data(eval_data, log_dir)
+        eval_data.visualize_data(log_dir)
         return
     # no log dir, 1 parallel environment
     n_cpu = infer_kwargs.get('n_cpu')
@@ -87,7 +93,6 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
         env.envs[0].reset()
         init_states.append(env.envs[0].unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
-    levels_im_name = "{}_{}-bins_levels.png"
     if len(ctrl_bounds) == 1:
         ctrl_name = ctrl_bounds[0][0]
         bounds = ctrl_bounds[0][1] 
@@ -151,28 +156,12 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     if not RENDER_LEVELS:
         eval_data = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores)
         pickle.dump(eval_data, open(data_path, "wb"))
-        visualize_data(eval_data, log_dir)
+        eval_data.visualize_data(log_dir)
     else:
-        fig, ax = plt.subplots()
-        ax.imshow(image)
-#       ax.axis["xzero"].set_axisline_style("-|>")
-        plt.tick_params(
-            axis='x',
-            which='both',
-            bottom=False,
-            top=False,
-            labelbottom=False)
-        plt.tick_params(
-            axis='y',
-            which='both',
-            left=False,
-            right=False,
-            labelleft=False)
-        plt.xlabel(ctrl_names[1])
-        plt.ylabel(ctrl_names[0])
-        plt.tight_layout()
-        plt.savefig(os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS)))
-#       plt.show()
+        levels_im_path = os.path.join(log_dir, levels_im_name.format(ctrl_names, N_BINS))
+        eval_data_levels = EvalData(ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, levels_image=image, levels_im_path=levels_im_path)
+        pickle.dump(eval_data_levels, open(data_path_levels, 'wb'))
+        eval_data_levels.render_levels()
 
 
 def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, max_steps):
@@ -230,76 +219,126 @@ def eval_episodes(model, env, n_trials, n_envs, init_states, log_dir, trg_dict, 
     return eval_score, eval_ctrl_score, eval_static_score, level_image
 
 
-def visualize_data(eval_data, log_dir):
 
-    def create_heatmap(title, data):
-        fig, ax = plt.subplots()
-        # percentages from ratios
-        data = data * 100
-        data = np.clip(data, -200, 100)
-        data = data.T
-        if data.shape[0] == 1:
-            fig.set_size_inches(10, 2)
-            ax.set_yticks([])
-            tick_idxs = np.arange(0, cell_scores.shape[0], cell_scores.shape[0] // 10)
-            ticks = np.arange(cell_scores.shape[0])
-            ticks = ticks[tick_idxs]
-            ax.set_xticks(ticks)
-            labels = np.array([int(x) for (i, x) in enumerate(ctrl_ranges[0])])
-            labels = labels[tick_idxs]
-            ax.set_xticklabels(labels)
-        else:
-            data = data[::-1,:]
-            ax.set_xticks(np.arange(cell_scores.shape[0]))
-            ax.set_yticks(np.arange(cell_scores.shape[1]))
-            ax.set_xticklabels([int(x) for x in ctrl_ranges[0]])
-            ax.set_yticklabels([int(x) for x in ctrl_ranges[1][::-1]])
-        # Create the heatmap
-        im = ax.imshow(data, aspect='auto')
-
-        #Create colorbar
-        cbar = ax.figure.colorbar(im, ax=ax)
-        cbar.ax.set_ylabel("", rotation=90, va="bottom")
-
-        # We want to show all ticks...
-        # ... and label them with the respective list entries
-        plt.xlabel(ctrl_names[0])
-        plt.ylabel(ctrl_names[1])
-
-        # Rotate the tick labels and set their alignment.
-        plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
-                 rotation_mode="anchor")
-
-        ax.set_title(title)
-        fig.tight_layout()
-
-        plt.savefig(os.path.join(log_dir, "{}_{}.png".format(ctrl_names, title)))
-        plt.show()
-
-    ctrl_names = eval_data.ctrl_names
-    ctrl_ranges = eval_data.ctrl_ranges
-    cell_scores = eval_data.cell_scores
-    cell_ctrl_scores = eval_data.cell_ctrl_scores
-    cell_static_scores = eval_data.cell_static_scores
-
-    title = "All goals (mean progress, %)"
-    create_heatmap(title, cell_scores)
-
-    title = "Controlled goals (mean progress, %)"
-    create_heatmap(title, cell_ctrl_scores)
-
-    title = "Fixed goals (mean progress, %)"
-    create_heatmap(title, cell_static_scores)
 
 
 
 class EvalData():
-    def __init__(self, ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores):
+    def __init__(self, ctrl_names, ctrl_ranges, cell_scores, cell_ctrl_scores, cell_static_scores, levels_image=None, levels_im_path=None):
         self.ctrl_names = ctrl_names
         self.ctrl_ranges = ctrl_ranges
         self.cell_scores = cell_scores
         self.cell_ctrl_scores = cell_ctrl_scores
         self.cell_static_scores = cell_static_scores
+        self.levels_image = levels_image
+        self.levels_im_path = levels_im_path
+
+    def visualize_data(self, log_dir):
+
+        def create_heatmap(title, data):
+            fig, ax = plt.subplots()
+            # percentages from ratios
+            data = data * 100
+            data = np.clip(data, -200, 100)
+            data = data.T
+            if data.shape[0] == 1:
+                fig.set_size_inches(10, 2)
+                ax.set_yticks([])
+                tick_idxs = np.arange(0, cell_scores.shape[0], max(1, (cell_scores.shape[0] // 10)))
+                ticks = np.arange(cell_scores.shape[0])
+                ticks = ticks[tick_idxs]
+                ax.set_xticks(ticks)
+                labels = np.array([int(x) for (i, x) in enumerate(ctrl_ranges[0])])
+                labels = labels[tick_idxs]
+                ax.set_xticklabels(labels)
+            else:
+                data = data[::-1,:]
+                ax.set_xticks(np.arange(cell_scores.shape[0]))
+                ax.set_yticks(np.arange(cell_scores.shape[1]))
+                ax.set_xticklabels([int(x) for x in ctrl_ranges[0]])
+                ax.set_yticklabels([int(x) for x in ctrl_ranges[1][::-1]])
+            # Create the heatmap
+            im = ax.imshow(data, aspect='auto')
+
+            #Create colorbar
+            cbar = ax.figure.colorbar(im, ax=ax)
+            cbar.ax.set_ylabel("", rotation=90, va="bottom")
+
+            # We want to show all ticks...
+            # ... and label them with the respective list entries
+            plt.xlabel(ctrl_names[0])
+            plt.ylabel(ctrl_names[1])
+
+            # Rotate the tick labels and set their alignment.
+            plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
+                     rotation_mode="anchor")
+
+            ax.set_title(title)
+            fig.tight_layout()
+
+            plt.savefig(os.path.join(log_dir, "{}_{}.png".format(ctrl_names, title.replace("%", ""))))
+#           plt.show()
+
+        ctrl_names = self.ctrl_names
+        ctrl_ranges = self.ctrl_ranges
+        cell_scores = self.cell_scores
+        cell_ctrl_scores = self.cell_ctrl_scores
+        cell_static_scores = self.cell_static_scores
+
+        title = "All goals (mean progress, %)"
+        create_heatmap(title, cell_scores)
+
+        title = "Controlled goals (mean progress, %)"
+        create_heatmap(title, cell_ctrl_scores)
+
+        title = "Fixed goals (mean progress, %)"
+        create_heatmap(title, cell_static_scores)
+        self.save_stats()
+
+    def save_stats(self):
+        scores = {
+            'net_score': self.cell_scores.mean(),
+            'ctrl_score': self.cell_ctrl_scores.mean(),
+            'fixed_score': self.cell_static_scores.mean(),
+        }
+
+    def render_levels(self):
+        ctrl_names = self.ctrl_names
+        fig, ax = plt.subplots()
+        ax.imshow(self.levels_image)
+    #       ax.axis["xzero"].set_axisline_style("-|>")
+        plt.tick_params(
+            axis='x',
+            which='both',
+            bottom=False,
+            top=False,
+            labelbottom=False)
+        plt.tick_params(
+            axis='y',
+            which='both',
+            left=False,
+            right=False,
+            labelleft=False)
+        if ctrl_names[1] is None:
+            plt.xlabel(ctrl_names[0])
+            pad_inches = 0
+            hspace = 0
+            bottom = 0
+        else:
+            plt.xlabel(ctrl_names[1])
+            plt.ylabel(ctrl_names[0])
+            pad_inches = 0
+            hspace = 0
+            bottom = 0.05
+       #plt.gca().set_axis_off()
+        plt.subplots_adjust(top = 1, bottom = bottom, right = 1, left = 0, 
+                    hspace = hspace, wspace = 0)
+        plt.margins(0,0)
+        plt.gca().xaxis.set_major_locator(plt.NullLocator())
+        plt.gca().yaxis.set_major_locator(plt.NullLocator())
+        plt.savefig(self.levels_im_path, bbox_inches = 'tight',
+            pad_inches = pad_inches)
+        plt.show()
 
 
 
@@ -375,7 +414,8 @@ args.add_argument('--render_levels',
         help='Save final maps (default to only one eval per cell)',
         action='store_true',
         )
-opts = args.parse_args()
+from arguments import parse_pcgrl_args
+opts = parse_pcgrl_args(args)
 global VIS_ONLY 
 VIS_ONLY = opts.vis_only
 

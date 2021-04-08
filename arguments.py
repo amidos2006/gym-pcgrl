@@ -1,3 +1,4 @@
+from pdb import set_trace as T
 import argparse
 
 prob_cond_metrics = {
@@ -8,9 +9,21 @@ prob_cond_metrics = {
         'sokoban': ['num_boxes'],
         }
 
+all_metrics = {
+        'binarygoal': ['regions', 'path-length'],
+        'zeldagoal': ['player', 'key', 'door', 'enemies', 'regions', 'nearest-enemy', 'path-length'],
+        'sokobangoal': ['player', 'crate', 'sol-length'],
+        }
+
 def parse_args():
     args = get_args()
+    return parse_pcgrl_args(args)
+
+
+def parse_pcgrl_args(args):
     opts = args.parse_args()
+    if opts.conditionals == ['ALL']:
+        opts.conditionals = all_metrics[opts.problem]
 
     return opts
 

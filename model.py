@@ -381,7 +381,8 @@ class CA_2(th.nn.Module):
         )
         with th.no_grad():
             n_flatten = self.val_shrink(self.w2(self.w1(self.perception(th.as_tensor(observation_space.sample()[None]).permute(0, 3, 1, 2).float())))).view(-1).shape[0]
-        self.filters = self.filters.cuda()
+        if th.cuda.is_available():
+            self.filters = self.filters.cuda()
 
         self.val_head = nn.Sequential(
             nn.Flatten(),
@@ -404,7 +405,8 @@ class CA_2(th.nn.Module):
         v = self.decode(v)
         b, c, h, w = y.shape
         # FIXME: should not be calling cuda here :(
-        update_mask = (th.rand(b, 1, h, w) < update_rate).cuda()
+        if th.cuda.is_available():
+            update_mask = (th.rand(b, 1, h, w) < update_rate).cuda()
         act = x[:,-self.n_tools:] * (update_mask == False) + y * update_mask
         act = (act + z + v) / 3
        #update_mask = (th.rand(b, 1, h, w)+update_rate).floor()
@@ -572,7 +574,7 @@ class CApolicy(ActorCriticCnnPolicy):
         n_tools = kwargs.pop("n_tools")
         features_extractor_kwargs = {'n_tools': n_tools}
        #super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=NCA, features_extractor_kwargs=features_extractor_kwargs)
-        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=CA_2, features_extractor_kwargs=features_extractor_kwargs)
+        super(CApolicy, self).__init__(observation_space, action_space, lr_schedule, **kwargs, net_arch=None, features_extractor_class=CA_1, features_extractor_kwargs=features_extractor_kwargs)
         # funky for CA type action
         use_sde = False
         dist_kwargs = None
@@ -581,207 +583,4 @@ class CApolicy(ActorCriticCnnPolicy):
         self.action_net = IdentityActModule()
         self.value_net = IdentityValModule()
 
-  # def _get_action_dist_from_latent(self, latent_pi: th.Tensor, latent_sde: Optional[th.Tensor] = None) -> Distribution:
-  #     """
-  #     Retrieve action distribution given the latent codes.
 
-  #     :param latent_pi: Latent code for the actor
-  #     :param latent_sde: Latent code for the gSDE exploration function
-  #     :return: Action distribution
-  #     """
-  #     mean_actions = self.action_net(latent_pi)
-  #     mean_actions = latent_pi
-
-
-  #     if isinstance(self.action_dist, NoDenseMultiCategoricalDistribution) or isinstance(self.action_dist, NoDenseCategoricalDistribution):
-  #         # Here mean_actions are the flattened logits
-  #         return self.action_dist.proba_distribution(action_logits=mean_actions)
-  #     else:
-  #         raise ValueError("Invalid action distribution")
-
-  # def _get_latent(self, obs: th.Tensor) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
-  #     """
-  #     Get the latent code (i.e., activations of the last layer of each network)
-  #     for the different networks.
-
-  #     :param obs: Observation
-  #     :return: Latent codes
-  #         for the actor, the value function and for gSDE function
-  #     """
-  #     # Preprocess the observation if needed
-  #     latent_pi, latent_vf = self.extract_features(obs)
-  #    #latent_pi, latent_vf = self.mlp_extractor(features)
-
-  #     # Features for sde
-  #     latent_sde = latent_pi
-  #     if self.sde_features_extractor is not None:
-  #         latent_sde = self.sde_features_extractor(features)
-  #     return latent_pi, latent_vf, latent_sde
-
-  # def forward(self, obs: th.Tensor, deterministic: bool = False) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
-  #     """
-  #     Forward pass in all the networks (actor and critic)
-
-  #     :param obs: Observation
-  #     :param deterministic: Whether to sample or use deterministic actions
-  #     :return: action, value and log probability of the action
-  #     """
-  #     latent_pi, latent_vf, latent_sde = self._get_latent(obs)
-  #     latent_pi = latent_sde = latent_pi.reshape(latent_pi.shape[0], -1)
-  #     # Evaluate the values for the given observations
-# #     values = self.value_net(latent_vf)
-  #     values = latent_vf
-# #     distribution = self._get_action_dist_from_latent(latent_pi, latent_sde=latent_sde)
-  #     distribution = self.action_dist.proba_distribution(latent_pi)
-  #     actions = distribution.get_actions(deterministic=deterministic)
-  #     log_prob = distribution.log_prob(actions)
-  #     return actions, values, log_prob
-
-
-
-
-
-#def FullyConv1(image, n_tools, **kwargs):
-#    activ = tf.nn.relu
-#    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c4', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c5', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c6', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c7', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c8', n_filters=n_tools, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    act = conv_to_fc(x)
-#    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
-#        init_scale=np.sqrt(2)))
-#    val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
-#        init_scale=np.sqrt(2)))
-#    val = conv_to_fc(val)
-#
-#    return act, val
-#
-#def FullyConv2(image, n_tools, **kwargs):
-#    activ = tf.nn.relu
-#    x = activ(conv(image, 'c1', n_filters=32, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c2', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c3', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c4', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c5', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c6', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c7', n_filters=64, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    x = activ(conv(x, 'c8', n_filters=n_tools, filter_size=3, stride=1,
-#        pad='SAME', init_scale=np.sqrt(2)))
-#    act = conv_to_fc(x)
-#    val = activ(conv(x, 'v1', n_filters=64, filter_size=3, stride=2,
-#        init_scale=np.sqrt(2)))
-#    val = activ(conv(val, 'v2', n_filters=64, filter_size=3, stride=2,
-#        init_scale=np.sqrt(3)))
-#    val = activ(conv(val, 'v4', n_filters=64, filter_size=1, stride=1,
-#        init_scale=np.sqrt(2)))
-#    val = conv_to_fc(val)
-#
-#    return act, val
-
-#class NoDenseCategoricalProbabilityDistributionType(ProbabilityDistributionType):
-#    def __init__(self, n_cat):
-#        """
-#        The probability distribution type for categorical input
-#
-#        :param n_cat: (int) the number of categories
-#        """
-#        self.n_cat = n_cat
-#
-#    def probability_distribution_class(self):
-#        return CategoricalProbabilityDistribution
-#
-#    def proba_distribution_from_latent(self, pi_latent_vector, vf_latent_vector, init_scale=1.0,
-#                                       init_bias=0.0):
-#        pdparam = pi_latent_vector
-#        q_values = vf_latent_vector
-#
-#        return self.proba_distribution_from_flat(pdparam), pdparam, q_values
-#
-#    def param_shape(self):
-#        return [self.n_cat]
-#
-#    def sample_shape(self):
-#        return []
-#
-#    def sample_dtype(self):
-#        return tf.int64
-#
-#class FullyConvPolicyBigMap(ActorCriticPolicy):
-#    def __init__(self, sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs):
-#        super(FullyConvPolicyBigMap, self).__init__(sess, ob_space, ac_space, n_env, n_steps, n_batch, **kwargs)
-#        n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
-#        self._pdtype = NoDenseCategoricalProbabilityDistributionType(ac_space.n)
-#        with tf.variable_scope("model", reuse=kwargs['reuse']):
-#            pi_latent, vf_latent = FullyConv2(self.processed_obs, n_tools, **kwargs)
-#            self._value_fn = linear(vf_latent, 'vf', 1)
-#            self._proba_distribution, self._policy, self.q_value = \
-#                self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
-#        self._setup_init()
-#
-#    def step(self, obs, state=None, mask=None, deterministic=False):
-#        if deterministic:
-#            action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
-#                                                   {self.obs_ph: obs})
-#        else:
-#            action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
-#                                                   {self.obs_ph: obs})
-#
-#        return action, value, self.initial_state, neglogp
-#
-#    def proba_step(self, obs, state=None, mask=None):
-#        return self.sess.run(self.policy_proba, {self.obs_ph: obs})
-#
-#    def value(self, obs, state=None, mask=None):
-#        return self.sess.run(self.value_flat, {self.obs_ph: obs})
-#
-#class FullyConvPolicy(ActorCriticPolicy):
-#    def __init__(self, **kwargs):
-#        super(FullyConvPolicy, self).__init__(**kwargs)
-#        ob_space = kwargs.get('observation_space')
-#        n_tools = int(ac_space.n / (ob_space.shape[0] * ob_space.shape[1]))
-#        self._pdtype = NoDenseCategoricalProbabilityDistributionType(ac_space.n)
-#        with tf.variable_scope("model", reuse=kwargs['reuse']):
-#            pi_latent, vf_latent = FullyConv1(self.processed_obs, n_tools, **kwargs)
-#            self._value_fn = linear(vf_latent, 'vf', 1)
-#            self._proba_distribution, self._policy, self.q_value = \
-#                self.pdtype.proba_distribution_from_latent(pi_latent, vf_latent, init_scale=0.01)
-#        self._setup_init()
-#
-#    def step(self, obs, state=None, mask=None, deterministic=False):
-#        if deterministic:
-#            action, value, neglogp = self.sess.run([self.deterministic_action, self.value_flat, self.neglogp],
-#                                                   {self.obs_ph: obs})
-#        else:
-#            action, value, neglogp = self.sess.run([self.action, self.value_flat, self.neglogp],
-#                                                   {self.obs_ph: obs})
-#
-#        return action, value, self.initial_state, neglogp
-#
-#    def proba_step(self, obs, state=None, mask=None):
-#        return self.sess.run(self.policy_proba, {self.obs_ph: obs})
-#
-#    def value(self, obs, state=None, mask=None):
-#        return self.sess.run(self.value_flat, {self.obs_ph: obs})
-
-#class CustomPolicySmallMap(ActorCriticCnnPolicy):
-#    def __init__(self, *args, **kwargs):
-#        super(CustomPolicySmallMap, self).__init__(*args, **kwargs, features_extractor_class=Cnn1)#, feature_extraction="cnn")
