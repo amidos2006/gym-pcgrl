@@ -92,7 +92,7 @@ def evaluate(game, representation, experiment, infer_kwargs, **kwargs):
     ctrl_bounds = [(k, control_bounds[k]) for k in eval_controls]
     # Hackish get initial states
     init_states = []
-    for i in range(N_TRIALS):
+    for i in range(N_MAPS):
         env.envs[0].reset()
         init_states.append(env.envs[0].unwrapped._rep._map)
     N_EVALS = N_TRIALS * N_MAPS
