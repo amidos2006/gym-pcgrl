@@ -136,6 +136,8 @@ class State:
         self.player = None
         self.key = None
         self.door = None
+        self._airTime = 3
+        self._hangTime = 1
 
     def stringInitialize(self, lines):
         # clean the input
@@ -260,17 +262,17 @@ class State:
                 newX = newX + dirX
         elif dirY == -1:
             if ground and not cieling:
-                self.player["airTime"] = 3
+                self.player["airTime"] = self._airTime
                 self.player["jumps"] += 1
 
-        if self.player["airTime"] > 1:
+        if self.player["airTime"] > self._hangTime:
             self.player["airTime"] -= 1
             if self.checkMovableLocation(newX, newY - 1):
                 newY = newY - 1
             else:
                 self.player["airTime"] = 1
-        elif self.player["airTime"] == 1:
-            self.player["airTime"] = 0
+        elif self.player["airTime"] > 0 and self.player["airTime"] <= self._hangTime:
+            self.player["airTime"] -= 1
         else:
             if self.checkMovableLocation(newX, newY + 1):
                 newY = newY + 1
