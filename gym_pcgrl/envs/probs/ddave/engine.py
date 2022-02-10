@@ -270,7 +270,7 @@ class State:
             if self.checkMovableLocation(newX, newY - 1):
                 newY = newY - 1
             else:
-                self.player["airTime"] = 1
+                self.player["airTime"] = self._hangTime
         elif self.player["airTime"] > 0 and self.player["airTime"] <= self._hangTime:
             self.player["airTime"] -= 1
         else:
