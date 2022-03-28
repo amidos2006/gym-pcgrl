@@ -91,7 +91,7 @@ def load_model(log_dir):
     if not os.path.exists(model_path):
         model_path = os.path.join(log_dir, 'latest_model.zip')
     if not os.path.exists(model_path):
-        model_path = os.path.join(log_dir, 'best_model.pkl')
+        model_path = os.path.join(log_dir, 'model_1.pkl')
     if not os.path.exists(model_path):
         model_path = os.path.join(log_dir, 'best_model.zip')
     if not os.path.exists(model_path):

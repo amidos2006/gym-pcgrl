@@ -6,6 +6,7 @@ from model import FullyConvPolicyBigMap, FullyConvPolicySmallMap, CustomPolicyBi
 from utils import get_exp_name, max_exp_idx, load_model, make_vec_envs
 from stable_baselines import PPO2
 from stable_baselines.results_plotter import load_results, ts2xy
+from stable_baselines.common.callbacks import BaseCallback
 
 import tensorflow as tf
 import numpy as np
@@ -14,6 +15,50 @@ import os
 n_steps = 0
 log_dir = './'
 best_mean_reward, n_steps = -np.inf, 0
+
+class CustomCallback(BaseCallback):
+    def __init__(self, check_freq: int, log_dir: str,verbose=0):
+        super(CustomCallback, self).__init__(verbose)
+        self.is_tb_set = False
+        self.check_freq = check_freq
+        self.log_dir = log_dir
+        self.best_mean_reward = -np.inf
+
+    def _init_callback(self) -> None:
+        # Todo : main에 있는 log_dir 이쪽으로 옮기기
+        pass
+
+    def _on_step(self):
+        # Log additional tensor
+        if not self.is_tb_set:
+            with self.model.graph.as_default():
+                # tf.summary.scalar('value_target', tf.reduce_mean(self.model.value_target))
+                self.model.summary = tf.summary.merge_all()
+            self.is_tb_set = True
+
+        if self.n_calls % self.check_freq == 0:
+
+            # Retrieve training reward
+            x, y = ts2xy(load_results(self.log_dir), 'timesteps')
+            if len(x) > 0:
+                # Mean training reward over the last 100 episodes
+                mean_reward = np.mean(y[-100:])
+                if self.verbose > 0:
+                    print("Num timesteps: {}".format(self.num_timesteps))
+                    print(
+                        "Best mean reward: {:.2f} - Last mean reward per episode: {:.2f}".format(self.best_mean_reward,
+                                                                                                 mean_reward))
+
+                # New best model, you could save the agent here
+                if mean_reward > self.best_mean_reward:
+                    self.best_mean_reward = mean_reward
+                    # saving best model
+                    print("Saving new best model")
+                    self.model.save(os.path.join(self.log_dir, 'best_model'))
+                else:
+                    print("Saving latest model")
+                    self.model.save(os.path.join(self.log_dir, 'latest_model'))
+        return True
 
 def callback(_locals, _globals):
     """
@@ -36,7 +81,7 @@ def callback(_locals, _globals):
                 best_mean_reward = mean_reward
                 # Example for saving best model
                 print("Saving new best model")
-                _locals['self'].save(os.path.join(log_dir, 'best_model.pkl'))
+                _locals['self'].save(os.path.join(log_dir, 'model_1.pkl'))
             else:
                 print("Saving latest model")
                 _locals['self'].save(os.path.join(log_dir, 'latest_model.pkl'))
@@ -88,17 +133,18 @@ def main(game, representation, experiment, steps, n_cpu, render, logging, **kwar
         model = PPO2(policy, env, verbose=1, tensorboard_log="./runs")
     else:
         model.set_env(env)
+    callback = CustomCallback(check_freq=1e3, log_dir=log_dir)
     if not logging:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name)
     else:
         model.learn(total_timesteps=int(steps), tb_log_name=exp_name, callback=callback)
 
 ################################## MAIN ########################################
-game = 'binary'
-representation = 'narrow'
+game = 'pp'
+representation = 'turtle'
 experiment = None
 steps = 1e8
-render = False
+render = True
 logging = True
 n_cpu = 50
 kwargs = {

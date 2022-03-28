@@ -6,6 +6,22 @@ from stable_baselines import PPO2
 
 import time
 from utils import make_vec_envs
+import numpy as np
+import cv2
+
+def save_map(obs):
+    empty_tile = cv2.imread(f"./gym_pcgrl/envs/probs/binary/empty.png")
+    solid_tile = cv2.imread(f"./gym_pcgrl/envs/probs/binary/solid.png")
+    map = np.zeros((empty_tile.shape[0]*obs.shape[0], empty_tile.shape[1]*obs.shape[1], 3))
+
+    for i in range(obs.shape[0]):
+        for j in range(obs.shape[1]):
+            if obs[i][j] == 0:
+                map[i][j] = empty_tile
+            else:
+                map[i][j] = solid_tile
+
+    cv2.imwrite(f"./inference/{representation}_{1}.png",map)
 
 def infer(game, representation, model_path, **kwargs):
     """
@@ -39,9 +55,11 @@ def infer(game, representation, model_path, **kwargs):
                 break
         time.sleep(0.2)
 
+
+
 ################################## MAIN ########################################
-game = 'binary'
-representation = 'narrow'
+game = 'pp'
+representation = 'turtle'
 model_path = 'models/{}/{}/model_1.pkl'.format(game, representation)
 kwargs = {
     'change_percentage': 0.4,
