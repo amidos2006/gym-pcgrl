@@ -175,7 +175,8 @@ conda create --name pcgrl
 conda activate pcgrl
 pip install tensorflow==1.15
 pip install stable-baselines==2.9.0
-cd gym_pcgrl
+pip install gym==0.19
+cd gym-pcgrl
 pip install -e .
 cd ..
 python train.py
@@ -184,7 +185,8 @@ Lastly, you can just install directly without using any virtual environment:
 ```sh
 pip install tensorflow==1.15
 pip install stable-baselines==2.9.0
-cd gym_pcgrl
+pip install gym==0.19
+cd gym-pcgrl
 pip install -e .
 cd ..
 python train.py
