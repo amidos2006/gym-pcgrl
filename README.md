@@ -22,13 +22,15 @@ The framework, along with some initial reinforcement learning results, is covere
 }
 ``` -->
 ```
-@misc{khalifa2020pcgrl,
-    title={PCGRL: Procedural Content Generation via Reinforcement Learning},
-    author={Ahmed Khalifa and Philip Bontrager and Sam Earle and Julian Togelius},
+@inproceedings{khalifa2020pcgrl,
+    title={Pcgrl: Procedural content generation via reinforcement learning},
+    author={Khalifa, Ahmed and Bontrager, Philip and Earle, Sam and Togelius, Julian},
+    booktitle={Artificial Intelligence and Interactive Digital Entertainment},
+    volume={16},
+    number={1},
+    pages={95--101},
     year={2020},
-    eprint={2001.09212},
-    archivePrefix={arXiv},
-    primaryClass={cs.LG}
+    organization={AAAI}
 }
 ```
 
