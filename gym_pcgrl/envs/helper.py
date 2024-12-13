@@ -237,7 +237,7 @@ def run_dikjstra(x, y, map, passable_values):
     return dikjstra_map, visited_map
 
 """
-Calculate the longest path on the map
+Calculate the approximate longest shortest path (i.e. all pairs shortest path) on the map.
 
 Parameters:
     map (any[][]): the current map being tested
